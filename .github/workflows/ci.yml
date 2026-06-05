@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Lint (shellcheck + markdownlint + PSScriptAnalyzer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Install markdownlint-cli2
+        run: npm install -g markdownlint-cli2
+
+      - name: Run shellcheck
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck --severity=warning
+
+      - name: Run markdownlint-cli2
+        run: markdownlint-cli2 "**/*.md" "#node_modules"
+
+      - name: Run PSScriptAnalyzer via Docker
+        run: |
+          docker run --rm -v "$PWD:/app:ro" \
+            mcr.microsoft.com/powershell pwsh -Command "
+              Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction SilentlyContinue | Out-Null
+              \$results = Invoke-ScriptAnalyzer -Path /app/OpenCodeWizard.ps1 -Severity Error,Warning
+              if (\$results) { \$results | ForEach-Object { Write-Error \$_ }; exit 1 }
+              Write-Host 'PSScriptAnalyzer: no issues found'
+            "
+
+  test-ubuntu:
+    name: Test Ubuntu
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Ubuntu test
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh ubuntu
+
+  test-fedora:
+    name: Test Fedora
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Fedora test
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh fedora
+
+  test-arch:
+    name: Test Arch Linux
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Arch Linux test
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh arch
+
+  test-powershell:
+    name: Test PowerShell Syntax
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PowerShell syntax check
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh powershell

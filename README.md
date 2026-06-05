@@ -1,0 +1,242 @@
+# OpenCode & WezTerm Setup Wizard (OpenCodeWizard)
+
+*Read this in other languages: [Українська (README.uk.md)](README.uk.md)*
+
+A cross-platform, idempotent, and highly customizable setup wizard to configure **OpenCode** (a local AI coding assistant) and **WezTerm** (a high-performance, GPU-accelerated terminal emulator written in Rust). 
+
+This tool is designed to help both programmers and everyday users set up a state-of-the-art AI-assisted command-line environment without any hassle.
+
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [📖 Beginner's Guide](#-beginners-guide)
+- [Included Components](#included-components)
+  - [OpenCode Plugins](#opencode-plugins)
+  - [Model Context Protocol (MCP) Servers](#model-context-protocol-mcp-servers)
+- [How to Use](#how-to-use)
+  - [Linux & macOS](#linux--macos)
+  - [Windows 11](#windows-11)
+- [CLI Reference](#cli-reference)
+- [Customizing Plugins & MCP Servers](#customizing-plugins--mcp-servers)
+- [WezTerm Customizations](#wezterm-customizations)
+- [Setting WezTerm as the Default Terminal](#setting-wezterm-as-the-default-terminal)
+- [Backups & Restore](#backups--restore)
+- [Safety & Idempotency](#safety--idempotency)
+- [⚖️ License](#-license)
+
+---
+
+## Introduction
+
+Command-line environments can be intimidating. However, they are incredibly powerful, and with the help of local AI, they become extremely productive and easy to navigate.
+
+**OpenCodeWizard** automates the installation and configuration of **OpenCode** and **WezTerm** to create a unified, beautiful workspace. We configure WezTerm with smooth fonts, a premium dark theme, and split panes, so you can interact with the AI assistant side-by-side with your project files.
+
+![WezTerm with OpenCode Terminal Settings Preview](assets/terminal_preview.gif)
+
+---
+
+## Features
+
+- **Multilingual Support:** Fully translated into **English** and **Ukrainian**.
+- **Interactive Onboarding:** Tailored menus that let you install the default bundle instantly or customize your setup step-by-step.
+- **Safety Backups:** Automatically copies any existing configuration files (`wezterm.lua` and `opencode.jsonc`) to `.bak` before writing new ones.
+- **Desktop Shortcuts:** Optional one-click desktop shortcut creation to launch OpenCode inside WezTerm instantly (Linux & Windows).
+- **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
+
+---
+
+## 📖 Beginner's Guide
+
+If you are new to AI coding assistants or using the command line, please read our step-by-step:
+👉 **[Beginner's Guide (docs/guide.md)](docs/guide.md)**
+
+It covers cloning, launching, choosing AI models, and basic usage instructions.
+
+---
+
+## Included Components
+
+### OpenCode Plugins
+
+During the wizard, you can install the following plugins:
+
+| Plugin Name | Description |
+| :--- | :--- |
+| **`oh-my-opencode`** | Session management, workspace utilities, and advanced helper CLI commands. |
+| **`opencode-mem`** | Long-term vector database memory, letting the AI remember details across chats. |
+| **`@different-ai/opencode-browser`** | Real browser integration, allowing the AI to browse the web when answering questions. |
+| **`@tarquinen/opencode-smart-title`** | Generates smart titles for your active chats automatically based on context. |
+| **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
+
+### Model Context Protocol (MCP) Servers
+
+MCP servers extend the AI's capabilities to interact with local APIs and tools:
+
+| MCP Server | Description |
+| :--- | :--- |
+| **`fetch`** | Instantly downloads and parses the text content of web URLs without loading a GUI. |
+| **`puppeteer`** | Full browser automation, allowing the agent to click buttons, fill forms, and take screenshots. |
+| **`postgres`** | Direct, secure connection to local databases (pre-configured for the `gpt_chat_bot` database). |
+
+---
+
+## How to Use
+
+> [!NOTE]
+> Make sure you have [Git](docs/git.md) installed before proceeding.
+
+### Linux & macOS
+
+1. Open your terminal and clone the repository:
+   ```bash
+   git clone https://github.com/nudykw/OpenCodeWizard.git
+   cd OpenCodeWizard
+   ```
+2. Make the script executable and run:
+   ```bash
+   chmod +x OpenCodeWizard.sh
+   ./OpenCodeWizard.sh
+   ```
+3. Follow the friendly interactive prompt (defaults are preselected—just press `Enter` to proceed).
+
+### Windows 11
+
+1. Open PowerShell **as Administrator**.
+2. Clone the repository and navigate into it:
+   ```powershell
+   git clone https://github.com/nudykw/OpenCodeWizard.git
+   cd OpenCodeWizard
+   ```
+3. Execute the script:
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force
+   .\OpenCodeWizard.ps1
+   ```
+
+---
+---
+
+## CLI Reference
+
+| Command | Description |
+| :--- | :--- |
+| `./OpenCodeWizard.sh` | Run the interactive setup wizard |
+| `./OpenCodeWizard.sh --silent` | Automated setup with all defaults |
+| `./OpenCodeWizard.sh --create-backup` | Save a snapshot of current config files |
+| `./OpenCodeWizard.sh --restore-backup` | Interactively restore a previous snapshot |
+| `./OpenCodeWizard.sh --reset` | Wipe all wizard-managed configs (backup created first) |
+| `./OpenCodeWizard.sh --remove-backups` | Delete ALL saved backups |
+| `./OpenCodeWizard.sh --help` | Show full help with all commands |
+
+On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and use the equivalent parameters: `-CreateBackup`, `-RestoreBackup`, `-Reset`, `-RemoveBackups`.
+
+---
+
+## Customizing Plugins & MCP Servers
+
+All plugins and MCP servers are defined as **plain lists at the very top of the script** — no programming knowledge required to edit them.
+
+**To add a new plugin**, open `OpenCodeWizard.sh` and add one line to `OPENCODE_PLUGINS`:
+
+```bash
+OPENCODE_PLUGINS=(
+    "oh-my-openagent|Session management and advanced CLI commands"
+    "opencode-mem|Vector and long-term memory for the assistant"
+    # Add your plugin on a new line:
+    "my-cool-plugin|What this plugin does"
+)
+```
+
+**To disable an MCP server**, comment out its line with `#`:
+
+```bash
+OPENCODE_MCP_SERVERS=(
+    "fetch|Fast web page text retrieval|npx -y mcp-server-fetch-typescript"
+    # "postgres|Local database|..."    <- disabled
+    "context7|Library documentation|npx -y @upstash/context7-mcp"
+)
+```
+
+On Windows, find `$OpencodePlugins` and `$OpencodeMcpServers` at the top of `OpenCodeWizard.ps1` — same format, same approach.
+
+---
+
+## Backups & Restore
+
+Every time the wizard modifies a config file, it creates a **transactional backup** first.
+
+- **Backup location:** `~/.local/share/opencodeWizard/backups/`
+- **Backup ID format:** `ocw-<git_hash>-<YYYYMMDD-HHMMSS>` (unique per session)
+- **All files from one session share one ID** — making it easy to identify and restore.
+
+```bash
+# Create a manual snapshot
+./OpenCodeWizard.sh --create-backup
+
+# Restore interactively (shows list of backups)
+./OpenCodeWizard.sh --restore-backup
+
+# Delete all backups
+./OpenCodeWizard.sh --remove-backups
+```
+
+Restoration is **transactional**: all files are restored together or none at all. A silent pre-restore backup is created automatically before any restore operation.
+
+
+## WezTerm Customizations
+
+The script sets up a premium terminal layout using the `wezterm.lua` file:
+- **Theme:** Catppuccin Mocha (elegant, high-contrast dark theme).
+- **Font:** JetBrains Mono (customized for maximum readability).
+- **Hotkeys:**
+  - `CTRL + SHIFT + O`: Split screen vertically and launch OpenCode with the free, fast `deepseek-v4-flash-free` model.
+  - `CTRL + SHIFT + D`: Split screen horizontally.
+  - `CTRL + SHIFT + E`: Split screen vertically.
+  - `CTRL + SHIFT + W`: Close the active split pane.
+
+---
+
+## Setting WezTerm as the Default Terminal
+
+### Linux:
+The script automatically handles default registration using three methods:
+1. Registers via **`update-alternatives`** (`x-terminal-emulator`).
+2. Configures modern Freedesktop **`xdg-terminals.list`** layouts.
+3. Appends `export TERMINAL=wezterm` to `~/.bashrc` / `~/.zshrc` without duplicate lines.
+
+### Windows 11:
+Instructions are shown at the end of the PowerShell wizard:
+1. Open Windows Terminal (or Settings -> System -> For Developers).
+2. Go to the **Startup** section.
+3. Change the **Default terminal application** to **WezTerm**.
+
+### macOS:
+1. Open Finder -> Applications -> Utilities -> Terminal.app.
+2. Go to Preferences -> General -> Shells open with.
+3. Set it to the **Default Login Shell**.
+
+---
+
+## Safety & Idempotency
+
+- All commands are **idempotent** (can be re-run safely multiple times).
+- Shell RC exports are guarded with `grep` checks to prevent duplicate lines.
+- Safe backup copy creations prevent your customized lua/json configs from being accidentally overwritten.
+
+---
+
+## ⚖️ License
+
+Distributed under the **MIT License with Ethical Peace Protest Clause**.
+
+> [!IMPORTANT]
+> **Ethical Peace Protest Clause (Section 3)**:
+> In memory of the lessons of WWII, and as a peaceful humanitarian protest against the unprovoked military aggression, violence, and invasion of Ukraine by the Russian Federation:
+> 1. This software, its components, or derivatives **MUST NOT be translated or localized into the Russian language** in any UI, resources, or documentation.
+> 2. Any deployment **MUST NOT present a Russian language user interface**.
+> 3. These restrictions will be automatically repealed upon the complete cessation of military activities, full withdrawal of occupation forces from all internationally recognized territories of Ukraine (borders of 1991), and payment of war reparations.
+> 4. All forks and derivatives **MUST preserve active backlinks** to the official parent repository: `https://github.com/nudykw/OpenCodeWizard`.
