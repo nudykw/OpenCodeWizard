@@ -1355,8 +1355,17 @@ function Create-DesktopShortcut {
         if (-not (Test-Path $wezGui)) { throw "wezterm-gui.exe not found in $wezDir" }
 
         # Resolve full path to opencode for robustness
-        $opencodePath = if (Get-Command opencode -ErrorAction SilentlyContinue) {
-            (Get-Command opencode -ErrorAction Stop).Source
+        # Prefer .cmd over .ps1 — .ps1 is blocked by execution policy and not directly executable
+        $opencodePath = if (Get-Command opencode.cmd -ErrorAction SilentlyContinue) {
+            (Get-Command opencode.cmd -ErrorAction Stop).Source
+        } elseif (Get-Command opencode -ErrorAction SilentlyContinue) {
+            # Ensure we don't pick the .ps1 variant — swap extension to .cmd if needed
+            $resolved = (Get-Command opencode -ErrorAction Stop).Source
+            if ($resolved -match '\.ps1$') {
+                [System.IO.Path]::ChangeExtension($resolved, ".cmd")
+            } else {
+                $resolved
+            }
         } else {
             "opencode.cmd"
         }
