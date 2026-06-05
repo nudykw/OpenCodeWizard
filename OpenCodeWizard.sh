@@ -891,7 +891,7 @@ config.keys = {
     action = wezterm.action.SplitPane {
       direction = 'Right',
       size = { Percent = 40 },
-      command = { args = { 'opencode', '-m', 'opencode/deepseek-v4-flash-free' } },
+      command = { args = { os.getenv("SHELL") or "bash", "-l", "-i", "-c", "opencode -m opencode/deepseek-v4-flash-free" } },
     },
   },
   -- Standard splits
