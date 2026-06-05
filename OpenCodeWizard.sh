@@ -200,12 +200,30 @@ msg() {
                 "manual_wezterm") echo "Будь ласка, встановіть WezTerm вручную з https://wezfurlong.org/wezterm/install/" ;;
                 "unsupported_os") echo "Ця ОС не підтримується:" ;;
                 "wezterm_success") echo "WezTerm успішно встановлено!" ;;
+                "node_explain")
+                    echo "Node.js та npm потрібні для повноцінної роботи OpenCodeWizard:"
+                    echo "  • Встановлення OpenCode CLI (пакет opencode-ai)"
+                    echo "  • Запуск MCP-серверів (fetch, puppeteer, context7, postgres тощо) через npx"
+                    echo "  • Частина плагінів OpenCode"
+                    echo "Без npm OpenCode можна встановити іншим способом, але MCP-сервери не працюватимуть."
+                    ;;
+                "ask_node") echo "Встановити Node.js та npm?" ;;
+                "node_exists") echo "Node.js та npm вже встановлено." ;;
+                "node_skip_warning") echo "Node.js/npm не встановлено. OpenCode буде встановлено альтернативним способом, MCP-сервери можуть не працювати." ;;
+                "installing_node") echo "Встановлення Node.js та npm..." ;;
+                "node_success") echo "Node.js та npm успішно встановлено!" ;;
+                "node_path_hint") echo "npm не знайдено в PATH. Перезапустіть термінал і запустіть скрипт знову." ;;
+                "node_manual") echo "Будь ласка, встановіть Node.js вручну: https://nodejs.org/ , потім запустіть майстер знову." ;;
                 "ask_opencode") echo "Встановити OpenCode CLI?" ;;
                 "opencode_exists") echo "OpenCode вже встановлено:" ;;
                 "skip_opencode") echo "Пропуск встановлення OpenCode." ;;
-                "checking_npm") echo "Перевірка Node.js та npm..." ;;
-                "npm_missing") echo "Для встановлення OpenCode потрібен NPM. Будь ласка, встановіть Node.js/NPM." ;;
-                "installing_opencode_global") echo "Встановлення opencode-ai глобально..." ;;
+                "installing_opencode_script") echo "Встановлення OpenCode через офіційний скрипт..." ;;
+                "installing_opencode_brew") echo "Встановлення OpenCode через Homebrew..." ;;
+                "installing_opencode_pacman") echo "Встановлення OpenCode через Pacman..." ;;
+                "installing_opencode_npm") echo "Встановлення opencode-ai через npm..." ;;
+                "opencode_script_failed") echo "Офіційний скрипт не вдався, пробую інший спосіб..." ;;
+                "opencode_failed") echo "Не вдалося встановити OpenCode жодним із доступних способів." ;;
+                "opencode_manual") echo "Встановіть вручну: curl -fsSL https://opencode.ai/install | bash" ;;
                 "opencode_success") echo "OpenCode успішно встановлено!" ;;
                 "ask_plugins") echo "Налаштувати плагіни для OpenCode?" ;;
                 "skip_plugins") echo "Пропуск налаштування плагінів." ;;
@@ -268,6 +286,84 @@ msg() {
                 "gomcp_installing") echo "Встановлення go-docs-mcp через Go..." ;;
                 "gomcp_installed") echo "go-docs-mcp успішно встановлено." ;;
                 "gomcp_failed") echo "go-docs-mcp не знайдено після встановлення. Переконайтеся, що ~/go/bin є в PATH." ;;
+                "preset_label") echo "Обраний пресет:" ;;
+                "dry_backup_create") echo "Створить бекап у" ;;
+                "invalid_choice_abort") echo "Невірний вибір. Скасовано." ;;
+                "restore_cancelled") echo "Відновлення скасовано." ;;
+                "backup_files_header") echo "Файли в цьому бекапі:" ;;
+                "cancelled") echo "Скасовано." ;;
+                "backups_found_count") echo "Знайдено" ;;
+                "backups_total_size") echo "загалом." ;;
+                "dry_delete_backups") echo "Видалить ВСІ бекапи в" ;;
+                "backup_before_reset") echo "Створення бекапу перед скиданням..." ;;
+                "dry_reset_remove_configs") echo "Видалить: opencode.jsonc, system_info.md, wezterm.lua, OpenCode.desktop" ;;
+                "dry_reset_remove_terminal") echo "Видалить export TERMINAL з .bashrc/.zshrc" ;;
+                "dry_reset_remove_plugins") echo "Видалить плагіни OpenCode" ;;
+                "removed_file") echo "Видалено:" ;;
+                "removed_terminal_export") echo "Видалено export TERMINAL з" ;;
+                "removing_plugin") echo "Видалення плагіна:" ;;
+                "dry_migrate_plugin") echo "Мігрує oh-my-opencode → oh-my-openagent у" ;;
+                "dry_wezterm_brew") echo "Виконає: brew install --cask wezterm" ;;
+                "dry_wezterm_ubuntu") echo "Додасть репозиторій WezTerm APT + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
+                "dry_wezterm_redhat") echo "Виконає: dnf install wezterm xclip wl-clipboard" ;;
+                "dry_wezterm_arch") echo "Виконає: pacman -S wezterm xclip wl-clipboard" ;;
+                "dry_wezterm_unsupported_distro") echo "Дистрибутив не підтримується для авто-встановлення:" ;;
+                "dry_wezterm_unsupported_os") echo "ОС не підтримується:" ;;
+                "dry_wezterm_skipped") echo "Встановлення WezTerm пропущено (dry-run)" ;;
+                "go_already_installed") echo "Go вже встановлено:" ;;
+                "go_version_old") echo "Версія Go застаріла — потрібна 1.22+." ;;
+                "dry_install_go") echo "Встановить Go 1.24.0 для" ;;
+                "unsupported_arch") echo "Непідтримувана архітектура:" ;;
+                "go_installed_to") echo "Go 1.24.0 встановлено в /usr/local/go" ;;
+                "brew_install_first") echo "Homebrew не знайдено. Спочатку встановлюємо Homebrew..." ;;
+                "dry_install_brew") echo "Встановить Homebrew (потрібен sudo)" ;;
+                "go_unsupported_os") echo "ОС не підтримується для автоматичного встановлення Go:" ;;
+                "go_install_path_failed") echo "Go не знайдено в PATH після встановлення." ;;
+                "go_installed_version") echo "Go встановлено:" ;;
+                "gomcp_already_installed") echo "go-docs-mcp вже встановлено:" ;;
+                "gomcp_go_required") echo "Go потрібен для docs-mcp. Спочатку встановіть Go." ;;
+                "dry_install_gomcp") echo "Виконає: go install github.com/drolosoft/go-docs-mcp@v1.1.0" ;;
+                "dry_install_node") echo "Встановить Node.js/npm для" ;;
+                "dry_node_brew") echo "Виконає: brew install node" ;;
+                "dry_node_apt") echo "Виконає: apt install -y nodejs npm" ;;
+                "dry_node_dnf") echo "Виконає: dnf install -y nodejs npm" ;;
+                "dry_node_pacman") echo "Виконає: pacman -S --noconfirm nodejs npm" ;;
+                "dry_install_opencode") echo "Встановить OpenCode через офіційний скрипт, менеджер пакетів або npm" ;;
+                "dry_opencode_skipped") echo "Встановлення OpenCode пропущено (dry-run)" ;;
+                "skip_plugin_preset") echo "Пропуск (немає в пресеті):" ;;
+                "dry_install_plugin") echo "Встановить плагін:" ;;
+                "plugin_install_failed") echo "Не вдалося встановити або вже встановлено:" ;;
+                "skip_mcp_preset") echo "Пропуск MCP (немає в пресеті):" ;;
+                "dry_write_system_info") echo "Запише system_info.md у" ;;
+                "dry_write_opencode_config") echo "Запише opencode.jsonc у" ;;
+                "dry_plugins_list") echo "Плагіни:" ;;
+                "dry_mcp_configured") echo "MCP-сервери: згідно з вашим вибором" ;;
+                "dry_opencode_config_skipped") echo "Конфігурація OpenCode пропущена (dry-run)" ;;
+                "dry_wezterm_dir") echo "Створить директорію:" ;;
+                "dry_wezterm_config") echo "Запише конфігурацію WezTerm у" ;;
+                "dry_wezterm_config_skipped") echo "Конфігурація WezTerm пропущена (dry-run)" ;;
+                "dry_default_terminal_register") echo "Зареєструє WezTerm як x-terminal-emulator за замовчуванням (update-alternatives)" ;;
+                "dry_xdg_terminals") echo "Запише XDG terminal configs у ~/.config/xdg-terminals.list" ;;
+                "dry_terminal_export") echo "Додасть 'export TERMINAL=wezterm' до конфігурації оболонки (bashrc/zshrc/profile)" ;;
+                "update_alternatives_register_failed") echo "Не вдалося зареєструвати WezTerm у update-alternatives" ;;
+                "update_alternatives_set_failed") echo "Не вдалося встановити x-terminal-emulator за замовчуванням" ;;
+                "dry_desktop_shortcut") echo "Створить ярлик на робочому столі:" ;;
+                "verify_wezterm") echo "WezTerm:" ;;
+                "verify_opencode") echo "OpenCode:" ;;
+                "active_mcp_servers") echo "Активні MCP-сервери:" ;;
+                "mcp_status_failed") echo "Не вдалося отримати статус MCP." ;;
+                "dry_run_complete") echo "DRY-RUN ЗАВЕРШЕНО — жодних змін у системі не внесено." ;;
+                "dry_run_apply") echo "Запустіть без --dry-run, щоб застосувати зміни." ;;
+                "list_total") echo "Всього:" ;;
+                "list_backups_label") echo "бекапів" ;;
+                "list_size") echo "Розмір:" ;;
+                "select_preset_title") echo "Оберіть пресет конфігурації:" ;;
+                "preset_full") echo "1)🍔 Full — все включено (рекомендовано)" ;;
+                "preset_medium") echo "2)🥪 Medium — основні плагіни + базові MCP" ;;
+                "preset_light") echo "3)🥗 Light — мінімальне налаштування" ;;
+                "preset_mcps_label") echo "MCPs:" ;;
+                "preset_plugins_label") echo "Plugins:" ;;
+                "preset_choice") echo "Вибір [1-3] (за замовчуванням: 1):" ;;
             esac
             ;;
         *) # default to "en"
@@ -294,12 +390,30 @@ msg() {
                 "manual_wezterm") echo "Please install WezTerm manually from https://wezfurlong.org/wezterm/install/" ;;
                 "unsupported_os") echo "Unsupported OS:" ;;
                 "wezterm_success") echo "WezTerm installed successfully!" ;;
+                "node_explain")
+                    echo "Node.js and npm are required for the full OpenCodeWizard experience:"
+                    echo "  • Installing the OpenCode CLI (opencode-ai package)"
+                    echo "  • Running MCP servers (fetch, puppeteer, context7, postgres, etc.) via npx"
+                    echo "  • Some OpenCode plugins"
+                    echo "Without npm, OpenCode can still be installed another way, but MCP servers will not work."
+                    ;;
+                "ask_node") echo "Install Node.js and npm?" ;;
+                "node_exists") echo "Node.js & npm are already installed." ;;
+                "node_skip_warning") echo "Node.js/npm not installed. OpenCode will be installed via an alternative method; MCP servers may not work." ;;
+                "installing_node") echo "Installing Node.js & npm..." ;;
+                "node_success") echo "Node.js & npm installed successfully!" ;;
+                "node_path_hint") echo "npm not found in PATH. Restart your terminal and run the wizard again." ;;
+                "node_manual") echo "Please install Node.js manually from https://nodejs.org/ then re-run the wizard." ;;
                 "ask_opencode") echo "Install OpenCode CLI?" ;;
                 "opencode_exists") echo "OpenCode is already installed:" ;;
                 "skip_opencode") echo "Skipping OpenCode installation." ;;
-                "checking_npm") echo "Checking Node.js & npm..." ;;
-                "npm_missing") echo "NPM is required to install OpenCode. Please install Node.js/NPM first." ;;
-                "installing_opencode_global") echo "Installing opencode-ai globally..." ;;
+                "installing_opencode_script") echo "Installing OpenCode via official install script..." ;;
+                "installing_opencode_brew") echo "Installing OpenCode via Homebrew..." ;;
+                "installing_opencode_pacman") echo "Installing OpenCode via Pacman..." ;;
+                "installing_opencode_npm") echo "Installing opencode-ai via npm..." ;;
+                "opencode_script_failed") echo "Official install script failed, trying another method..." ;;
+                "opencode_failed") echo "Failed to install OpenCode using any available method." ;;
+                "opencode_manual") echo "Install manually: curl -fsSL https://opencode.ai/install | bash" ;;
                 "opencode_success") echo "OpenCode installed successfully!" ;;
                 "ask_plugins") echo "Configure OpenCode plugins?" ;;
                 "skip_plugins") echo "Skipping plugin setup." ;;
@@ -362,6 +476,84 @@ msg() {
                 "gomcp_installing") echo "Installing go-docs-mcp via Go..." ;;
                 "gomcp_installed") echo "go-docs-mcp installed successfully." ;;
                 "gomcp_failed") echo "go-docs-mcp not found after install. Check that ~/go/bin is in your PATH." ;;
+                "preset_label") echo "Selected preset:" ;;
+                "dry_backup_create") echo "Would create backup at" ;;
+                "invalid_choice_abort") echo "Invalid choice. Aborting." ;;
+                "restore_cancelled") echo "Restore cancelled." ;;
+                "backup_files_header") echo "Files in this backup:" ;;
+                "cancelled") echo "Cancelled." ;;
+                "backups_found_count") echo "Found" ;;
+                "backups_total_size") echo "total." ;;
+                "dry_delete_backups") echo "Would delete ALL backups in" ;;
+                "backup_before_reset") echo "Creating backup before reset..." ;;
+                "dry_reset_remove_configs") echo "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode.desktop" ;;
+                "dry_reset_remove_terminal") echo "Would remove TERMINAL export from .bashrc/.zshrc" ;;
+                "dry_reset_remove_plugins") echo "Would remove OpenCode plugins" ;;
+                "removed_file") echo "Removed:" ;;
+                "removed_terminal_export") echo "Removed TERMINAL export from" ;;
+                "removing_plugin") echo "Removing plugin:" ;;
+                "dry_migrate_plugin") echo "Would migrate oh-my-opencode → oh-my-openagent in" ;;
+                "dry_wezterm_brew") echo "Would run: brew install --cask wezterm" ;;
+                "dry_wezterm_ubuntu") echo "Would add WezTerm APT repo + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
+                "dry_wezterm_redhat") echo "Would run: dnf install wezterm xclip wl-clipboard" ;;
+                "dry_wezterm_arch") echo "Would run: pacman -S wezterm xclip wl-clipboard" ;;
+                "dry_wezterm_unsupported_distro") echo "Unsupported distro for auto-install:" ;;
+                "dry_wezterm_unsupported_os") echo "Unsupported OS:" ;;
+                "dry_wezterm_skipped") echo "WezTerm installation skipped (dry-run)" ;;
+                "go_already_installed") echo "Go is already installed:" ;;
+                "go_version_old") echo "Go version is too old — need 1.22+." ;;
+                "dry_install_go") echo "Would install Go 1.24.0 for" ;;
+                "unsupported_arch") echo "Unsupported architecture:" ;;
+                "go_installed_to") echo "Go 1.24.0 installed to /usr/local/go" ;;
+                "brew_install_first") echo "Homebrew not found. Installing Homebrew first..." ;;
+                "dry_install_brew") echo "Would install Homebrew (requires sudo)" ;;
+                "go_unsupported_os") echo "Unsupported OS for automatic Go installation:" ;;
+                "go_install_path_failed") echo "Go installation failed — not found in PATH after install." ;;
+                "go_installed_version") echo "Go installed:" ;;
+                "gomcp_already_installed") echo "go-docs-mcp already installed:" ;;
+                "gomcp_go_required") echo "Go is required for docs-mcp. Run install_go first." ;;
+                "dry_install_gomcp") echo "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0" ;;
+                "dry_install_node") echo "Would install Node.js/npm for" ;;
+                "dry_node_brew") echo "Would run: brew install node" ;;
+                "dry_node_apt") echo "Would run: apt install -y nodejs npm" ;;
+                "dry_node_dnf") echo "Would run: dnf install -y nodejs npm" ;;
+                "dry_node_pacman") echo "Would run: pacman -S --noconfirm nodejs npm" ;;
+                "dry_install_opencode") echo "Would install OpenCode via official script, package manager, or npm fallback" ;;
+                "dry_opencode_skipped") echo "OpenCode installation skipped (dry-run)" ;;
+                "skip_plugin_preset") echo "Skipping (not in preset):" ;;
+                "dry_install_plugin") echo "Would install plugin:" ;;
+                "plugin_install_failed") echo "Failed to install or already installed:" ;;
+                "skip_mcp_preset") echo "Skipping MCP (not in preset):" ;;
+                "dry_write_system_info") echo "Would write system_info.md to" ;;
+                "dry_write_opencode_config") echo "Would write opencode.jsonc to" ;;
+                "dry_plugins_list") echo "Plugins:" ;;
+                "dry_mcp_configured") echo "MCP servers: configured based on your selections" ;;
+                "dry_opencode_config_skipped") echo "OpenCode config skipped (dry-run)" ;;
+                "dry_wezterm_dir") echo "Would create directory:" ;;
+                "dry_wezterm_config") echo "Would write WezTerm config to" ;;
+                "dry_wezterm_config_skipped") echo "WezTerm config skipped (dry-run)" ;;
+                "dry_default_terminal_register") echo "Would register WezTerm as default x-terminal-emulator (update-alternatives)" ;;
+                "dry_xdg_terminals") echo "Would write XDG terminal configs to ~/.config/xdg-terminals.list" ;;
+                "dry_terminal_export") echo "Would append 'export TERMINAL=wezterm' to shell configs (bashrc/zshrc/profile)" ;;
+                "update_alternatives_register_failed") echo "Failed to register WezTerm in update-alternatives" ;;
+                "update_alternatives_set_failed") echo "Failed to set default x-terminal-emulator" ;;
+                "dry_desktop_shortcut") echo "Would create desktop shortcut:" ;;
+                "verify_wezterm") echo "WezTerm:" ;;
+                "verify_opencode") echo "OpenCode:" ;;
+                "active_mcp_servers") echo "Active MCP Servers:" ;;
+                "mcp_status_failed") echo "Could not retrieve MCP status." ;;
+                "dry_run_complete") echo "DRY-RUN COMPLETE — No changes were made to your system." ;;
+                "dry_run_apply") echo "Run without --dry-run to apply." ;;
+                "list_total") echo "Total:" ;;
+                "list_backups_label") echo "backup(s)" ;;
+                "list_size") echo "Size:" ;;
+                "select_preset_title") echo "Select configuration preset:" ;;
+                "preset_full") echo "1)🍔 Full — everything included (recommended)" ;;
+                "preset_medium") echo "2)🥪 Medium — essential plugins + core MCPs" ;;
+                "preset_light") echo "3)🥗 Light — minimal setup" ;;
+                "preset_mcps_label") echo "MCPs:" ;;
+                "preset_plugins_label") echo "Plugins:" ;;
+                "preset_choice") echo "Choice [1-3] (default: 1):" ;;
             esac
             ;;
     esac
@@ -401,21 +593,21 @@ select_preset() {
         PRESET="full"
         return 0
     fi
-    echo -e "\n${BOLD}Select configuration preset:${NC}"
-    echo -e "  ${BOLD}1)🍔 Full${NC}     — everything included (recommended)"
-    echo -e "     ${CYAN}MCPs:${NC} fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
-    echo -e "     ${CYAN}Plugins:${NC} oh-my-openagent, opencode-mem, browser, smart-title, token-speed"
-    echo -e "  ${BOLD}2)🥪 Medium${NC}   — essential plugins + core MCPs"
-    echo -e "     ${CYAN}MCPs:${NC} fetch, context7, codegraph, docs-mcp"
-    echo -e "  ${BOLD}3)🥗 Light${NC}    — minimal setup"
-    echo -e "     ${CYAN}MCPs:${NC} fetch, context7"
-    read -p "Choice / Вибір [1-3] (default: 1): " preset_choice
+    echo -e "\n${BOLD}$(msg "select_preset_title")${NC}"
+    echo -e "  ${BOLD}$(msg "preset_full")${NC}"
+    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
+    echo -e "     ${CYAN}$(msg "preset_plugins_label")${NC} oh-my-openagent, opencode-mem, browser, smart-title, token-speed"
+    echo -e "  ${BOLD}$(msg "preset_medium")${NC}"
+    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7, codegraph, docs-mcp"
+    echo -e "  ${BOLD}$(msg "preset_light")${NC}"
+    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7"
+    read -p "$(msg "preset_choice") " preset_choice
     case "$preset_choice" in
         2) PRESET="medium" ;;
         3) PRESET="light" ;;
         *) PRESET="full" ;;
     esac
-    log_info "Preset: ${BOLD}${PRESET}${NC}"
+    log_info "$(msg "preset_label") ${BOLD}${PRESET}${NC}"
     echo ""
 }
 
@@ -510,7 +702,7 @@ create_backup() {
     [ -z "$BACKUP_ID" ] && generate_backup_id
 
     if is_dry_run; then
-        log_dry "Would create backup at $BACKUP_DIR/$BACKUP_ID"
+        log_dry "$(msg "dry_backup_create") $BACKUP_DIR/$BACKUP_ID"
         return 0
     fi
 
@@ -580,17 +772,17 @@ restore_backup() {
     echo ""
     read -rp "$(msg "select_backup") " choice
     if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$BACKUPS_COUNT" ]; then
-        log_error "Invalid choice. Aborting."
+        log_error "$(msg "invalid_choice_abort")"
         return 1
     fi
 
     local selected="${BACKUPS_LIST[$((choice-1))]}"
-    echo -e "\nFiles in this backup:"
+    echo -e "\n$(msg "backup_files_header")"
     find "$selected" -maxdepth 1 -type f ! -name 'manifest.txt' -printf '  %f\n'
     echo ""
 
     if ! ask_confirm "$(msg "restore_confirm")"; then
-        log_info "Restore cancelled."
+        log_info "$(msg "restore_cancelled")"
         return 0
     fi
 
@@ -644,15 +836,15 @@ remove_backups() {
     count=$(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
     local size
     size=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1 || echo "?")
-    echo -e "\nFound ${BOLD}${count}${NC} backup(s), ~${size} total."
+    echo -e "\n$(msg "backups_found_count") ${BOLD}${count}${NC} $(msg "list_backups_label"), ~${size} $(msg "backups_total_size")"
 
     if ! ask_confirm "$(msg "remove_backups_confirm")"; then
-        log_info "Cancelled."
+        log_info "$(msg "cancelled")"
         return 0
     fi
 
     if is_dry_run; then
-        log_dry "Would delete ALL backups in $BACKUP_DIR"
+        log_dry "$(msg "dry_delete_backups") $BACKUP_DIR"
         return 0
     fi
 
@@ -661,13 +853,13 @@ remove_backups() {
 }
 
 reset_config() {
-    log_info "Creating backup before reset..."
+    log_info "$(msg "backup_before_reset")"
     create_backup
 
     if is_dry_run; then
-        log_dry "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode.desktop"
-        log_dry "Would remove TERMINAL export from .bashrc/.zshrc"
-        log_dry "Would remove OpenCode plugins"
+        log_dry "$(msg "dry_reset_remove_configs")"
+        log_dry "$(msg "dry_reset_remove_terminal")"
+        log_dry "$(msg "dry_reset_remove_plugins")"
         return 0
     fi
 
@@ -676,10 +868,10 @@ reset_config() {
     local wez_cfg="$HOME/.config/wezterm/wezterm.lua"
     local desktop="$HOME/Desktop/OpenCode.desktop"
 
-    [ -f "$opencode_cfg" ] && { rm -f "$opencode_cfg"; log_info "Removed: $opencode_cfg"; }
-    [ -f "$sysinfo" ]      && { rm -f "$sysinfo";      log_info "Removed: $sysinfo"; }
-    [ -f "$wez_cfg" ]      && { rm -f "$wez_cfg";       log_info "Removed: $wez_cfg"; }
-    [ -f "$desktop" ]      && { rm -f "$desktop";       log_info "Removed: $desktop"; }
+    [ -f "$opencode_cfg" ] && { rm -f "$opencode_cfg"; log_info "$(msg "removed_file") $opencode_cfg"; }
+    [ -f "$sysinfo" ]      && { rm -f "$sysinfo";      log_info "$(msg "removed_file") $sysinfo"; }
+    [ -f "$wez_cfg" ]      && { rm -f "$wez_cfg";       log_info "$(msg "removed_file") $wez_cfg"; }
+    [ -f "$desktop" ]      && { rm -f "$desktop";       log_info "$(msg "removed_file") $desktop"; }
 
     # Remove shell exports only if we previously backed up that file
     local dest="$BACKUP_DIR/$BACKUP_ID"
@@ -690,7 +882,7 @@ reset_config() {
             if [ -f "$full_path" ] && grep -q "export TERMINAL=wezterm" "$full_path"; then
                 sed -i '/^# OpenCode default terminal$/d' "$full_path"
                 sed -i '/^export TERMINAL=wezterm$/d' "$full_path"
-                log_info "Removed TERMINAL export from $full_path"
+                log_info "$(msg "removed_terminal_export") $full_path"
             fi
         fi
     done
@@ -699,7 +891,7 @@ reset_config() {
     if command -v opencode &>/dev/null; then
         for entry in "${OPENCODE_PLUGINS[@]}"; do
             local plugin_name="${entry%%|*}"
-            log_info "Removing plugin: $plugin_name"
+            log_info "$(msg "removing_plugin") $plugin_name"
             opencode plugin remove "$plugin_name" 2>/dev/null || true
         done
     fi
@@ -713,7 +905,7 @@ migrate_plugin_names() {
     if [ -f "$config" ] && grep -q "oh-my-opencode" "$config"; then
         log_warning "$(msg "migrate_plugin")"
         if is_dry_run; then
-            log_dry "Would migrate oh-my-opencode → oh-my-openagent in $config"
+            log_dry "$(msg "dry_migrate_plugin") $config"
             return 0
         fi
         create_backup
@@ -757,17 +949,17 @@ install_wezterm() {
 
     if is_dry_run; then
         case "$OS" in
-            macos)  log_dry "Would run: brew install --cask wezterm" ;;
+            macos)  log_dry "$(msg "dry_wezterm_brew")" ;;
             linux)
                 case "$DISTRO" in
-                    ubuntu) log_dry "Would add WezTerm APT repo + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
-                    redhat) log_dry "Would run: dnf install wezterm xclip wl-clipboard" ;;
-                    arch)   log_dry "Would run: pacman -S wezterm xclip wl-clipboard" ;;
-                    *)      log_dry "Unsupported distro for auto-install: $DISTRO. Would show manual install instructions." ;;
+                    ubuntu) log_dry "$(msg "dry_wezterm_ubuntu")" ;;
+                    redhat) log_dry "$(msg "dry_wezterm_redhat")" ;;
+                    arch)   log_dry "$(msg "dry_wezterm_arch")" ;;
+                    *)      log_dry "$(msg "dry_wezterm_unsupported_distro") $DISTRO" ;;
                 esac ;;
-            *) log_dry "Unsupported OS: $OS. Would show manual install instructions." ;;
+            *) log_dry "$(msg "dry_wezterm_unsupported_os") $OS" ;;
         esac
-        log_dry "WezTerm installation skipped (dry-run)"
+        log_dry "$(msg "dry_wezterm_skipped")"
         return 0
     fi
 
@@ -821,16 +1013,16 @@ install_go() {
         local go_ver
         go_ver=$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')
         if command -v bc &>/dev/null && [ "$(echo "$go_ver >= 1.22" | bc 2>/dev/null)" = "1" ] || [ "${go_ver%%.*}" -ge 1 ] && [ "${go_ver#*.}" -ge 22 ] 2>/dev/null; then
-            log_success "Go ${go_ver} is already installed."
+            log_success "$(msg "go_already_installed") ${go_ver}"
             return 0
         fi
-        log_info "Go version ${go_ver} is too old — need 1.22+."
+        log_info "$(msg "go_version_old")"
     fi
 
-    log_info "Installing Go 1.24.0..."
+    log_info "$(msg "go_installing")"
 
     if is_dry_run; then
-        log_dry "Would install Go 1.24.0 for $OS/$ARCH"
+        log_dry "$(msg "dry_install_go") $OS/$(uname -m)"
         return 0
     fi
 
@@ -838,20 +1030,20 @@ install_go() {
     case "$(uname -m)" in
         x86_64)  go_arch="amd64" ;;
         aarch64|arm64) go_arch="arm64" ;;
-        *) log_error "Unsupported architecture: $(uname -m)"; return 1 ;;
+        *) log_error "$(msg "unsupported_arch") $(uname -m)"; return 1 ;;
     esac
 
     case "$OS" in
         linux)
             curl -fsSL "https://go.dev/dl/go1.24.0.linux-${go_arch}.tar.gz" | sudo tar -C /usr/local -xz
             export PATH="/usr/local/go/bin:$PATH"
-            log_success "Go 1.24.0 installed to /usr/local/go"
+            log_success "$(msg "go_installed_to")"
             ;;
         macos)
             if ! command -v brew &>/dev/null; then
-                log_info "Homebrew not found. Installing Homebrew first..."
+                log_info "$(msg "brew_install_first")"
                 if is_dry_run; then
-                    log_dry "Would install Homebrew (requires sudo)"
+                    log_dry "$(msg "dry_install_brew")"
                 else
                     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                     if [ "$go_arch" = "arm64" ]; then
@@ -864,17 +1056,17 @@ install_go() {
             brew install go
             ;;
         *)
-            log_warning "Unsupported OS for automatic Go installation: $OS"
-            log_info "Please install Go manually from https://go.dev/dl/"
+            log_warning "$(msg "go_unsupported_os") $OS"
+            log_info "$(msg "go_manual")"
             return 1
             ;;
     esac
 
     if ! command -v go &>/dev/null; then
-        log_error "Go installation failed — not found in PATH after install."
+        log_error "$(msg "go_install_path_failed")"
         return 1
     fi
-    log_success "Go $(go version | grep -oP 'go\K[0-9.]+') installed successfully."
+    log_success "$(msg "go_installed_version") $(go version | grep -oP 'go\K[0-9.]+')"
 }
 
 # ==============================================================================
@@ -882,32 +1074,128 @@ install_go() {
 # ==============================================================================
 install_docs_mcp() {
     if command -v go-docs-mcp &>/dev/null; then
-        log_success "go-docs-mcp already installed: $(go-docs-mcp --version 2>/dev/null || echo 'present')"
+        log_success "$(msg "gomcp_already_installed") $(go-docs-mcp --version 2>/dev/null || echo 'present')"
         return 0
     fi
 
     if ! command -v go &>/dev/null; then
-        log_warning "Go is required for docs-mcp. Run 'install_go' first."
+        log_warning "$(msg "gomcp_go_required")"
         return 1
     fi
 
     if is_dry_run; then
-        log_dry "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        log_dry "$(msg "dry_install_gomcp")"
         return 0
     fi
 
-    log_info "Installing go-docs-mcp via Go..."
+    log_info "$(msg "gomcp_installing")"
     go install github.com/drolosoft/go-docs-mcp@v1.1.0
 
     # Ensure ~/go/bin is in PATH for this session
     export PATH="$HOME/go/bin:$PATH"
 
     if command -v go-docs-mcp &>/dev/null; then
-        log_success "go-docs-mcp installed successfully: $(go-docs-mcp --version 2>/dev/null || echo 'present')"
+        log_success "$(msg "gomcp_installed") $(go-docs-mcp --version 2>/dev/null || echo 'present')"
     else
-        log_error "go-docs-mcp not found after install. Check that ~/go/bin is in your PATH."
+        log_error "$(msg "gomcp_failed")"
         return 1
     fi
+}
+
+# Node.js / npm installation (with user consent)
+install_nodejs() {
+    if command -v npm &>/dev/null; then
+        log_success "$(msg "node_exists")"
+        return 0
+    fi
+
+    echo -e "\n$(msg "node_explain")\n"
+
+    if ! ask_confirm "$(msg "ask_node")"; then
+        log_warning "$(msg "node_skip_warning")"
+        return 0
+    fi
+
+    if is_dry_run; then
+        case "$OS" in
+            macos) log_dry "$(msg "dry_node_brew")" ;;
+            linux)
+                case "$DISTRO" in
+                    ubuntu) log_dry "$(msg "dry_node_apt")" ;;
+                    redhat) log_dry "$(msg "dry_node_dnf")" ;;
+                    arch)   log_dry "$(msg "dry_node_pacman")" ;;
+                    *)      log_dry "$(msg "dry_install_node") $OS/$DISTRO" ;;
+                esac ;;
+            *) log_dry "$(msg "dry_install_node") $OS/$DISTRO" ;;
+        esac
+        return 0
+    fi
+
+    log_info "$(msg "installing_node")"
+
+    case "$OS" in
+        macos)
+            if ! command -v brew &>/dev/null; then
+                log_error "$(msg "brew_missing")"
+                return 1
+            fi
+            brew install node
+            ;;
+        linux)
+            case "$DISTRO" in
+                ubuntu|debian)
+                    sudo apt update
+                    sudo apt install -y nodejs npm
+                    ;;
+                redhat|fedora)
+                    sudo dnf install -y nodejs npm
+                    ;;
+                arch)
+                    sudo pacman -S --noconfirm nodejs npm
+                    ;;
+                *)
+                    # Fallback: Homebrew on Linux if available
+                    if command -v brew &>/dev/null; then
+                        brew install node
+                    else
+                        log_warning "$(msg "node_manual")"
+                        return 1
+                    fi
+                    ;;
+            esac
+            ;;
+        *)
+            log_warning "$(msg "node_manual")"
+            return 1
+            ;;
+    esac
+
+    hash -r
+    if command -v npm &>/dev/null; then
+        log_success "$(msg "node_success")"
+    else
+        log_warning "$(msg "node_path_hint")"
+    fi
+}
+
+# Ensure OpenCode binary directories are on PATH for the current session
+ensure_opencode_path() {
+    local candidates=(
+        "$HOME/.opencode/bin"
+        "$HOME/.local/bin"
+        "$HOME/bin"
+        "/opt/homebrew/bin"
+        "/usr/local/bin"
+    )
+    for dir in "${candidates[@]}"; do
+        if [ -x "$dir/opencode" ]; then
+            if [[ ":$PATH:" != *":$dir:"* ]]; then
+                export PATH="$dir:$PATH"
+            fi
+            return 0
+        fi
+    done
+    return 1
 }
 
 # OpenCode Installation
@@ -922,29 +1210,66 @@ install_opencode() {
         return 0
     fi
 
-    log_info "$(msg "checking_npm")"
-    if ! command -v npm &>/dev/null; then
-        log_error "$(msg "npm_missing")"
-        exit 1
-    fi
-
     if is_dry_run; then
-        log_dry "Would run: npm install -g opencode-ai@latest"
-        log_dry "OpenCode installation skipped (dry-run)"
+        log_dry "$(msg "dry_install_opencode")"
+        log_dry "$(msg "dry_opencode_skipped")"
         return 0
     fi
 
-    local npm_prefix
-    npm_prefix=$(npm config get prefix)
-    if [ -w "$npm_prefix" ]; then
-        log_info "$(msg "installing_opencode_global")"
-        npm install -g opencode-ai@latest
-    else
-        log_info "$(msg "installing_opencode_global") (sudo)"
-        sudo npm install -g opencode-ai@latest
+    local installed=false
+
+    # Method 1: npm (preferred when available)
+    if command -v npm &>/dev/null; then
+        log_info "$(msg "installing_opencode_npm")"
+        local npm_prefix
+        npm_prefix=$(npm config get prefix)
+        if [ -w "$npm_prefix" ]; then
+            npm install -g opencode-ai@latest
+        else
+            sudo npm install -g opencode-ai@latest
+        fi
+        command -v opencode &>/dev/null && installed=true
     fi
 
-    log_success "$(msg "opencode_success")"
+    # Method 2: Official install script (fallback when npm is unavailable)
+    if [ "$installed" = false ] && command -v curl &>/dev/null; then
+        log_info "$(msg "installing_opencode_script")"
+        if curl -fsSL https://opencode.ai/install | bash; then
+            ensure_opencode_path
+            command -v opencode &>/dev/null && installed=true
+        else
+            log_warning "$(msg "opencode_script_failed")"
+        fi
+    fi
+
+    # Method 3: Homebrew (macOS and Linux with Homebrew)
+    if [ "$installed" = false ] && command -v brew &>/dev/null; then
+        log_info "$(msg "installing_opencode_brew")"
+        if brew install anomalyco/tap/opencode 2>/dev/null || brew install opencode 2>/dev/null; then
+            command -v opencode &>/dev/null && installed=true
+        fi
+    fi
+
+    # Method 4: Arch Linux pacman
+    if [ "$installed" = false ] && [ "$DISTRO" = "arch" ] && command -v pacman &>/dev/null; then
+        log_info "$(msg "installing_opencode_pacman")"
+        if sudo pacman -S --noconfirm opencode 2>/dev/null; then
+            command -v opencode &>/dev/null && installed=true
+        fi
+    fi
+
+    if [ "$installed" = false ]; then
+        ensure_opencode_path
+        command -v opencode &>/dev/null && installed=true
+    fi
+
+    if [ "$installed" = false ]; then
+        log_error "$(msg "opencode_failed")"
+        log_info "$(msg "opencode_manual")"
+        exit 1
+    fi
+
+    log_success "$(msg "opencode_success") $(opencode --version 2>/dev/null || true)"
     hash -r
 }
 
@@ -978,7 +1303,7 @@ install_plugins() {
 
         # Skip if not in preset
         if ! is_in_preset "$plugin_name" "${preset_plugins[@]}"; then
-            log_info "Skipping $plugin_name (not in $PRESET preset)"
+            log_info "$(msg "skip_plugin_preset") $plugin_name"
             continue
         fi
 
@@ -993,10 +1318,10 @@ install_plugins() {
 
         if [ "$should_install" = true ]; then
             if is_dry_run; then
-                log_dry "Would install plugin: $plugin_name"
+                log_dry "$(msg "dry_install_plugin") $plugin_name"
             else
                 log_info "$(msg "installing_plugin") ${plugin_name}..."
-                opencode plugin "${plugin_name}" --global || log_warning "Failed to install ${plugin_name} or already installed."
+                opencode plugin "${plugin_name}" --global || log_warning "$(msg "plugin_install_failed") ${plugin_name}"
             fi
         fi
     done
@@ -1055,7 +1380,7 @@ configure_opencode() {
 
         # Skip if not in preset
         if ! is_in_preset "$mcp_name" "${preset_mcps[@]}"; then
-            log_info "Skipping MCP $mcp_name (not in $PRESET preset)"
+            log_info "$(msg "skip_mcp_preset") $mcp_name"
             continue
         fi
 
@@ -1124,11 +1449,11 @@ configure_opencode() {
     fi
 
     if is_dry_run; then
-        log_dry "Would write system_info.md to $config_dir/system_info.md"
-        log_dry "Would write opencode.jsonc to $config_file"
-        log_dry "  Plugins: ${OPENCODE_PLUGINS[*]}"
-        log_dry "  MCP servers: configured based on your selections"
-        log_dry "OpenCode config skipped (dry-run)"
+        log_dry "$(msg "dry_write_system_info") $config_dir/system_info.md"
+        log_dry "$(msg "dry_write_opencode_config") $config_file"
+        log_dry "  $(msg "dry_plugins_list") ${OPENCODE_PLUGINS[*]}"
+        log_dry "  $(msg "dry_mcp_configured")"
+        log_dry "$(msg "dry_opencode_config_skipped")"
         return 0
     fi
 
@@ -1179,9 +1504,9 @@ configure_wezterm() {
     local wez_config="$wez_dir/wezterm.lua"
 
     if is_dry_run; then
-        log_dry "Would create directory: $wez_dir"
-        log_dry "Would write WezTerm config to $wez_config (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
-        log_dry "WezTerm config skipped (dry-run)"
+        log_dry "$(msg "dry_wezterm_dir") $wez_dir"
+        log_dry "$(msg "dry_wezterm_config") $wez_config (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        log_dry "$(msg "dry_wezterm_config_skipped")"
         return 0
     fi
 
@@ -1323,9 +1648,9 @@ configure_default_terminal() {
     case "$OS" in
         linux)
             if is_dry_run; then
-                log_dry "Would register WezTerm as default x-terminal-emulator (update-alternatives)"
-                log_dry "Would write XDG terminal configs to ~/.config/xdg-terminals.list"
-                log_dry "Would append 'export TERMINAL=wezterm' to shell configs (bashrc/zshrc/profile)"
+                log_dry "$(msg "dry_default_terminal_register")"
+                log_dry "$(msg "dry_xdg_terminals")"
+                log_dry "$(msg "dry_terminal_export")"
                 return 0
             fi
 
@@ -1333,8 +1658,8 @@ configure_default_terminal() {
                 local wez_path
                 wez_path=$(command -v wezterm)
                 log_info "$(msg "setting_default_emulator")"
-                sudo update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator "$wez_path" 50 || log_warning "Failed to register WezTerm in update-alternatives"
-                sudo update-alternatives --set x-terminal-emulator "$wez_path" || log_warning "Failed to set default x-terminal-emulator"
+                sudo update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator "$wez_path" 50 || log_warning "$(msg "update_alternatives_register_failed")"
+                sudo update-alternatives --set x-terminal-emulator "$wez_path" || log_warning "$(msg "update_alternatives_set_failed")"
                 log_success "$(msg "default_terminal_success")"
             else
                 log_info "$(msg "no_update_alternatives")"
@@ -1372,7 +1697,7 @@ create_desktop_shortcut() {
     if [ "$OS" = "linux" ] && [ -d "$HOME/Desktop" ]; then
         if ask_confirm "$(msg "ask_desktop_shortcut")" "Y"; then
             if is_dry_run; then
-                log_dry "Would create desktop shortcut: $HOME/Desktop/OpenCode.desktop"
+                log_dry "$(msg "dry_desktop_shortcut") $HOME/Desktop/OpenCode.desktop"
                 return 0
             fi
             local desktop_file="$HOME/Desktop/OpenCode.desktop"
@@ -1406,16 +1731,16 @@ verify_setup() {
     local all_ok=true
 
     if command -v wezterm &>/dev/null; then
-        log_success "WezTerm: $(wezterm --version | head -n 1)"
+        log_success "$(msg "verify_wezterm") $(wezterm --version | head -n 1)"
     else
         log_error "$(msg "wezterm_missing_path")"
         all_ok=false
     fi
 
     if command -v opencode &>/dev/null; then
-        log_success "OpenCode: $(opencode --version)"
-        log_info "Active MCP Servers:"
-        opencode mcp list || log_warning "Could not retrieve MCP status."
+        log_success "$(msg "verify_opencode") $(opencode --version)"
+        log_info "$(msg "active_mcp_servers")"
+        opencode mcp list || log_warning "$(msg "mcp_status_failed")"
     else
         log_error "$(msg "opencode_missing_path")"
         all_ok=false
@@ -1430,8 +1755,8 @@ verify_setup() {
 
     if is_dry_run; then
         echo -e "\n${YELLOW}${BOLD}══════════════════════════════════════════════════════════${NC}"
-        echo -e "${YELLOW}${BOLD}  DRY-RUN COMPLETE — No changes were made to your system.${NC}"
-        echo -e "${YELLOW}${BOLD}  Run without --dry-run to apply.${NC}"
+        echo -e "${YELLOW}${BOLD}  $(msg "dry_run_complete")${NC}"
+        echo -e "${YELLOW}${BOLD}  $(msg "dry_run_apply")${NC}"
         echo -e "${YELLOW}${BOLD}══════════════════════════════════════════════════════════${NC}"
     fi
     echo -e "${MAGENTA}${BOLD}================================================================${NC}"
@@ -1458,10 +1783,10 @@ main() {
             ;;
         list-backups)
             if list_backups; then
-                echo -e "\n${BOLD}Total:${NC} $BACKUPS_COUNT backup(s)"
+                echo -e "\n${BOLD}$(msg "list_total")${NC} $BACKUPS_COUNT $(msg "list_backups_label")"
                 local total_size
                 total_size=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1 || echo "?")
-                echo -e "${BOLD}Size:${NC} ~${total_size}"
+                echo -e "${BOLD}$(msg "list_size")${NC} ~${total_size}"
             else
                 log_warning "$(msg "no_backups_found")"
             fi
@@ -1472,6 +1797,7 @@ main() {
             detect_os
             select_preset
             install_wezterm
+            install_nodejs
             install_opencode
             install_plugins
             configure_opencode

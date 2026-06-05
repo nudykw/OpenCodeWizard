@@ -100,17 +100,31 @@ $Translations = @{
         "installing_wezterm" = "Встановлення WezTerm через winget..."
         "wezterm_success" = "WezTerm успішно встановлено! Перезапустіть консоль, щоб застосувати зміни."
         "wezterm_failed" = "Не вдалося встановити WezTerm через winget."
-        "ask_node" = "Встановити Node.js LTS через winget?"
+        "node_explain" = "Node.js та npm потрібні для повноцінної роботи OpenCodeWizard:`n  • Встановлення OpenCode CLI (пакет opencode-ai)`n  • Запуск MCP-серверів (fetch, puppeteer, context7, postgres тощо) через npx`n  • Частина плагінів OpenCode`nБез npm OpenCode можна встановити іншим способом, але MCP-сервери не працюватимуть."
+        "ask_node" = "Встановити Node.js LTS та npm через winget?"
         "node_exists" = "Node.js та npm вже встановлено."
-        "node_missing" = "Для встановлення OpenCode потрібен NPM. Будь ласка, встановіть Node.js."
-        "installing_node" = "Встановлення Node.js через winget..."
+        "node_skip_warning" = "Node.js/npm не встановлено. OpenCode буде встановлено альтернативним способом, MCP-сервери можуть не працювати."
+        "installing_node" = "Встановлення Node.js та npm..."
+        "installing_node_winget" = "Встановлення Node.js через winget..."
+        "installing_node_scoop" = "Встановлення Node.js через scoop..."
+        "installing_node_choco" = "Встановлення Node.js через Chocolatey..."
+        "dry_install_node_windows" = "Встановить Node.js через winget, scoop або Chocolatey"
+        "node_install_failed" = "Не вдалося встановити Node.js/npm жодним із доступних способів."
+        "node_manual" = "Будь ласка, встановіть Node.js вручну: https://nodejs.org/ , потім запустіть майстер знову."
         "node_success" = "Node.js успішно встановлено! Обов'язково перезапустіть термінал, щоб npm з'явився в PATH."
-        "ask_opencode" = "Встановити OpenCode CLI глобально через npm?"
+        "ask_opencode" = "Встановити OpenCode CLI?"
         "opencode_exists" = "OpenCode вже встановлено:"
         "skip_opencode" = "Пропуск встановлення OpenCode."
-        "installing_opencode" = "Встановлення opencode-ai глобально..."
+        "installing_opencode" = "Встановлення OpenCode..."
+        "installing_opencode_script" = "Встановлення OpenCode через офіційний скрипт..."
+        "installing_opencode_winget" = "Встановлення OpenCode через winget..."
+        "installing_opencode_scoop" = "Встановлення OpenCode через scoop..."
+        "installing_opencode_npm" = "Встановлення opencode-ai через npm..."
+        "installing_opencode_direct" = "Завантаження OpenCode з GitHub..."
+        "opencode_script_failed" = "Офіційний скрипт не вдався, пробую інший спосіб..."
         "opencode_success" = "OpenCode CLI успішно встановлено!"
-        "opencode_failed" = "Не вдалося встановити opencode-ai через npm."
+        "opencode_failed" = "Не вдалося встановити OpenCode жодним із доступних способів."
+        "opencode_manual" = "Встановіть вручну: curl -fsSL https://opencode.ai/install | bash"
         "ask_plugins" = "Налаштувати плагіни для OpenCode?"
         "skip_plugins" = "Пропуск налаштування плагінів."
         "ask_plugins_default" = "Встановити всі рекомендовані плагіни за замовчуванням?"
@@ -144,6 +158,76 @@ $Translations = @{
         "verification_failed" = "Деякі компоненти відсутні. Будь ласка, перевірте помилки вище."
         "ask_desktop_shortcut" = "Створити ярлик швидкого запуску OpenCode в WezTerm на Робочому столі?"
         "desktop_shortcut_success" = "Ярлик на Робочому столі успішно створено!"
+        "preset_label" = "Обраний пресет:"
+        "dry_backup_create" = "Створить бекап у"
+        "invalid_choice_abort" = "Невірний вибір. Скасовано."
+        "restore_cancelled" = "Відновлення скасовано."
+        "backup_files_header" = "Файли в цьому бекапі:"
+        "restore_select_backup" = "Оберіть бекап для відновлення"
+        "restore_confirm_overwrite" = "Відновити цей бекап? Поточна конфігурація буде перезаписана!"
+        "cancelled" = "Скасовано."
+        "backups_found_count" = "Знайдено"
+        "list_backups_label" = "бекапів"
+        "remove_backups_confirm_permanent" = "Назавжди видалити всі бекапи?"
+        "dry_delete_backups" = "Видалить ВСІ бекапи в"
+        "all_backups_removed" = "Всі резервні копії видалено."
+        "no_backups_in_dir" = "Резервних копій не знайдено в"
+        "no_backups_found_short" = "Резервних копій не знайдено."
+        "backup_before_reset" = "Створення бекапу перед скиданням..."
+        "dry_reset_remove_configs" = "Видалить: opencode.jsonc, system_info.md, wezterm.lua, OpenCode AI.lnk"
+        "dry_reset_remove_plugins" = "Видалить плагіни OpenCode"
+        "removed_file" = "Видалено:"
+        "removing_plugin" = "Видалення плагіна:"
+        "reset_done_config" = "Конфігурацію скинуто до типових налаштувань."
+        "migrate_plugin_done" = "Міграцію завершено."
+        "dry_migrate_plugin" = "Мігрує oh-my-opencode → oh-my-openagent у"
+        "dry_wezterm_winget" = "Виконає: winget install --id wez.wezterm"
+        "go_already_installed" = "Go вже встановлено:"
+        "go_version_old" = "Версія Go застаріла — потрібна 1.22+."
+        "dry_install_go_windows" = "Встановить Go для Windows"
+        "go_installing_winget" = "Встановлення Go через winget..."
+        "go_installed_winget" = "Go встановлено! Перезапустіть термінал після налаштування, щоб оновити PATH."
+        "go_winget_failed" = "Не вдалося встановити Go через winget."
+        "gomcp_already_installed" = "go-docs-mcp вже встановлено."
+        "gomcp_go_required" = "Go не в PATH. Спочатку встановіть Go."
+        "dry_install_gomcp" = "Виконає: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        "gomcp_installing" = "Встановлення go-docs-mcp через Go..."
+        "gomcp_installed" = "go-docs-mcp успішно встановлено."
+        "gomcp_failed" = "go-docs-mcp не знайдено після встановлення."
+        "dry_install_opencode" = "Встановить OpenCode через офіційний скрипт, winget, scoop, пряме завантаження або npm"
+        "dry_install_plugin" = "Встановить плагін:"
+        "dry_write_system_info" = "Запише system_info.md у"
+        "dry_write_opencode_config" = "Запише opencode.jsonc у"
+        "dry_plugins_list" = "Плагіни:"
+        "dry_mcp_configured" = "MCP-сервери: згідно з вашим вибором"
+        "dry_wezterm_dir" = "Створить директорію:"
+        "dry_wezterm_config" = "Запише конфігурацію WezTerm у"
+        "verify_wezterm" = "WezTerm:"
+        "verify_opencode" = "OpenCode:"
+        "active_mcp_servers" = "Активні MCP-сервери:"
+        "dry_desktop_shortcut" = "Створить ярлик на робочому столі:"
+        "desktop_shortcut_failed" = "Не вдалося створити ярлик на робочому столі:"
+        "dry_run_complete" = "DRY-RUN ЗАВЕРШЕНО — жодних змін у системі не внесено."
+        "dry_run_apply" = "Запустіть без -DryRun, щоб застосувати зміни."
+        "list_total" = "Всього:"
+        "list_size" = "Розмір:"
+        "restore_failed_generic" = "Помилка при відновленні."
+        "restore_success_config" = "Конфігурацію успішно відновлено!"
+        "unexpected_error" = "Сталася неочікувана помилка:"
+        "select_lang_prompt" = "Оберіть мову інтерфейсу / Select wizard language:"
+        "select_lang_en" = "1) English (en)"
+        "select_lang_uk" = "2) Українська (uk)"
+        "select_lang_choice" = "Вибір / Choice [1-2]"
+        "select_preset_title" = "Оберіть пресет конфігурації:"
+        "preset_full" = "1) 🍔 Full — все включено (рекомендовано)"
+        "preset_medium" = "2) 🥪 Medium — основні плагіни + базові MCP"
+        "preset_light" = "3) 🥗 Light — мінімальне налаштування"
+        "preset_mcps_label" = "MCPs:"
+        "preset_plugins_label" = "Plugins:"
+        "preset_choice" = "Вибір [1-3] (за замовчуванням: 1)"
+        "go_installing" = "Встановлення Go 1.24.0..."
+        "go_manual" = "Будь ласка, встановіть Go вручну: https://go.dev/dl/ , потім запустіть майстер знову."
+        "migrate_plugin" = "Виявлено застарілий плагін. Мігрую..."
     }
     "en" = @{
         "title" = "OPENCODE & WEZTERM SETUP WIZARD"
@@ -154,17 +238,31 @@ $Translations = @{
         "installing_wezterm" = "Installing WezTerm via winget..."
         "wezterm_success" = "WezTerm installed successfully! Restart your terminal to apply changes."
         "wezterm_failed" = "Failed to install WezTerm via winget."
-        "ask_node" = "Node.js is missing. Install Node.js LTS via winget?"
+        "node_explain" = "Node.js and npm are required for the full OpenCodeWizard experience:`n  • Installing the OpenCode CLI (opencode-ai package)`n  • Running MCP servers (fetch, puppeteer, context7, postgres, etc.) via npx`n  • Some OpenCode plugins`nWithout npm, OpenCode can still be installed another way, but MCP servers will not work."
+        "ask_node" = "Install Node.js LTS and npm via winget?"
         "node_exists" = "Node.js & npm are already installed."
-        "node_missing" = "NPM is required to install OpenCode. Please install Node.js."
-        "installing_node" = "Installing Node.js via winget..."
+        "node_skip_warning" = "Node.js/npm not installed. OpenCode will be installed via an alternative method; MCP servers may not work."
+        "installing_node" = "Installing Node.js & npm..."
+        "installing_node_winget" = "Installing Node.js via winget..."
+        "installing_node_scoop" = "Installing Node.js via scoop..."
+        "installing_node_choco" = "Installing Node.js via Chocolatey..."
+        "dry_install_node_windows" = "Would install Node.js via winget, scoop, or Chocolatey"
+        "node_install_failed" = "Failed to install Node.js/npm using any available method."
+        "node_manual" = "Please install Node.js manually from https://nodejs.org/ then re-run the wizard."
         "node_success" = "Node.js installed successfully! Make sure to restart the terminal for npm to appear in PATH."
-        "ask_opencode" = "Install OpenCode CLI globally via npm?"
+        "ask_opencode" = "Install OpenCode CLI?"
         "opencode_exists" = "OpenCode is already installed:"
         "skip_opencode" = "Skipping OpenCode installation."
-        "installing_opencode" = "Installing opencode-ai globally..."
+        "installing_opencode" = "Installing OpenCode..."
+        "installing_opencode_script" = "Installing OpenCode via official install script..."
+        "installing_opencode_winget" = "Installing OpenCode via winget..."
+        "installing_opencode_scoop" = "Installing OpenCode via scoop..."
+        "installing_opencode_npm" = "Installing opencode-ai via npm..."
+        "installing_opencode_direct" = "Downloading OpenCode from GitHub..."
+        "opencode_script_failed" = "Official install script failed, trying another method..."
         "opencode_success" = "OpenCode CLI installed successfully!"
-        "opencode_failed" = "Failed to install opencode-ai via npm."
+        "opencode_failed" = "Failed to install OpenCode using any available method."
+        "opencode_manual" = "Install manually: curl -fsSL https://opencode.ai/install | bash"
         "ask_plugins" = "Configure OpenCode plugins?"
         "skip_plugins" = "Skipping plugin setup."
         "ask_plugins_default" = "Install all recommended plugins by default?"
@@ -198,6 +296,76 @@ $Translations = @{
         "verification_failed" = "Some components are missing. Please review errors above."
         "ask_desktop_shortcut" = "Create a desktop shortcut to quickly launch OpenCode inside WezTerm?"
         "desktop_shortcut_success" = "Desktop shortcut created successfully!"
+        "preset_label" = "Selected preset:"
+        "dry_backup_create" = "Would create backup at"
+        "invalid_choice_abort" = "Invalid choice. Aborting."
+        "restore_cancelled" = "Restore cancelled."
+        "backup_files_header" = "Files in this backup:"
+        "restore_select_backup" = "Select backup to restore"
+        "restore_confirm_overwrite" = "Are you sure you want to restore this backup? Current config will be overwritten!"
+        "cancelled" = "Cancelled."
+        "backups_found_count" = "Found"
+        "list_backups_label" = "backup(s)"
+        "remove_backups_confirm_permanent" = "Are you sure you want to permanently delete all backups?"
+        "dry_delete_backups" = "Would delete ALL backups in"
+        "all_backups_removed" = "All backups have been removed."
+        "no_backups_in_dir" = "No backups found in"
+        "no_backups_found_short" = "No backups found."
+        "backup_before_reset" = "Creating backup before reset..."
+        "dry_reset_remove_configs" = "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode AI.lnk"
+        "dry_reset_remove_plugins" = "Would remove OpenCode plugins"
+        "removed_file" = "Removed:"
+        "removing_plugin" = "Removing plugin:"
+        "reset_done_config" = "Configuration reset to defaults."
+        "migrate_plugin_done" = "Migration complete."
+        "dry_migrate_plugin" = "Would migrate oh-my-opencode → oh-my-openagent in"
+        "dry_wezterm_winget" = "Would run: winget install --id wez.wezterm"
+        "go_already_installed" = "Go is already installed:"
+        "go_version_old" = "Go version is too old — need 1.22+."
+        "dry_install_go_windows" = "Would install Go for Windows"
+        "go_installing_winget" = "Installing Go via winget..."
+        "go_installed_winget" = "Go installed! Restart your terminal after setup to refresh PATH."
+        "go_winget_failed" = "Failed to install Go via winget."
+        "gomcp_already_installed" = "go-docs-mcp is already installed."
+        "gomcp_go_required" = "Go is not in PATH. Run Install-Go first."
+        "dry_install_gomcp" = "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        "gomcp_installing" = "Installing go-docs-mcp via Go..."
+        "gomcp_installed" = "go-docs-mcp installed successfully."
+        "gomcp_failed" = "go-docs-mcp not found after install."
+        "dry_install_opencode" = "Would install OpenCode via official script, winget, scoop, direct download, or npm"
+        "dry_install_plugin" = "Would install plugin:"
+        "dry_write_system_info" = "Would write system_info.md to"
+        "dry_write_opencode_config" = "Would write opencode.jsonc to"
+        "dry_plugins_list" = "Plugins:"
+        "dry_mcp_configured" = "MCP servers: configured based on your selections"
+        "dry_wezterm_dir" = "Would create directory:"
+        "dry_wezterm_config" = "Would write WezTerm config to"
+        "verify_wezterm" = "WezTerm:"
+        "verify_opencode" = "OpenCode:"
+        "active_mcp_servers" = "Active MCP Servers:"
+        "dry_desktop_shortcut" = "Would create desktop shortcut:"
+        "desktop_shortcut_failed" = "Could not create desktop shortcut:"
+        "dry_run_complete" = "DRY-RUN COMPLETE — No changes were made to your system."
+        "dry_run_apply" = "Run without -DryRun to apply."
+        "list_total" = "Total:"
+        "list_size" = "Size:"
+        "restore_failed_generic" = "Restore failed."
+        "restore_success_config" = "Configuration successfully restored!"
+        "unexpected_error" = "An unexpected error occurred:"
+        "select_lang_prompt" = "Оберіть мову інтерфейсу / Select wizard language:"
+        "select_lang_en" = "1) English (en)"
+        "select_lang_uk" = "2) Українська (uk)"
+        "select_lang_choice" = "Вибір / Choice [1-2]"
+        "select_preset_title" = "Select configuration preset:"
+        "preset_full" = "1) 🍔 Full — everything included (recommended)"
+        "preset_medium" = "2) 🥪 Medium — essential plugins + core MCPs"
+        "preset_light" = "3) 🥗 Light — minimal setup"
+        "preset_mcps_label" = "MCPs:"
+        "preset_plugins_label" = "Plugins:"
+        "preset_choice" = "Choice [1-3] (default: 1)"
+        "go_installing" = "Installing Go 1.24.0..."
+        "go_manual" = "Please install Go manually from https://go.dev/dl/ then re-run the wizard."
+        "migrate_plugin" = "Legacy plugin detected. Migrating..."
     }
 }
 
@@ -216,10 +384,10 @@ if ($Silent) {
         $LangCode = "en"
     }
 } else {
-    Write-Host "Select wizard language / Оберіть мову інтерфейсу:"
-    Write-Host "  1) English (en)"
-    Write-Host "  2) Українська (uk)"
-    $langChoice = Read-Host -Prompt "Choice / Вибір [1-2]"
+    Write-Host "$(Get-Msg 'select_lang_prompt')"
+    Write-Host "  $(Get-Msg 'select_lang_en')"
+    Write-Host "  $(Get-Msg 'select_lang_uk')"
+    $langChoice = Read-Host -Prompt "$(Get-Msg 'select_lang_choice')"
     if ($langChoice -eq "2") {
         $LangCode = "uk"
     } else {
@@ -234,21 +402,21 @@ function Is-InPreset ($name, $presetList) {
 
 function Select-Preset {
     if ($Silent) { return }
-    Write-Host "`n${Bold}Select configuration preset:${ResetColor}"
-    Write-Host "  ${Bold}1) 🍔 Full${ResetColor}     — everything included (recommended)"
-    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
-    Write-Host "     ${Cyan}Plugins:${ResetColor} oh-my-openagent, browser, smart-title, token-speed"
-    Write-Host "  ${Bold}2) 🥪 Medium${ResetColor}   — essential plugins + core MCPs"
-    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, context7, codegraph, docs-mcp"
-    Write-Host "  ${Bold}3) 🥗 Light${ResetColor}    — minimal setup"
-    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, context7"
-    $presetChoice = Read-Host "Choice [1-3] (default: 1)"
+    Write-Host "`n${Bold}$(Get-Msg 'select_preset_title')${ResetColor}"
+    Write-Host "  ${Bold}$(Get-Msg 'preset_full')${ResetColor}"
+    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
+    Write-Host "     ${Cyan}$(Get-Msg 'preset_plugins_label')${ResetColor} oh-my-openagent, browser, smart-title, token-speed"
+    Write-Host "  ${Bold}$(Get-Msg 'preset_medium')${ResetColor}"
+    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, context7, codegraph, docs-mcp"
+    Write-Host "  ${Bold}$(Get-Msg 'preset_light')${ResetColor}"
+    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, context7"
+    $presetChoice = Read-Host "$(Get-Msg 'preset_choice')"
     switch ($presetChoice) {
         "2" { $global:Preset = "medium" }
         "3" { $global:Preset = "light" }
         default { $global:Preset = "full" }
     }
-    Log-Info "Preset: $($global:Preset)"
+    Log-Info "$(Get-Msg 'preset_label') $($global:Preset)"
     Write-Host ""
 }
 
@@ -300,7 +468,7 @@ function Create-Backup {
     if ([string]::IsNullOrEmpty($global:BackupId)) { Generate-BackupId }
 
     if ($DryRun) {
-        Log-Dry "Would create backup at $(Join-Path $global:BackupDir $global:BackupId)"
+        Log-Dry "$(Get-Msg 'dry_backup_create') $(Join-Path $global:BackupDir $global:BackupId)"
         return
     }
 
@@ -357,25 +525,25 @@ function List-Backups {
 function Restore-Backup {
     $dirs = List-Backups
     if ($null -eq $dirs) {
-        Log-Warning "No backups found in $global:BackupDir"
+        Log-Warning "$(Get-Msg 'no_backups_in_dir') $global:BackupDir"
         return
     }
 
     Write-Host ""
-    $choice = Read-Host "Select backup to restore [1-$($dirs.Count)]"
+    $choice = Read-Host "$(Get-Msg 'restore_select_backup') [1-$($dirs.Count)]"
     $choiceInt = 0
     if (-not [int]::TryParse($choice, [ref]$choiceInt) -or $choiceInt -lt 1 -or $choiceInt -gt $dirs.Count) {
-        Log-Error "Invalid choice. Aborting."
+        Log-Error "$(Get-Msg 'invalid_choice_abort')"
         exit 1
     }
 
     $selected = $dirs[$choiceInt - 1].FullName
-    Write-Host "`nFiles in this backup:"
+    Write-Host "`n$(Get-Msg 'backup_files_header')"
     Get-ChildItem $selected -File | Where-Object { $_.Name -ne "manifest.txt" } | ForEach-Object { Write-Host "  $($_.Name)" }
     Write-Host ""
 
-    if (-not (Ask-Confirm "Are you sure you want to restore this backup? Current config will be overwritten!")) {
-        Log-Info "Restore cancelled."
+    if (-not (Ask-Confirm "$(Get-Msg 'restore_confirm_overwrite')")) {
+        Log-Info "$(Get-Msg 'restore_cancelled')"
         return
     }
 
@@ -415,43 +583,43 @@ function Restore-Backup {
     }
 
     if ($failed) {
-        Log-Error "Restore failed."
+        Log-Error "$(Get-Msg 'restore_failed_generic')"
         exit 1
     }
 
-    Log-Success "Configuration successfully restored!"
+    Log-Success "$(Get-Msg 'restore_success_config')"
 }
 
 function Remove-Backups {
     if (-not (Test-Path $global:BackupDir) -or (Get-ChildItem $global:BackupDir -Directory).Count -eq 0) {
-        Log-Warning "No backups found."
+        Log-Warning "$(Get-Msg 'no_backups_found_short')"
         return
     }
 
     $dirs = Get-ChildItem $global:BackupDir -Directory
-    Write-Host "`nFound ${Bold}$($dirs.Count)${ResetColor} backup(s)."
+    Write-Host "`n$(Get-Msg 'backups_found_count') ${Bold}$($dirs.Count)${ResetColor} $(Get-Msg 'list_backups_label')."
 
-    if (-not (Ask-Confirm "Are you sure you want to permanently delete all backups?")) {
-        Log-Info "Cancelled."
+    if (-not (Ask-Confirm "$(Get-Msg 'remove_backups_confirm_permanent')")) {
+        Log-Info "$(Get-Msg 'cancelled')"
         return
     }
 
     if ($DryRun) {
-        Log-Dry "Would delete ALL backups in $global:BackupDir"
+        Log-Dry "$(Get-Msg 'dry_delete_backups') $global:BackupDir"
         return
     }
 
     Remove-Item $global:BackupDir -Recurse -Force
-    Log-Success "All backups have been removed."
+    Log-Success "$(Get-Msg 'all_backups_removed')"
 }
 
 function Reset-Config {
-    Log-Info "Creating backup before reset..."
+    Log-Info "$(Get-Msg 'backup_before_reset')"
     Create-Backup
 
     if ($DryRun) {
-        Log-Dry "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode AI.lnk"
-        Log-Dry "Would remove OpenCode plugins"
+        Log-Dry "$(Get-Msg 'dry_reset_remove_configs')"
+        Log-Dry "$(Get-Msg 'dry_reset_remove_plugins')"
         return
     }
 
@@ -460,20 +628,20 @@ function Reset-Config {
     $wezCfg = "$HOME\.config\wezterm\wezterm.lua"
     $desktop = [System.IO.Path]::Combine([System.Environment]::GetFolderPath('Desktop'), "OpenCode AI.lnk")
 
-    if (Test-Path $opencodeCfg) { Remove-Item $opencodeCfg -Force; Log-Info "Removed: $opencodeCfg" }
-    if (Test-Path $sysinfo) { Remove-Item $sysinfo -Force; Log-Info "Removed: $sysinfo" }
-    if (Test-Path $wezCfg) { Remove-Item $wezCfg -Force; Log-Info "Removed: $wezCfg" }
-    if (Test-Path $desktop) { Remove-Item $desktop -Force; Log-Info "Removed: $desktop" }
+    if (Test-Path $opencodeCfg) { Remove-Item $opencodeCfg -Force; Log-Info "$(Get-Msg 'removed_file') $opencodeCfg" }
+    if (Test-Path $sysinfo) { Remove-Item $sysinfo -Force; Log-Info "$(Get-Msg 'removed_file') $sysinfo" }
+    if (Test-Path $wezCfg) { Remove-Item $wezCfg -Force; Log-Info "$(Get-Msg 'removed_file') $wezCfg" }
+    if (Test-Path $desktop) { Remove-Item $desktop -Force; Log-Info "$(Get-Msg 'removed_file') $desktop" }
 
     if (Get-Command opencode -ErrorAction SilentlyContinue) {
         foreach ($entry in $OpencodePlugins) {
             $pluginName = $entry.Split('|')[0]
-            Log-Info "Removing plugin: $pluginName"
+            Log-Info "$(Get-Msg 'removing_plugin') $pluginName"
             try { opencode plugin remove $pluginName *>$null } catch {}
         }
     }
 
-    Log-Success "Configuration reset to defaults."
+    Log-Success "$(Get-Msg 'reset_done_config')"
 }
 
 function Migrate-PluginNames {
@@ -481,9 +649,9 @@ function Migrate-PluginNames {
     if (Test-Path $config) {
         $content = Get-Content $config -Raw
         if ($content -match "oh-my-opencode") {
-            Log-Warning "Migrating legacy plugin name (oh-my-opencode -> oh-my-openagent)..."
+            Log-Warning "$(Get-Msg 'migrate_plugin')"
             if ($DryRun) {
-                Log-Dry "Would migrate oh-my-opencode → oh-my-openagent in $config"
+                Log-Dry "$(Get-Msg 'dry_migrate_plugin') $config"
                 return
             }
             Create-Backup
@@ -492,7 +660,7 @@ function Migrate-PluginNames {
             if (Get-Command opencode -ErrorAction SilentlyContinue) {
                 try { opencode plugin oh-my-openagent --global *>$null } catch {}
             }
-            Log-Success "Migration complete."
+            Log-Success "$(Get-Msg 'migrate_plugin_done')"
         }
     }
 }
@@ -527,7 +695,7 @@ function Install-WezTerm {
     Log-Info "$(Get-Msg 'installing_wezterm')"
 
     if ($DryRun) {
-        Log-Dry "Would run: winget install --id wez.wezterm"
+        Log-Dry "$(Get-Msg 'dry_wezterm_winget')"
         return
     }
 
@@ -548,22 +716,22 @@ function Install-Go {
             $major = [int]$Matches[1]
             $minor = [int]$Matches[2]
             if ($major -ge 1 -and $minor -ge 22) {
-                Log-Success "Go $major.$minor is already installed."
+                Log-Success "$(Get-Msg 'go_already_installed') $major.$minor"
                 return
             }
-            Log-Warning "Go $major.$minor is too old - need 1.22+."
+            Log-Warning "$(Get-Msg 'go_version_old')"
         }
     }
 
     if ($DryRun) {
-        Log-Dry "Would install Go for Windows"
+        Log-Dry "$(Get-Msg 'dry_install_go_windows')"
         return
     }
 
-    Log-Info "Installing Go via winget..."
+    Log-Info "$(Get-Msg 'go_installing_winget')"
     winget install --id GoLang.Go --silent --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -eq 0) {
-        Log-Success "Go installed! Restart your terminal after setup to refresh PATH."
+        Log-Success "$(Get-Msg 'go_installed_winget')"
         # Add Go to PATH for current session (fallback)
         $goDirs = @(
             "$env:ProgramFiles\Go\bin",
@@ -576,55 +744,121 @@ function Install-Go {
             }
         }
     } else {
-        Log-Error "Failed to install Go via winget."
-        Log-Warning "Please install Go manually from https://go.dev/dl/ then re-run the wizard."
+        Log-Error "$(Get-Msg 'go_winget_failed')"
+        Log-Warning "$(Get-Msg 'go_manual')"
     }
 }
 
 function Install-DocsMcp {
     if (Get-Command go-docs-mcp -ErrorAction SilentlyContinue) {
-        Log-Success "go-docs-mcp is already installed."
+        Log-Success "$(Get-Msg 'gomcp_already_installed')"
         return
     }
 
     if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
-        Log-Warning "Go is not in PATH. Run Install-Go first."
+        Log-Warning "$(Get-Msg 'gomcp_go_required')"
         return
     }
 
     if ($DryRun) {
-        Log-Dry "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        Log-Dry "$(Get-Msg 'dry_install_gomcp')"
         return
     }
 
-    Log-Info "Installing go-docs-mcp via Go..."
+    Log-Info "$(Get-Msg 'gomcp_installing')"
     go install github.com/drolosoft/go-docs-mcp@v1.1.0
 
     $goBin = "$env:USERPROFILE\go\bin"
     if (Test-Path "$goBin\go-docs-mcp.exe") {
         $env:Path = "$goBin;$env:Path"
-        Log-Success "go-docs-mcp installed successfully."
+        Log-Success "$(Get-Msg 'gomcp_installed')"
     } else {
-        Log-Error "go-docs-mcp not found after install."
+        Log-Error "$(Get-Msg 'gomcp_failed')"
     }
 }
 
-# 2. NodeJS installation
+# 2. NodeJS installation (with user consent)
 function Install-NodeJS {
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Log-Success "$(Get-Msg 'node_exists')"
         return
     }
 
+    Write-Host ""
+    Write-Host "$(Get-Msg 'node_explain')"
+    Write-Host ""
+
     if (-not (Ask-Confirm "$(Get-Msg 'ask_node')")) {
-        Log-Error "$(Get-Msg 'node_missing')"
-        exit 1
+        Log-Warning "$(Get-Msg 'node_skip_warning')"
+        return
+    }
+
+    if ($DryRun) {
+        Log-Dry "$(Get-Msg 'dry_install_node_windows')"
+        return
     }
 
     Log-Info "$(Get-Msg 'installing_node')"
-    winget install --id OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements
-    Log-Warning "$(Get-Msg 'node_success')"
-    Refresh-EnvPath
+
+    # Method 1: winget
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Log-Info "$(Get-Msg 'installing_node_winget')"
+        winget install --id OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements 2>$null
+        Refresh-EnvPath
+    }
+
+    # Method 2: scoop
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue) -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_node_scoop')"
+        scoop install nodejs-lts 2>$null
+        Refresh-EnvPath
+    }
+
+    # Method 3: Chocolatey
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue) -and (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_node_choco')"
+        choco install nodejs-lts -y 2>$null
+        Refresh-EnvPath
+    }
+
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Log-Success "$(Get-Msg 'node_success')"
+    } else {
+        Log-Error "$(Get-Msg 'node_install_failed')"
+        Log-Warning "$(Get-Msg 'node_manual')"
+    }
+}
+
+function Add-OpenCodeToPath {
+    $installDir = Join-Path $env:USERPROFILE ".opencode\bin"
+    if (Test-Path (Join-Path $installDir "opencode.exe")) {
+        if ($env:Path -notlike "*$installDir*") {
+            $env:Path = "$installDir;$env:Path"
+        }
+        $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+        if ($userPath -notlike "*$installDir*") {
+            [System.Environment]::SetEnvironmentVariable("Path", "$installDir;$userPath", "User")
+        }
+        return $true
+    }
+    return $false
+}
+
+function Install-OpenCodeDirect {
+    $installDir = Join-Path $env:USERPROFILE ".opencode\bin"
+    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+
+    $arch = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x64" }
+    $filename = "opencode-windows-$arch.zip"
+    $zipPath = Join-Path $env:TEMP "opencode_install_$PID.zip"
+    $url = "https://github.com/anomalyco/opencode/releases/latest/download/$filename"
+
+    Log-Info "$(Get-Msg 'installing_opencode_direct')"
+    Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+    Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+    Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+    Add-OpenCodeToPath | Out-Null
 }
 
 # 3. OpenCode installation
@@ -639,18 +873,72 @@ function Install-OpenCode {
         return
     }
 
-    Log-Info "$(Get-Msg 'installing_opencode')"
-
     if ($DryRun) {
-        Log-Dry "Would run: npm install -g opencode-ai@latest"
+        Log-Dry "$(Get-Msg 'dry_install_opencode')"
         return
     }
 
-    npm install -g opencode-ai@latest
-    if ($LASTEXITCODE -eq 0) {
+    Log-Info "$(Get-Msg 'installing_opencode')"
+    $installed = $false
+
+    # Method 1: npm (preferred when available)
+    if (-not $installed -and (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_opencode_npm')"
+        npm install -g opencode-ai@latest
+        Refresh-EnvPath
+        if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+    }
+
+    # Method 2: Official install script via bash (Git Bash / WSL)
+    if (-not $installed -and (Get-Command bash -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_opencode_script')"
+        try {
+            bash -c "curl -fsSL https://opencode.ai/install | bash"
+            Add-OpenCodeToPath | Out-Null
+            Refresh-EnvPath
+            if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+        } catch {
+            Log-Warning "$(Get-Msg 'opencode_script_failed')"
+        }
+    }
+
+    # Method 3: winget
+    if (-not $installed -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_opencode_winget')"
+        winget install --id Anomaly.OpenCode --silent --accept-package-agreements --accept-source-agreements 2>$null
+        Refresh-EnvPath
+        if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+    }
+
+    # Method 4: scoop
+    if (-not $installed -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Log-Info "$(Get-Msg 'installing_opencode_scoop')"
+        scoop install opencode 2>$null
+        Refresh-EnvPath
+        if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+    }
+
+    # Method 5: Direct download from GitHub
+    if (-not $installed) {
+        try {
+            Install-OpenCodeDirect
+            if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+        } catch {
+            Log-Warning "$(Get-Msg 'opencode_script_failed')"
+        }
+    }
+
+    if (-not $installed) {
+        Add-OpenCodeToPath | Out-Null
+        if (Get-Command opencode -ErrorAction SilentlyContinue) { $installed = $true }
+    }
+
+    if ($installed) {
         Log-Success "$(Get-Msg 'opencode_success')"
     } else {
         Log-Error "$(Get-Msg 'opencode_failed')"
+        Log-Info "$(Get-Msg 'opencode_manual')"
+        exit 1
     }
 }
 
@@ -696,7 +984,7 @@ function Install-Plugins {
 
         if ($shouldInstall) {
             if ($DryRun) {
-                Log-Dry "Would install plugin: $pluginName"
+                Log-Dry "$(Get-Msg 'dry_install_plugin') $pluginName"
             } else {
                 Log-Info "$(Get-Msg 'installing_plugin') $pluginName..."
                 opencode plugin $pluginName --global
@@ -809,10 +1097,10 @@ This file provides the OpenCode AI assistant with details about the current oper
 - **User Shell:** PowerShell
 "@
     if ($DryRun) {
-        Log-Dry "Would write system_info.md to $systemInfoFile"
-        Log-Dry "Would write opencode.jsonc to $configFile"
-        Log-Dry "  Plugins: $($OpencodePlugins -join ', ')"
-        Log-Dry "  MCP servers: configured based on your selections"
+        Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
+        Log-Dry "$(Get-Msg 'dry_write_opencode_config') $configFile"
+        Log-Dry "  $(Get-Msg 'dry_plugins_list') $($OpencodePlugins -join ', ')"
+        Log-Dry "  $(Get-Msg 'dry_mcp_configured')"
         return
     }
 
@@ -858,8 +1146,8 @@ function Configure-WezTerm {
     $wezConfig = Join-Path $wezDir "wezterm.lua"
 
     if ($DryRun) {
-        Log-Dry "Would create directory: $wezDir"
-        Log-Dry "Would write WezTerm config to $wezConfig (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        Log-Dry "$(Get-Msg 'dry_wezterm_dir') $wezDir"
+        Log-Dry "$(Get-Msg 'dry_wezterm_config') $wezConfig (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
         return
     }
 
@@ -996,15 +1284,15 @@ function Verify-Setup {
     $allOk = $true
 
     if (Get-Command wezterm -ErrorAction SilentlyContinue) {
-        Log-Success "WezTerm: $(wezterm --version | Select-Object -First 1)"
+        Log-Success "$(Get-Msg 'verify_wezterm') $(wezterm --version | Select-Object -First 1)"
     } else {
         Log-Error "$(Get-Msg 'wezterm_missing_path')"
         $allOk = $false
     }
 
     if (Get-Command opencode -ErrorAction SilentlyContinue) {
-        Log-Success "OpenCode: $(opencode --version)"
-        Log-Info "Active MCP Servers:"
+        Log-Success "$(Get-Msg 'verify_opencode') $(opencode --version)"
+        Log-Info "$(Get-Msg 'active_mcp_servers')"
         opencode mcp list
     } else {
         Log-Error "$(Get-Msg 'opencode_missing_path')"
@@ -1020,8 +1308,8 @@ function Verify-Setup {
 
     if ($DryRun) {
         Write-Host "`n${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
-        Write-Host "${Yellow}  DRY-RUN COMPLETE — No changes were made to your system.${ResetColor}"
-        Write-Host "${Yellow}  Run without -DryRun to apply.${ResetColor}"
+        Write-Host "${Yellow}  $(Get-Msg 'dry_run_complete')${ResetColor}"
+        Write-Host "${Yellow}  $(Get-Msg 'dry_run_apply')${ResetColor}"
         Write-Host "${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
     }
     Write-Host "$Magenta================================================================$ResetColor"
@@ -1032,7 +1320,7 @@ function Create-DesktopShortcut {
     $desktopPath = [System.IO.Path]::Combine([System.Environment]::GetFolderPath('Desktop'), "OpenCode AI.lnk")
     if (Ask-Confirm "$(Get-Msg 'ask_desktop_shortcut')") {
         if ($DryRun) {
-            Log-Dry "Would create desktop shortcut: $desktopPath"
+            Log-Dry "$(Get-Msg 'dry_desktop_shortcut') $desktopPath"
             return
         }
         try {
@@ -1049,7 +1337,7 @@ function Create-DesktopShortcut {
             $Shortcut.Save()
             Log-Success "$(Get-Msg 'desktop_shortcut_success')"
         } catch {
-            Log-Warning "Could not create desktop shortcut: $_"
+            Log-Warning "$(Get-Msg 'desktop_shortcut_failed') $_"
         }
     }
 }
@@ -1063,11 +1351,11 @@ try {
     if ($ListBackups) {
         $dirs = List-Backups
         if ($null -eq $dirs) {
-            Log-Warning "No backups found."
+            Log-Warning "$(Get-Msg 'no_backups_found_short')"
         } else {
             $totalSize = (Get-ChildItem $global:BackupDir -Recurse -File | Measure-Object Length -Sum).Sum / 1KB
-            Write-Host "`n${Bold}Total:${ResetColor} $($dirs.Count) backup(s)"
-            Write-Host "${Bold}Size:${ResetColor} ~$([Math]::Round($totalSize, 1)) KB"
+            Write-Host "`n${Bold}$(Get-Msg 'list_total')${ResetColor} $($dirs.Count) $(Get-Msg 'list_backups_label')"
+            Write-Host "${Bold}$(Get-Msg 'list_size')${ResetColor} ~$([Math]::Round($totalSize, 1)) KB"
         }
     } elseif ($Reset) {
         Reset-Config
@@ -1090,6 +1378,6 @@ try {
         Verify-Setup
     }
 } catch {
-    Log-Error "An unexpected error occurred: $_"
+    Log-Error "$(Get-Msg 'unexpected_error') $_"
     exit 1
 }
