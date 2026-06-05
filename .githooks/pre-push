@@ -1,23 +1,46 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Pre-push hook: run full CI (Docker tests) before pushing to main/master
+# Only triggers when *.sh or *.ps1 files change.
 # ==============================================================================
 set -euo pipefail
 
 REMOTE="$1"
 URL="$2"
 
-# Only run full tests when pushing to main or master
 while read local_ref local_oid remote_ref remote_oid; do
     case "$remote_ref" in
         refs/heads/main|refs/heads/master)
-            echo ""
-            echo "=== Pre-push: running full CI suite (Docker: Ubuntu, Fedora, Arch) ==="
-            echo "  Target: $remote_ref"
-            echo ""
-
             SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
             cd "$SCRIPT_DIR"
+
+            # Determine which files changed in this push
+            if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
+                # Pushing a new branch — compare against merge-base with main
+                MERGE_BASE=$(git merge-base HEAD main 2>/dev/null || echo "")
+                if [ -n "$MERGE_BASE" ]; then
+                    CHANGED=$(git diff --name-only "$MERGE_BASE..$local_oid" 2>/dev/null || echo "")
+                else
+                    CHANGED=""  # fallback: run tests to be safe
+                fi
+            else
+                CHANGED=$(git diff --name-only "$remote_oid..$local_oid" 2>/dev/null || echo "")
+            fi
+
+            # Check if any script files changed
+            if echo "$CHANGED" | grep -qE '\.(sh|ps1)$'; then
+                echo ""
+                echo "=== Pre-push: script changes detected — running full CI suite ==="
+                echo "  Target: $remote_ref"
+                echo "  Changed scripts:"
+                echo "$CHANGED" | grep -E '\.(sh|ps1)$' | sed 's/^/    - /'
+                echo ""
+            else
+                echo "=== Pre-push: no script changes (*.sh, *.ps1) — CI skipped ==="
+                echo "  Target: $remote_ref"
+                echo ""
+                exit 0
+            fi
 
             if [ ! -f "tests/run_tests.sh" ]; then
                 echo "[ERROR] tests/run_tests.sh not found — cannot run CI."
