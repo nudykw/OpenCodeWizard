@@ -680,6 +680,33 @@ function Args-ToJsonArray {
 }
 
 
+# 0. Fix PowerShell Execution Policy (required for opencode.ps1)
+function Set-OpenCodeExecutionPolicy {
+    $currentPolicy = Get-ExecutionPolicy
+    if ($currentPolicy -eq "Restricted") {
+        Log-Info "PowerShell Execution Policy is 'Restricted'. Setting to 'RemoteSigned' for current user..."
+        if ($DryRun) {
+            Log-Dry "Would run: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force"
+        } else {
+            try {
+                Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force -ErrorAction Stop
+                Log-Success "Execution Policy set to RemoteSigned for CurrentUser."
+                if ($Silent) {
+                    # Refresh env for current session so that opencode.ps1 becomes available
+                    $env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+                }
+            } catch {
+                Log-Warning "Could not set Execution Policy: $_"
+            }
+        }
+    } else {
+        if (-not $Silent) {
+            Log-Info "PowerShell Execution Policy is already '$currentPolicy' — no changes needed."
+        }
+    }
+}
+
+
 # 1. Install WezTerm
 function Install-WezTerm {
     if (Get-Command wezterm -ErrorAction SilentlyContinue) {
@@ -1374,6 +1401,7 @@ try {
         Remove-Backups
     } else {
         Select-Preset
+        Set-OpenCodeExecutionPolicy
         Install-WezTerm
         Install-NodeJS
         Install-OpenCode
