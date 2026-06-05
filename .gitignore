@@ -5,3 +5,6 @@ Thumbs.db
 # Log files
 *.log
 .code-graph/
+
+# OpenCode session continuation data
+.omo/
