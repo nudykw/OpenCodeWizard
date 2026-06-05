@@ -251,6 +251,7 @@ OPENCODE_MCP_SERVERS=(
   - `CTRL + SHIFT + D`: Розділити екран горизонтально.
   - `CTRL + SHIFT + E`: Розділити екран вертикально (порожній).
   - `CTRL + SHIFT + W`: Закрити активну панель.
+  - `CTRL + SHIFT + I` **(лише Windows)**: **Незвичайний буфер обміну** — вставка зображення з буфера обміну Windows у вигляді `@шлях_до_файлу` в термінал. На відміну від звичайної вставки (`CTRL+V`), це зберігає зображення з буфера в `Pictures\opencode_screenshots\screenshot_<timestamp>.png` та вставляє `@C:/шлях/до/screenshot.png`, яке OpenCode може прочитати через свій `docs-mcp`. Це **не звичайна вставка** — це передача зображення через файл. На Linux/macOS `CTRL+SHIFT+I` також працює (підтримує Wayland `wl-paste`, X11 `xclip` та macOS `osascript`).
 
 ---
 

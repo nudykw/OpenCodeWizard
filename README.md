@@ -264,6 +264,7 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
   - `CTRL + SHIFT + D`: Split screen horizontally.
   - `CTRL + SHIFT + E`: Split screen vertically.
   - `CTRL + SHIFT + W`: Close the active split pane.
+  - `CTRL + SHIFT + I` **(Windows only)**: **Unconventional clipboard** — paste an image from the Windows clipboard as a `@filepath` reference into the terminal. Unlike a standard paste (`CTRL+V`), this hotkey saves the clipboard image to `Pictures\opencode_screenshots\screenshot_<timestamp>.png` and inserts an `@C:/path/to/screenshot.png` text that OpenCode can read. This is **not** a regular paste — it's a file-based image sharing mechanism for OpenCode's document reader (`docs-mcp`). On Linux/macOS, use `CTRL+SHIFT+I` as well (it supports Wayland `wl-paste`, X11 `xclip`, and macOS `osascript`).
 
 ---
 

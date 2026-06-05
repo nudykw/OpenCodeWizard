@@ -118,6 +118,22 @@ OpenCode works with the **current directory** — it can see and access all file
 
 ---
 
+### Basic WezTerm Operations on Windows
+
+WezTerm is a terminal, not a regular text editor. Mouse and clipboard work differently here:
+
+| Action | How to do it |
+|---|---|
+| **Select / copy text** | Click and drag with the **left mouse button** — text is **automatically copied** to the clipboard when you release the mouse. No need to press any extra keys. |
+| **Select word** | **Double-click** a word to select it (also auto-copies). |
+| **Select line** | **Triple-click** a line to select it (also auto-copies). |
+| **Paste text** | **Right-click** anywhere in the terminal, **or** press **`CTRL + SHIFT + V`**. |
+| **Paste image** | **`CTRL + SHIFT + I`** (see [Working with Screenshots](#working-with-screenshots) above). |
+
+> **Why not `CTRL+C` / `CTRL+V`?** In terminals, `CTRL+C` sends the "interrupt" signal (kills the current command), and `CTRL+V` is often captured by terminal programs. WezTerm uses `CTRL+SHIFT+C/V` for copy/paste to avoid conflicts. If you just select text with the mouse, it's already copied — no need for any keyboard shortcut.
+
+---
+
 ## 4. Choosing an AI Model
 
 By default, the `CTRL + SHIFT + O` shortcut launches OpenCode using a free model:
@@ -175,7 +191,8 @@ OpenCode has integrated browser support through the `puppeteer` MCP server or `@
 1. **Taking a Screenshot**: Simply ask: *"Take a screenshot of https://github.com"* or *"Render the UI of http://localhost:3000 and show it to me"*.
 2. **Visual Verification**: The AI agent will launch a headless browser, navigate to the target address, take a screenshot, and analyze the image content to assist you.
 3. **Inline Terminal Rendering**: Thanks to WezTerm, any screenshots captured by OpenCode will be rendered directly inside the terminal window inline, allowing you to see exactly what the AI sees without opening an external image viewer.
-4. **Pasting Screenshots from Clipboard**: 
+4. **Pasting Screenshots from Clipboard (⚠️ Not a regular paste)**: 
+   - **⚠️ This is NOT a standard `CTRL+V` paste.** `CTRL+SHIFT+I` is an **unconventional clipboard** mechanism built into the WezTerm config — it saves the clipboard image to a file on disk (`~/Pictures/opencode_screenshots/`) and types the `@/path/to/image.png` reference so OpenCode can read it via `docs-mcp`.
    - Take a screenshot using your system shortcut (e.g., `PrintScreen`, `Win+Shift+S`, or `Cmd+Shift+4` on macOS) to copy it to your clipboard.
    - Click inside the active OpenCode chat pane in WezTerm and press **`CTRL + SHIFT + I`**.
    - The wizard's built-in script will automatically save the clipboard image to your pictures folder (`~/Pictures/opencode_screenshots/`) and type the `@/path/to/image.png` reference directly into your prompt.
