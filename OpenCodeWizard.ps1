@@ -1327,10 +1327,18 @@ function Create-DesktopShortcut {
         $wezGui = Join-Path $wezDir "wezterm-gui.exe"
         if (-not (Test-Path $wezGui)) { throw "wezterm-gui.exe not found in $wezDir" }
 
+        # Resolve full path to opencode for robustness
+        $opencodePath = if (Get-Command opencode -ErrorAction SilentlyContinue) {
+            (Get-Command opencode -ErrorAction Stop).Source
+        } else {
+            "opencode.cmd"
+        }
+
         $shell = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($shortcutPath)
         $shortcut.TargetPath = $wezGui
-        $shortcut.Arguments = "start -- opencode.cmd -m opencode/deepseek-v4-flash-free"
+        # Arguments use the full opencode path, quoted for safety with spaces
+        $shortcut.Arguments = "start -- `"$opencodePath`" -m opencode/deepseek-v4-flash-free"
         $shortcut.WorkingDirectory = $HOME
         $shortcut.IconLocation = "$wezGui, 0"
         $shortcut.Description = "OpenCode AI in WezTerm"
