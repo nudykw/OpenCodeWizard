@@ -11,6 +11,12 @@
 .PARAMETER Lang
     Sets the default interface language (e.g. "en" or "uk").
     Встановлює типову мову інтерфейсу (наприклад, "en" або "uk").
+.PARAMETER DryRun
+    Simulate the setup without making any changes (safe to run on any system).
+    Симуляція встановлення без жодних змін (безпечно для будь-якої системи).
+.PARAMETER ListBackups
+    List all saved backups without entering the restore flow.
+    Показати всі збережені резервні копії без входу в режим відновлення.
 .EXAMPLE
     .\OpenCodeWizard.ps1 -Silent
 .EXAMPLE
@@ -22,7 +28,9 @@ param (
     [switch]$ResetColor,
     [switch]$CreateBackup,
     [switch]$RestoreBackup,
-    [switch]$RemoveBackups
+    [switch]$RemoveBackups,
+    [switch]$ListBackups,
+    [switch]$DryRun
 )
 
 $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -41,6 +49,9 @@ $Bold = "$([char]27)[1m"
 # Default Language Code
 $LangCode = "en"
 
+# Preset selection (full, medium, light)
+$global:Preset = "full"
+
 # Backup State
 $global:BackupDir = "$HOME\.local\share\opencodeWizard\backups"
 $global:BackupId = ""
@@ -51,7 +62,6 @@ $global:BackupId = ""
 # Format: "plugin_name|plugin_description"
 $OpencodePlugins = @(
     "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Vector and long-term memory for the assistant"
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator, Tokens Per Second"
@@ -63,7 +73,20 @@ $OpencodeMcpServers = @(
     "puppeteer|Browser automation (screenshots, clicks)|npx -y @modelcontextprotocol/server-puppeteer"
     "postgres|Local database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
     "context7|Library documentation|npx -y @upstash/context7-mcp"
+    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y code-graph-mcp"
+    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)|npx -y opencode-mem"
+    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|npx -y go-docs-mcp"
+    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp"
 )
+
+# Preset definitions
+$PresetFullPlugins  = @("oh-my-openagent", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin")
+$PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin")
+$PresetLightPlugins  = @("oh-my-openagent")
+
+$PresetFullMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "opencode-mem", "docs-mcp", "lsp-mcp")
+$PresetMediumMcps = @("fetch", "context7", "codegraph", "docs-mcp")
+$PresetLightMcps  = @("fetch", "context7")
 
 
 # Translations Dictionary
@@ -205,6 +228,30 @@ if ($Silent) {
 }
 Write-Host ""
 
+function Is-InPreset ($name, $presetList) {
+    return $presetList -contains $name
+}
+
+function Select-Preset {
+    if ($Silent) { return }
+    Write-Host "`n${Bold}Select configuration preset:${ResetColor}"
+    Write-Host "  ${Bold}1) 🍔 Full${ResetColor}     — everything included (recommended)"
+    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
+    Write-Host "     ${Cyan}Plugins:${ResetColor} oh-my-openagent, browser, smart-title, token-speed"
+    Write-Host "  ${Bold}2) 🥪 Medium${ResetColor}   — essential plugins + core MCPs"
+    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, context7, codegraph, docs-mcp"
+    Write-Host "  ${Bold}3) 🥗 Light${ResetColor}    — minimal setup"
+    Write-Host "     ${Cyan}MCPs:${ResetColor} fetch, context7"
+    $presetChoice = Read-Host "Choice [1-3] (default: 1)"
+    switch ($presetChoice) {
+        "2" { $global:Preset = "medium" }
+        "3" { $global:Preset = "light" }
+        default { $global:Preset = "full" }
+    }
+    Log-Info "Preset: $($global:Preset)"
+    Write-Host ""
+}
+
 function Ask-Confirm ($prompt) {
     if ($Silent) {
         return $true
@@ -221,6 +268,7 @@ function Log-Info ($msg) { Write-Host "${Blue}[INFO]${ResetColor} $msg" }
 function Log-Success ($msg) { Write-Host "${Green}[SUCCESS]${ResetColor} $msg" }
 function Log-Warning ($msg) { Write-Host "${Yellow}[WARNING]${ResetColor} $msg" }
 function Log-Error ($msg) { Write-Host "${Red}[ERROR]${ResetColor} $msg" }
+function Log-Dry ($msg) { Write-Host "${Yellow}[DRY-RUN]${ResetColor} $msg" }
 
 function Refresh-EnvPath {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
@@ -250,6 +298,12 @@ function Generate-BackupId {
 
 function Create-Backup {
     if ([string]::IsNullOrEmpty($global:BackupId)) { Generate-BackupId }
+
+    if ($DryRun) {
+        Log-Dry "Would create backup at $(Join-Path $global:BackupDir $global:BackupId)"
+        return
+    }
+
     $dest = Join-Path $global:BackupDir $global:BackupId
     if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
 
@@ -275,13 +329,11 @@ function Create-Backup {
     Log-Success "$(Get-Msg 'backup_created') $dest"
 }
 
-function Restore-Backup {
+function List-Backups {
     if (-not (Test-Path $global:BackupDir) -or (Get-ChildItem $global:BackupDir -Directory).Count -eq 0) {
-        Log-Warning "No backups found in $global:BackupDir"
-        return
+        return $null
     }
 
-    Write-Host "`n${Bold}Available backups:${ResetColor}"
     $dirs = Get-ChildItem $global:BackupDir -Directory | Sort-Object Name
     $i = 1
     foreach ($d in $dirs) {
@@ -297,6 +349,16 @@ function Restore-Backup {
         }
         Write-Host "  $i) $($d.Name)  [$created]  ($files)"
         $i++
+    }
+
+    return $dirs
+}
+
+function Restore-Backup {
+    $dirs = List-Backups
+    if ($null -eq $dirs) {
+        Log-Warning "No backups found in $global:BackupDir"
+        return
     }
 
     Write-Host ""
@@ -374,6 +436,11 @@ function Remove-Backups {
         return
     }
 
+    if ($DryRun) {
+        Log-Dry "Would delete ALL backups in $global:BackupDir"
+        return
+    }
+
     Remove-Item $global:BackupDir -Recurse -Force
     Log-Success "All backups have been removed."
 }
@@ -381,6 +448,12 @@ function Remove-Backups {
 function Reset-Config {
     Log-Info "Creating backup before reset..."
     Create-Backup
+
+    if ($DryRun) {
+        Log-Dry "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode AI.lnk"
+        Log-Dry "Would remove OpenCode plugins"
+        return
+    }
 
     $opencodeCfg = "$HOME\.config\opencode\opencode.jsonc"
     $sysinfo = "$HOME\.config\opencode\system_info.md"
@@ -409,6 +482,10 @@ function Migrate-PluginNames {
         $content = Get-Content $config -Raw
         if ($content -match "oh-my-opencode") {
             Log-Warning "Migrating legacy plugin name (oh-my-opencode -> oh-my-openagent)..."
+            if ($DryRun) {
+                Log-Dry "Would migrate oh-my-opencode → oh-my-openagent in $config"
+                return
+            }
             Create-Backup
             $content = $content -replace "oh-my-opencode", "oh-my-openagent"
             Set-Content -Path $config -Value $content -Encoding UTF8
@@ -448,6 +525,12 @@ function Install-WezTerm {
     }
 
     Log-Info "$(Get-Msg 'installing_wezterm')"
+
+    if ($DryRun) {
+        Log-Dry "Would run: winget install --id wez.wezterm"
+        return
+    }
+
     winget install --id wez.wezterm --silent --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -eq 0) {
         Log-Success "$(Get-Msg 'wezterm_success')"
@@ -488,6 +571,12 @@ function Install-OpenCode {
     }
 
     Log-Info "$(Get-Msg 'installing_opencode')"
+
+    if ($DryRun) {
+        Log-Dry "Would run: npm install -g opencode-ai@latest"
+        return
+    }
+
     npm install -g opencode-ai@latest
     if ($LASTEXITCODE -eq 0) {
         Log-Success "$(Get-Msg 'opencode_success')"
@@ -507,6 +596,13 @@ function Install-Plugins {
         return
     }
 
+    # Resolve preset plugin list
+    $presetPlugins = switch ($global:Preset) {
+        "medium" { $PresetMediumPlugins }
+        "light"  { $PresetLightPlugins }
+        default  { $PresetFullPlugins }
+    }
+
     $installAll = Ask-Confirm "$(Get-Msg 'ask_plugins_default')"
 
     foreach ($entry in $OpencodePlugins) {
@@ -514,6 +610,11 @@ function Install-Plugins {
         $pluginName = $parts[0]
         $pluginDesc = ""
         if ($parts.Length -gt 1) { $pluginDesc = $parts[1] }
+
+        # Skip if not in preset
+        if (-not (Is-InPreset $pluginName $presetPlugins)) {
+            continue
+        }
 
         $shouldInstall = $true
         if (-not $installAll) {
@@ -525,8 +626,12 @@ function Install-Plugins {
         }
 
         if ($shouldInstall) {
-            Log-Info "$(Get-Msg 'installing_plugin') $pluginName..."
-            opencode plugin $pluginName --global
+            if ($DryRun) {
+                Log-Dry "Would install plugin: $pluginName"
+            } else {
+                Log-Info "$(Get-Msg 'installing_plugin') $pluginName..."
+                opencode plugin $pluginName --global
+            }
         }
     }
     Log-Success "$(Get-Msg 'plugins_success')"
@@ -550,6 +655,18 @@ function Configure-OpenCode {
         Create-Backup
     }
 
+    # Resolve preset lists
+    $presetPlugins = switch ($global:Preset) {
+        "medium" { $PresetMediumPlugins }
+        "light"  { $PresetLightPlugins }
+        default  { $PresetFullPlugins }
+    }
+    $presetMcps = switch ($global:Preset) {
+        "medium" { $PresetMediumMcps }
+        "light"  { $PresetLightMcps }
+        default  { $PresetFullMcps }
+    }
+
     $useAllMcp = $true
     if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp_default')")) {
         $useAllMcp = $false
@@ -564,6 +681,11 @@ function Configure-OpenCode {
         $mcpCmd = ""
         if ($parts.Length -gt 1) { $mcpDesc = $parts[1] }
         if ($parts.Length -gt 2) { $mcpCmd = $parts[2] }
+
+        # Skip if not in preset
+        if (-not (Is-InPreset $mcpName $presetMcps)) {
+            continue
+        }
 
         $shouldEnable = $true
         if (-not $useAllMcp) {
@@ -589,6 +711,10 @@ function Configure-OpenCode {
     $firstPlugin = $true
     foreach ($entry in $OpencodePlugins) {
         $pluginName = $entry.Split('|')[0]
+        # Skip if not in preset
+        if (-not (Is-InPreset $pluginName $presetPlugins)) {
+            continue
+        }
         if (-not $firstPlugin) { $pluginJson += ",`n" }
         $pluginJson += "    `"$pluginName`""
         $firstPlugin = $false
@@ -613,6 +739,14 @@ This file provides the OpenCode AI assistant with details about the current oper
 - **System Memory (RAM):** $ramInfo
 - **User Shell:** PowerShell
 "@
+    if ($DryRun) {
+        Log-Dry "Would write system_info.md to $systemInfoFile"
+        Log-Dry "Would write opencode.jsonc to $configFile"
+        Log-Dry "  Plugins: $($OpencodePlugins -join ', ')"
+        Log-Dry "  MCP servers: configured based on your selections"
+        return
+    }
+
     [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.Encoding]::UTF8)
 
     $escapedSystemInfoPath = $systemInfoFile.Replace('\', '/')
@@ -647,6 +781,12 @@ function Configure-WezTerm {
         New-Item -ItemType Directory -Path $wezDir -Force | Out-Null
     }
     $wezConfig = Join-Path $wezDir "wezterm.lua"
+
+    if ($DryRun) {
+        Log-Dry "Would create directory: $wezDir"
+        Log-Dry "Would write WezTerm config to $wezConfig (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        return
+    }
 
     if (Test-Path $wezConfig) {
         Create-Backup
@@ -802,6 +942,13 @@ function Verify-Setup {
     } else {
         Log-Warning "$(Get-Msg 'verification_failed')"
     }
+
+    if ($DryRun) {
+        Write-Host "`n${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
+        Write-Host "${Yellow}  DRY-RUN COMPLETE — No changes were made to your system.${ResetColor}"
+        Write-Host "${Yellow}  Run without -DryRun to apply.${ResetColor}"
+        Write-Host "${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
+    }
     Write-Host "$Magenta================================================================$ResetColor"
 }
 
@@ -809,6 +956,10 @@ function Verify-Setup {
 function Create-DesktopShortcut {
     $desktopPath = [System.IO.Path]::Combine([System.Environment]::GetFolderPath('Desktop'), "OpenCode AI.lnk")
     if (Ask-Confirm "$(Get-Msg 'ask_desktop_shortcut')") {
+        if ($DryRun) {
+            Log-Dry "Would create desktop shortcut: $desktopPath"
+            return
+        }
         try {
             $WshShell = New-Object -ComObject WScript.Shell
             $Shortcut = $WshShell.CreateShortcut($desktopPath)
@@ -834,7 +985,16 @@ try {
     Generate-BackupId
     Migrate-PluginNames
 
-    if ($Reset) {
+    if ($ListBackups) {
+        $dirs = List-Backups
+        if ($null -eq $dirs) {
+            Log-Warning "No backups found."
+        } else {
+            $totalSize = (Get-ChildItem $global:BackupDir -Recurse -File | Measure-Object Length -Sum).Sum / 1KB
+            Write-Host "`n${Bold}Total:${ResetColor} $($dirs.Count) backup(s)"
+            Write-Host "${Bold}Size:${ResetColor} ~$([Math]::Round($totalSize, 1)) KB"
+        }
+    } elseif ($Reset) {
         Reset-Config
     } elseif ($CreateBackup) {
         Create-Backup
@@ -843,6 +1003,7 @@ try {
     } elseif ($RemoveBackups) {
         Remove-Backups
     } else {
+        Select-Preset
         Install-WezTerm
         Install-NodeJS
         Install-OpenCode

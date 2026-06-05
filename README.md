@@ -16,6 +16,7 @@ This tool is designed to help both programmers and everyday users set up a state
 - [Included Components](#included-components)
   - [OpenCode Plugins](#opencode-plugins)
   - [Model Context Protocol (MCP) Servers](#model-context-protocol-mcp-servers)
+- [Working with Sessions](docs/sessions.md)
 - [How to Use](#how-to-use)
   - [Linux & macOS](#linux--macos)
   - [Windows 11](#windows-11)
@@ -46,6 +47,7 @@ Command-line environments can be intimidating. However, they are incredibly powe
 - **Safety Backups:** Automatically copies any existing configuration files (`wezterm.lua` and `opencode.jsonc`) to `.bak` before writing new ones.
 - **Desktop Shortcuts:** Optional one-click desktop shortcut creation to launch OpenCode inside WezTerm instantly (Linux & Windows).
 - **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
+- **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md).
 
 ---
 
@@ -67,7 +69,6 @@ During the wizard, you can install the following plugins:
 | Plugin Name | Description |
 | :--- | :--- |
 | **`oh-my-opencode`** | Session management, workspace utilities, and advanced helper CLI commands. |
-| **`opencode-mem`** | Long-term vector database memory, letting the AI remember details across chats. |
 | **`@different-ai/opencode-browser`** | Real browser integration, allowing the AI to browse the web when answering questions. |
 | **`@tarquinen/opencode-smart-title`** | Generates smart titles for your active chats automatically based on context. |
 | **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
@@ -81,6 +82,11 @@ MCP servers extend the AI's capabilities to interact with local APIs and tools:
 | **`fetch`** | Instantly downloads and parses the text content of web URLs without loading a GUI. |
 | **`puppeteer`** | Full browser automation, allowing the agent to click buttons, fill forms, and take screenshots. |
 | **`postgres`** | Direct, secure connection to local databases (pre-configured for the `gpt_chat_bot` database). |
+| **`context7`** | Up-to-date library documentation and code examples. |
+| **`codegraph`** | AST-level code graph: semantic search, call chain analysis, impact analysis. |
+| **`opencode-mem`** | Long-term Rust RAG memory with hybrid search (BM25 + vector). |
+| **`docs-mcp`** | Multi-format document reader: PDF, DOCX, MD, CSV, OCR (via `go-docs-mcp`). |
+| **`lsp-mcp`** | Code intelligence: definitions, references, diagnostics via LSP protocol. |
 
 ---
 
@@ -126,32 +132,55 @@ MCP servers extend the AI's capabilities to interact with local APIs and tools:
 | :--- | :--- |
 | `./OpenCodeWizard.sh` | Run the interactive setup wizard |
 | `./OpenCodeWizard.sh --silent` | Automated setup with all defaults |
+| `./OpenCodeWizard.sh --dry-run` | Preview all changes without applying anything |
 | `./OpenCodeWizard.sh --create-backup` | Save a snapshot of current config files |
 | `./OpenCodeWizard.sh --restore-backup` | Interactively restore a previous snapshot |
+| `./OpenCodeWizard.sh --list-backups` | List all saved backups with timestamps |
 | `./OpenCodeWizard.sh --reset` | Wipe all wizard-managed configs (backup created first) |
 | `./OpenCodeWizard.sh --remove-backups` | Delete ALL saved backups |
 | `./OpenCodeWizard.sh --help` | Show full help with all commands |
 
-On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and use the equivalent parameters: `-CreateBackup`, `-RestoreBackup`, `-Reset`, `-RemoveBackups`.
+On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and use the equivalent parameters: `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`.
 
 ---
 
-## Customizing Plugins & MCP Servers
+## Presets
+
+The wizard includes three presets that control how many plugins and MCP servers are installed. You'll be prompted to choose during setup, or the **Full** preset is selected by default (including with `--silent`).
+
+| Preset | Plugins | MCP Servers | Best For |
+| :--- | :--- | :--- | :--- |
+| **🍔 Full** (default) | All 4 plugins | All 8 MCPs | Full-featured AI coding environment |
+| **🥪 Medium** | oh-my-openagent, token-speed-plugin | fetch, context7, codegraph, docs-mcp | Balanced — essential tools only |
+| **🥗 Light** | oh-my-openagent only | fetch, context7 | Minimal — just the basics |
+
+---
+
+## Customizing Plugins, MCP Servers & Presets
 
 All plugins and MCP servers are defined as **plain lists at the very top of the script** — no programming knowledge required to edit them.
+
+Preset arrays (`PRESET_FULL_PLUGINS`, `PRESET_MEDIUM_PLUGINS`, `PRESET_LIGHT_*`, etc.) control which items from the master lists are included per preset. You can freely move items between presets or create your own.
 
 **To add a new plugin**, open `OpenCodeWizard.sh` and add one line to `OPENCODE_PLUGINS`:
 
 ```bash
 OPENCODE_PLUGINS=(
     "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Vector and long-term memory for the assistant"
     # Add your plugin on a new line:
     "my-cool-plugin|What this plugin does"
 )
 ```
 
-**To disable an MCP server**, comment out its line with `#`:
+Then add it to the desired preset:
+
+```bash
+PRESET_FULL_PLUGINS=("oh-my-openagent" "@different-ai/opencode-browser" "@tarquinen/opencode-smart-title" "opencode-token-speed-plugin" "my-cool-plugin")
+PRESET_MEDIUM_PLUGINS=("oh-my-openagent" "opencode-token-speed-plugin")
+PRESET_LIGHT_PLUGINS=("oh-my-openagent")
+```
+
+**To disable an MCP server**, comment out its line from `OPENCODE_MCP_SERVERS` or exclude it from the preset array:
 
 ```bash
 OPENCODE_MCP_SERVERS=(
@@ -161,7 +190,7 @@ OPENCODE_MCP_SERVERS=(
 )
 ```
 
-On Windows, find `$OpencodePlugins` and `$OpencodeMcpServers` at the top of `OpenCodeWizard.ps1` — same format, same approach.
+On Windows, find `$OpencodePlugins`, `$OpencodeMcpServers`, and the `$Preset*` arrays at the top of `OpenCodeWizard.ps1` — same format, same approach.
 
 ---
 
@@ -206,7 +235,9 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
 The script automatically handles default registration using three methods:
 1. Registers via **`update-alternatives`** (`x-terminal-emulator`).
 2. Configures modern Freedesktop **`xdg-terminals.list`** layouts.
-3. Appends `export TERMINAL=wezterm` to `~/.bashrc` / `~/.zshrc` without duplicate lines.
+3. Appends `export TERMINAL=wezterm` and `export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` to `~/.bashrc` / `~/.zshrc` without duplicate lines.
+
+> `OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` fixes Tab switching behaviour — Tab changes only the agent mode (Agent/Edit/Search), not the AI model.
 
 ### Windows 11:
 Instructions are shown at the end of the PowerShell wizard:

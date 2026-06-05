@@ -16,7 +16,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
-NC='\033[0;37m' # No Color
+NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # ==============================================================================
@@ -28,7 +28,6 @@ BOLD='\033[1m'
 
 OPENCODE_PLUGINS=(
     "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Vector and long-term memory for the assistant"
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator (Tokens Per Second)"
@@ -39,6 +38,45 @@ OPENCODE_MCP_SERVERS=(
     "puppeteer|Browser automation: screenshots and clicking elements|npx -y @modelcontextprotocol/server-puppeteer"
     "postgres|Integration with local gpt_chat_bot database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
     "context7|Access real-time version-specific library documentation|npx -y @upstash/context7-mcp"
+    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y code-graph-mcp"
+    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)|npx -y opencode-mem"
+    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|npx -y go-docs-mcp"
+    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp"
+)
+
+# ==============================================================================
+# Preset system — defines which plugins and MCPs are included per preset
+# Preset names must match one of: full, medium, light
+# Each list contains plugin/MCP names (first field of the | separated entries above)
+# ==============================================================================
+
+# Full preset — everything (default)
+PRESET_FULL_PLUGINS=(
+    "oh-my-openagent"
+    "@different-ai/opencode-browser"
+    "@tarquinen/opencode-smart-title"
+    "opencode-token-speed-plugin"
+)
+PRESET_FULL_MCPS=(
+    "fetch" "puppeteer" "postgres" "context7"
+    "codegraph" "opencode-mem" "docs-mcp" "lsp-mcp"
+)
+
+# Medium preset — essential plugins, core MCPs
+PRESET_MEDIUM_PLUGINS=(
+    "oh-my-openagent"
+    "opencode-token-speed-plugin"
+)
+PRESET_MEDIUM_MCPS=(
+    "fetch" "context7" "codegraph" "docs-mcp"
+)
+
+# Light preset — minimal setup
+PRESET_LIGHT_PLUGINS=(
+    "oh-my-openagent"
+)
+PRESET_LIGHT_MCPS=(
+    "fetch" "context7"
 )
 
 # ==============================================================================
@@ -46,7 +84,9 @@ OPENCODE_MCP_SERVERS=(
 # ==============================================================================
 LANG_CODE="en"
 SILENT=false
-COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups
+DRY_RUN=false
+PRESET="full"   # full | medium | light
+COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
 OS=""
 DISTRO=""
 
@@ -71,22 +111,29 @@ show_help() {
     echo -e "  --restore-backup                 Show backups and restore selected (transactional)."
     echo -e "                                   Auto-saves current state before restoring."
     echo -e "                                   Відновити конфіги з резервної копії"
+    echo -e "  --list-backups                    Show all saved backups (non-interactive)."
+    echo -e "                                   Показати всі резервні копії"
     echo -e "  --remove-backups                 Delete ALL saved backups (with confirmation)."
     echo -e "                                   Видалити всі резервні копії"
     echo -e ""
     echo -e "${BOLD}OPTIONS:${NC}"
     echo -e "  -y, --silent, --non-interactive  Run setup automatically with default options"
     echo -e "                                   Запустити встановлення автоматично"
+    echo -e "  --dry-run                        Simulate without making changes (safe on any OS)"
+    echo -e "                                   Симуляція без змін (безпечно на будь-якій ОС)"
     echo -e "  -h, --help                       Show this help message"
     echo -e "                                   Показати це повідомлення допомоги"
     echo -e ""
     echo -e "${BOLD}EXAMPLES:${NC}"
     echo -e "  $0                               # interactive wizard"
     echo -e "  $0 --silent                      # auto setup"
+    echo -e "  $0 --dry-run                     # simulate setup (no changes)"
+    echo -e "  $0 --silent --dry-run            # simulate non-interactively"
     echo -e "  $0 --create-backup               # snapshot configs now"
     echo -e "  $0 --restore-backup              # pick and restore a backup"
     echo -e "  $0 --reset                       # wipe wizard-managed configs"
     echo -e "  $0 --remove-backups              # delete all backups"
+    echo -e "  $0 --list-backups                # show all backups"
     echo -e ""
     echo -e "${BOLD}CUSTOMIZING PLUGINS & MCP:${NC}"
     echo -e "  Edit OPENCODE_PLUGINS and OPENCODE_MCP_SERVERS arrays at the top of this script."
@@ -101,8 +148,11 @@ while [[ $# -gt 0 ]]; do
         --create-backup)   COMMAND="create-backup" ;;
         --restore-backup)  COMMAND="restore-backup" ;;
         --remove-backups)  COMMAND="remove-backups" ;;
+        --list-backups)   COMMAND="list-backups" ;;
         -y|--silent|--non-interactive)
             SILENT=true ;;
+        --dry-run)
+            DRY_RUN=true ;;
         -h|--help)
             show_help ;;
         *)
@@ -113,6 +163,13 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+
+# Dry-run helpers
+is_dry_run() { [ "$DRY_RUN" = true ]; }
+
+log_dry() {
+    echo -e "${YELLOW}[DRY-RUN]${NC} $1"
+}
 
 # Helper Translation Function
 msg() {
@@ -312,6 +369,41 @@ select_language() {
     echo ""
 }
 
+# Check if a name is in a preset list
+# Usage: is_in_preset "$name" "${preset_array[@]}"
+is_in_preset() {
+    local target="$1"
+    shift
+    for item in "$@"; do
+        [ "$item" = "$target" ] && return 0
+    done
+    return 1
+}
+
+# Select preset interactively
+select_preset() {
+    if [ "$SILENT" = true ]; then
+        PRESET="full"
+        return 0
+    fi
+    echo -e "\n${BOLD}Select configuration preset:${NC}"
+    echo -e "  ${BOLD}1)🍔 Full${NC}     — everything included (recommended)"
+    echo -e "     ${CYAN}MCPs:${NC} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
+    echo -e "     ${CYAN}Plugins:${NC} oh-my-openagent, browser, smart-title, token-speed"
+    echo -e "  ${BOLD}2)🥪 Medium${NC}   — essential plugins + core MCPs"
+    echo -e "     ${CYAN}MCPs:${NC} fetch, context7, codegraph, docs-mcp"
+    echo -e "  ${BOLD}3)🥗 Light${NC}    — minimal setup"
+    echo -e "     ${CYAN}MCPs:${NC} fetch, context7"
+    read -p "Choice / Вибір [1-3] (default: 1): " preset_choice
+    case "$preset_choice" in
+        2) PRESET="medium" ;;
+        3) PRESET="light" ;;
+        *) PRESET="full" ;;
+    esac
+    log_info "Preset: ${BOLD}${PRESET}${NC}"
+    echo ""
+}
+
 # Ask for confirmation helper
 ask_confirm() {
     local prompt="$1"
@@ -401,6 +493,12 @@ generate_backup_id() {
 # Idempotent: safe to call multiple times in one session.
 create_backup() {
     [ -z "$BACKUP_ID" ] && generate_backup_id
+
+    if is_dry_run; then
+        log_dry "Would create backup at $BACKUP_DIR/$BACKUP_ID"
+        return 0
+    fi
+
     local dest="$BACKUP_DIR/$BACKUP_ID"
     mkdir -p "$dest"
 
@@ -429,14 +527,15 @@ create_backup() {
     log_info "$(msg "backup_location") $dest"
 }
 
-restore_backup() {
+# List backups and return array via global BACKUPS_LIST / BACKUPS_COUNT
+# Returns 0 if backups exist, 1 if none.
+list_backups() {
+    BACKUPS_LIST=()
+    BACKUPS_COUNT=0
     if [ ! -d "$BACKUP_DIR" ] || [ -z "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]; then
-        log_warning "$(msg "no_backups_found")"
-        return 0
+        return 1
     fi
 
-    echo -e "\n${BOLD}Available backups:${NC}"
-    local backups=()
     local i=1
     while IFS= read -r -d '' dir; do
         local manifest="$dir/manifest.txt"
@@ -449,18 +548,28 @@ restore_backup() {
         local bname
         bname=$(basename "$dir")
         printf "  %d) %s  [%s]  (%s)\n" "$i" "$bname" "${created:-unknown}" "${files:-no files}"
-        backups+=("$dir")
+        BACKUPS_LIST+=("$dir")
         i=$((i+1))
     done < <(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
+    BACKUPS_COUNT=$((i - 1))
+    return 0
+}
+
+restore_backup() {
+    if ! list_backups; then
+        log_warning "$(msg "no_backups_found")"
+        return 0
+    fi
+
     echo ""
     read -rp "$(msg "select_backup") " choice
-    if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#backups[@]}" ]; then
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$BACKUPS_COUNT" ]; then
         log_error "Invalid choice. Aborting."
         return 1
     fi
 
-    local selected="${backups[$((choice-1))]}"
+    local selected="${BACKUPS_LIST[$((choice-1))]}"
     echo -e "\nFiles in this backup:"
     find "$selected" -maxdepth 1 -type f ! -name 'manifest.txt' -printf '  %f\n'
     echo ""
@@ -527,6 +636,11 @@ remove_backups() {
         return 0
     fi
 
+    if is_dry_run; then
+        log_dry "Would delete ALL backups in $BACKUP_DIR"
+        return 0
+    fi
+
     rm -rf "$BACKUP_DIR"
     log_success "$(msg "remove_backups_success")"
 }
@@ -534,6 +648,13 @@ remove_backups() {
 reset_config() {
     log_info "Creating backup before reset..."
     create_backup
+
+    if is_dry_run; then
+        log_dry "Would remove: opencode.jsonc, system_info.md, wezterm.lua, OpenCode.desktop"
+        log_dry "Would remove TERMINAL export from .bashrc/.zshrc"
+        log_dry "Would remove OpenCode plugins"
+        return 0
+    fi
 
     local opencode_cfg="$HOME/.config/opencode/opencode.jsonc"
     local sysinfo="$HOME/.config/opencode/system_info.md"
@@ -576,6 +697,10 @@ migrate_plugin_names() {
     local config="$HOME/.config/opencode/opencode.jsonc"
     if [ -f "$config" ] && grep -q "oh-my-opencode" "$config"; then
         log_warning "$(msg "migrate_plugin")"
+        if is_dry_run; then
+            log_dry "Would migrate oh-my-opencode → oh-my-openagent in $config"
+            return 0
+        fi
         create_backup
         sed -i 's/oh-my-opencode/oh-my-openagent/g' "$config"
         if command -v opencode &>/dev/null; then
@@ -592,7 +717,10 @@ args_to_json_array() {
     local first=true
     for arg in $args_str; do
         [ "$first" = false ] && json="$json, "
-        json="${json}\"${arg}\""
+        # Escape double quotes and backslashes inside each argument
+        local escaped="${arg//\\/\\\\}"
+        escaped="${escaped//\"/\\\"}"
+        json="${json}\"${escaped}\""
         first=false
     done
     echo "${json}]"
@@ -611,6 +739,23 @@ install_wezterm() {
     fi
 
     log_info "$(msg "installing_wezterm")"
+
+    if is_dry_run; then
+        case "$OS" in
+            macos)  log_dry "Would run: brew install --cask wezterm" ;;
+            linux)
+                case "$DISTRO" in
+                    ubuntu) log_dry "Would add WezTerm APT repo + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
+                    redhat) log_dry "Would run: dnf install wezterm xclip wl-clipboard" ;;
+                    arch)   log_dry "Would run: pacman -S wezterm xclip wl-clipboard" ;;
+                    *)      log_dry "Unsupported distro for auto-install: $DISTRO. Would show manual install instructions." ;;
+                esac ;;
+            *) log_dry "Unsupported OS: $OS. Would show manual install instructions." ;;
+        esac
+        log_dry "WezTerm installation skipped (dry-run)"
+        return 0
+    fi
+
     case "$OS" in
         macos)
             if ! command -v brew &>/dev/null; then
@@ -671,6 +816,12 @@ install_opencode() {
         exit 1
     fi
 
+    if is_dry_run; then
+        log_dry "Would run: npm install -g opencode-ai@latest"
+        log_dry "OpenCode installation skipped (dry-run)"
+        return 0
+    fi
+
     local npm_prefix
     npm_prefix=$(npm config get prefix)
     if [ -w "$npm_prefix" ]; then
@@ -696,6 +847,14 @@ install_plugins() {
         return 0
     fi
 
+    # Resolve preset plugin list
+    local preset_plugins=()
+    case "$PRESET" in
+        medium) preset_plugins=("${PRESET_MEDIUM_PLUGINS[@]}") ;;
+        light)  preset_plugins=("${PRESET_LIGHT_PLUGINS[@]}") ;;
+        *)      preset_plugins=("${PRESET_FULL_PLUGINS[@]}") ;;
+    esac
+
     local install_all=true
     if ! ask_confirm "$(msg "ask_plugins_default")"; then
         install_all=false
@@ -704,6 +863,12 @@ install_plugins() {
     for entry in "${OPENCODE_PLUGINS[@]}"; do
         local plugin_name="${entry%%|*}"
         local plugin_desc="${entry#*|}"
+
+        # Skip if not in preset
+        if ! is_in_preset "$plugin_name" "${preset_plugins[@]}"; then
+            log_info "Skipping $plugin_name (not in $PRESET preset)"
+            continue
+        fi
 
         local should_install=true
         if [ "$install_all" = false ]; then
@@ -715,8 +880,12 @@ install_plugins() {
         fi
 
         if [ "$should_install" = true ]; then
-            log_info "$(msg "installing_plugin") ${plugin_name}..."
-            opencode plugin "${plugin_name}" --global || log_warning "Failed to install ${plugin_name} or already installed."
+            if is_dry_run; then
+                log_dry "Would install plugin: $plugin_name"
+            else
+                log_info "$(msg "installing_plugin") ${plugin_name}..."
+                opencode plugin "${plugin_name}" --global || log_warning "Failed to install ${plugin_name} or already installed."
+            fi
         fi
     done
 
@@ -739,6 +908,24 @@ configure_opencode() {
         create_backup
     fi
 
+    # Resolve preset lists
+    local preset_plugins=()
+    local preset_mcps=()
+    case "$PRESET" in
+        medium)
+            preset_plugins=("${PRESET_MEDIUM_PLUGINS[@]}")
+            preset_mcps=("${PRESET_MEDIUM_MCPS[@]}")
+            ;;
+        light)
+            preset_plugins=("${PRESET_LIGHT_PLUGINS[@]}")
+            preset_mcps=("${PRESET_LIGHT_MCPS[@]}")
+            ;;
+        *)
+            preset_plugins=("${PRESET_FULL_PLUGINS[@]}")
+            preset_mcps=("${PRESET_FULL_MCPS[@]}")
+            ;;
+    esac
+
     local use_all_mcp=true
     if ! ask_confirm "$(msg "ask_mcp_default")"; then
         use_all_mcp=false
@@ -753,6 +940,12 @@ configure_opencode() {
         local rest="${entry#*|}"
         local mcp_desc="${rest%%|*}"
         local mcp_cmd="${rest#*|}"
+
+        # Skip if not in preset
+        if ! is_in_preset "$mcp_name" "${preset_mcps[@]}"; then
+            log_info "Skipping MCP $mcp_name (not in $PRESET preset)"
+            continue
+        fi
 
         local should_enable=true
         if [ "$use_all_mcp" = false ]; then
@@ -779,11 +972,15 @@ configure_opencode() {
         fi
     done
 
-    # Build plugin JSON array from OPENCODE_PLUGINS
+    # Build plugin JSON array from OPENCODE_PLUGINS (filtered by preset)
     local plugin_json=""
     local first_plugin=true
     for entry in "${OPENCODE_PLUGINS[@]}"; do
         local pname="${entry%%|*}"
+        # Skip if not in preset
+        if ! is_in_preset "$pname" "${preset_plugins[@]}"; then
+            continue
+        fi
         if [ "$first_plugin" = false ]; then
             plugin_json="${plugin_json},"$'\n'
         fi
@@ -812,6 +1009,15 @@ configure_opencode() {
         local raw_mem
         raw_mem=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
         [ "$raw_mem" -gt 0 ] && ram_info="$((raw_mem / 1024 / 1024 / 1024)) GB RAM"
+    fi
+
+    if is_dry_run; then
+        log_dry "Would write system_info.md to $config_dir/system_info.md"
+        log_dry "Would write opencode.jsonc to $config_file"
+        log_dry "  Plugins: ${OPENCODE_PLUGINS[*]}"
+        log_dry "  MCP servers: configured based on your selections"
+        log_dry "OpenCode config skipped (dry-run)"
+        return 0
     fi
 
     # Write system_info.md
@@ -853,8 +1059,16 @@ configure_wezterm() {
     fi
 
     local wez_dir="$HOME/.config/wezterm"
-    mkdir -p "$wez_dir"
     local wez_config="$wez_dir/wezterm.lua"
+
+    if is_dry_run; then
+        log_dry "Would create directory: $wez_dir"
+        log_dry "Would write WezTerm config to $wez_config (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        log_dry "WezTerm config skipped (dry-run)"
+        return 0
+    fi
+
+    mkdir -p "$wez_dir"
 
     if [ -f "$wez_config" ]; then
         create_backup
@@ -991,6 +1205,13 @@ configure_default_terminal() {
 
     case "$OS" in
         linux)
+            if is_dry_run; then
+                log_dry "Would register WezTerm as default x-terminal-emulator (update-alternatives)"
+                log_dry "Would write XDG terminal configs to ~/.config/xdg-terminals.list"
+                log_dry "Would append 'export TERMINAL=wezterm' to shell configs (bashrc/zshrc/profile)"
+                return 0
+            fi
+
             if command -v update-alternatives &>/dev/null; then
                 local wez_path
                 wez_path=$(command -v wezterm)
@@ -1014,10 +1235,12 @@ configure_default_terminal() {
             local shell_configs=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile")
             for s_conf in "${shell_configs[@]}"; do
                 if [ -f "$s_conf" ]; then
-                    if ! grep -q "export TERMINAL=" "$s_conf"; then
-                        log_info "$(msg "exporting_env") -> $s_conf"
-                        echo -e "\n# OpenCode default terminal\nexport TERMINAL=wezterm" >> "$s_conf"
-                    fi
+            if ! grep -q "export TERMINAL=" "$s_conf"; then
+                    log_info "$(msg "exporting_env") -> $s_conf"
+                    echo -e "\n# OpenCode\nexport TERMINAL=wezterm\nexport OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true" >> "$s_conf"
+                elif ! grep -q "export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=" "$s_conf"; then
+                    echo -e "\nexport OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true" >> "$s_conf"
+                fi
                 fi
             done
             ;;
@@ -1031,6 +1254,10 @@ configure_default_terminal() {
 create_desktop_shortcut() {
     if [ "$OS" = "linux" ] && [ -d "$HOME/Desktop" ]; then
         if ask_confirm "$(msg "ask_desktop_shortcut")" "Y"; then
+            if is_dry_run; then
+                log_dry "Would create desktop shortcut: $HOME/Desktop/OpenCode.desktop"
+                return 0
+            fi
             local desktop_file="$HOME/Desktop/OpenCode.desktop"
             cat << EOF > "$desktop_file"
 [Desktop Entry]
@@ -1078,6 +1305,13 @@ verify_setup() {
     else
         log_warning "$(msg "verification_failed")"
     fi
+
+    if is_dry_run; then
+        echo -e "\n${YELLOW}${BOLD}══════════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}${BOLD}  DRY-RUN COMPLETE — No changes were made to your system.${NC}"
+        echo -e "${YELLOW}${BOLD}  Run without --dry-run to apply.${NC}"
+        echo -e "${YELLOW}${BOLD}══════════════════════════════════════════════════════════${NC}"
+    fi
     echo -e "${MAGENTA}${BOLD}================================================================${NC}"
 }
 
@@ -1100,10 +1334,21 @@ main() {
         remove-backups)
             remove_backups
             ;;
+        list-backups)
+            if list_backups; then
+                echo -e "\n${BOLD}Total:${NC} $BACKUPS_COUNT backup(s)"
+                local total_size
+                total_size=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1 || echo "?")
+                echo -e "${BOLD}Size:${NC} ~${total_size}"
+            else
+                log_warning "$(msg "no_backups_found")"
+            fi
+            ;;
         setup)
             select_language
             show_onboarding
             detect_os
+            select_preset
             install_wezterm
             install_opencode
             install_plugins

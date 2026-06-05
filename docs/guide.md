@@ -12,6 +12,7 @@ Welcome! If you are new to the command line or using local AI assistants, this g
 - [3. Launching WezTerm & OpenCode](#3-launching-wezterm--opencode)
 - [4. Choosing an AI Model](#4-choosing-an-ai-model)
 - [5. How to Use OpenCode](#5-how-to-use-opencode)
+  - [Working with Sessions](sessions.md)
   - [Interacting with files](#interacting-with-files)
   - [Using Plugins](#using-plugins)
   - [Running MCP Servers](#running-mcp-servers)
@@ -85,7 +86,9 @@ If you wish to use other models (like Claude 3.5 Sonnet or GPT-4o), you can swit
 
 ## 5. How to Use OpenCode
 
-OpenCode acts as an agentic assistant. You can talk to it in natural language:
+OpenCode acts as an agentic assistant. You can talk to it in natural language.
+
+> **💡 Working with sessions:** Each conversation in OpenCode is a separate **session**. To get the best results, use fresh sessions for different tasks — [learn more about sessions](sessions.md).
 
 ### Interacting with files
 - You can say:

@@ -40,7 +40,7 @@ Testing in Docker is fully automated and runs without user interaction using the
    - `wezterm` and `opencode` are in the PATH and return valid version numbers.
    - Configuration files (`wezterm.lua` and `opencode.jsonc`) exist.
    - The plugin entry for `"oh-my-opencode"` is correct (verifies that `"oh-my-openagent"` is not present).
-   - Shell exports are correctly written to `~/.bashrc`.
+   - Shell exports are correctly written to `~/.bashrc` (`TERMINAL=wezterm` + `OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true`).
    - The desktop launcher file exists, is executable, and points to the correct target.
 
 ---

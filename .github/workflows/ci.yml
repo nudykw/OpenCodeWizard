@@ -79,3 +79,24 @@ jobs:
         run: |
           chmod +x tests/run_tests.sh
           ./tests/run_tests.sh powershell
+
+  test-macos:
+    name: Test macOS (dry-run)
+    runs-on: macos-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run dry-run on macOS
+        run: |
+          chmod +x OpenCodeWizard.sh
+          ./OpenCodeWizard.sh --silent --dry-run
+
+  test-windows:
+    name: Test Windows (dry-run)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run dry-run on Windows
+        shell: pwsh
+        run: .\OpenCodeWizard.ps1 -Silent -DryRun

@@ -16,6 +16,7 @@
 - [Компоненти у збірці](#компоненти-у-збірці)
   - [Плагіни OpenCode](#плагіни-opencode)
   - [Сервери Model Context Protocol (MCP)](#сервери-model-context-protocol-mcp)
+- [Робота з сесіями](docs/sessions.uk.md)
 - [Як використовувати](#як-використовувати)
   - [Linux та macOS](#linux-та-macos)
   - [Windows 11](#windows-11)
@@ -46,6 +47,7 @@
 - **Резервні копії (Backups):** Автоматичне збереження існуючих файлів `wezterm.lua` та `opencode.jsonc` у форматі `.bak` перед будь-яким оновленням.
 - **Ярлик на робочому столі:** Опціональне створення ярлика швидкого запуску OpenCode в WezTerm на Робочому столі в один клік (для Linux та Windows).
 - **Кроссплатформенність:** Робота «з коробки» на **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS** та **Windows 11**.
+- **Керування сесіями:** Дізнайтеся, як ефективно використовувати сесії OpenCode — [читайте посібник](docs/sessions.uk.md).
 
 ---
 
@@ -67,7 +69,6 @@
 | Назва плагіна | Що він робить |
 | :--- | :--- |
 | **`oh-my-opencode`** | Керування сесіями, утиліти для робочої директорії та додаткові CLI команди. |
-| **`opencode-mem`** | Довгострокова векторна пам'ять, що дозволяє ШІ пам'ятати контекст минулих сесій. |
 | **`@different-ai/opencode-browser`** | Інтеграція з реальним браузером, завдяки якій ШІ може відкривати та переглядати сайти. |
 | **`@tarquinen/opencode-smart-title`** | Автоматично створює зрозумілі назви для ваших сесій чату на основі контексту. |
 | **`opencode-token-speed-plugin`** | Відображає швидкість генерації моделі (Tokens Per Second, TPS) у реальному часі. |
@@ -80,7 +81,12 @@ MCP-сервери розширюють можливості ШІ, надаюч�
 | :--- | :--- |
 | **`fetch`** | Швидко зчитує текстовий вміст веб-сторінок за посиланнями без запуску візуального вікна. |
 | **`puppeteer`** | Повноцінна автоматизація браузера: ШІ може тиснути кнопки, робити скріншоти та заповнювати форми. |
-| **`postgres`** | Прямий безпечний доступ до локальної бази даних проекту (передустановлений для БД `gpt_chat_bot`). |
+| **`postgres`** | Прямий безпечний доступ до локальної бази даних (передустановлений для БД `gpt_chat_bot`). |
+| **`context7`** | Актуальна документація бібліотек та приклади коду. |
+| **`codegraph`** | AST-граф коду: семантичний пошук, аналіз викликів, impact analysis. |
+| **`opencode-mem`** | Довгострокова Rust RAG пам'ять з гібридним пошуком (BM25 + вектори). |
+| **`docs-mcp`** | Читання документів: PDF, DOCX, MD, CSV, OCR (через `go-docs-mcp`). |
+| **`lsp-mcp`** | Інтелект коду: визначення, референси, діагностика через LSP. |
 
 ---
 
@@ -125,19 +131,33 @@ MCP-сервери розширюють можливості ШІ, надаюч�
 | :--- | :--- |
 | `./OpenCodeWizard.sh` | Інтерактивний майстер налаштування |
 | `./OpenCodeWizard.sh --silent` | Автоматичне встановлення |
+| `./OpenCodeWizard.sh --dry-run` | Показати всі зміни без реального застосування |
 | `./OpenCodeWizard.sh --create-backup` | Зберегти резервну копію поточних конфігів |
 | `./OpenCodeWizard.sh --restore-backup` | Відновити конфіги з резервної копії |
+| `./OpenCodeWizard.sh --list-backups` | Показати список всіх бекапів з датами |
 | `./OpenCodeWizard.sh --reset` | Скинути всі конфіги (бекап створюється автоматично) |
 | `./OpenCodeWizard.sh --remove-backups` | Видалити всі резервні копії |
 | `./OpenCodeWizard.sh --help` | Показати довідку |
 
-На **Windows** використовуйте `.\OpenCodeWizard.ps1` з параметрами `-CreateBackup`, `-RestoreBackup`, `-Reset`, `-RemoveBackups`.
+На **Windows** використовуйте `.\OpenCodeWizard.ps1` з параметрами `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`.
 
 ---
 
-## Налаштування плагінів та MCP
+## Пресети
 
-Всі плагіни та MCP-сервери знаходяться у вигляді простих списків **на початку скрипта**. Додати новий плагін — один рядок:
+Майстер включає три пресети, які контролюють кількість встановлених плагінів та MCP-серверів. Вибір пропонується під час налаштування, або використовується **Full** (за замовчуванням, в т.ч. з `--silent`).
+
+| Пресет | Плагіни | MCP-сервери | Для кого |
+| :--- | :--- | :--- | :--- |
+| **🍔 Full** (default) | Всі 4 плагіни | Всі 8 MCP | Повноцінне AI-середовище |
+| **🥪 Medium** | oh-my-openagent, token-speed | fetch, context7, codegraph, docs-mcp | Збалансовано — тільки необхідне |
+| **🥗 Light** | oh-my-openagent | fetch, context7 | Мінімальне налаштування |
+
+---
+
+## Налаштування плагінів, MCP та пресетів
+
+Всі плагіни, MCP-сервери та пресети знаходяться у вигляді простих списків **на початку скрипта**. Додати новий плагін — один рядок:
 
 ```bash
 OPENCODE_PLUGINS=(
@@ -147,7 +167,15 @@ OPENCODE_PLUGINS=(
 )
 ```
 
-Щоб вимкнути MCP-сервер — закоментуйте рядок через `#`:
+Потім додайте його до потрібного пресету:
+
+```bash
+PRESET_FULL_PLUGINS=("oh-my-openagent" "@different-ai/opencode-browser" "@tarquinen/opencode-smart-title" "opencode-token-speed-plugin" "my-cool-plugin")
+PRESET_MEDIUM_PLUGINS=("oh-my-openagent" "opencode-token-speed-plugin")
+PRESET_LIGHT_PLUGINS=("oh-my-openagent")
+```
+
+Щоб вимкнути MCP-сервер — закоментуйте рядок через `#` або виключіть з пресету:
 
 ```bash
 OPENCODE_MCP_SERVERS=(
@@ -156,7 +184,7 @@ OPENCODE_MCP_SERVERS=(
 )
 ```
 
-На Windows знайдіть `$OpencodePlugins` та `$OpencodeMcpServers` на початку `OpenCodeWizard.ps1`.
+На Windows знайдіть `$OpencodePlugins`, `$OpencodeMcpServers` та `$Preset*` масиви на початку `OpenCodeWizard.ps1`.
 
 ---
 
@@ -194,7 +222,9 @@ OPENCODE_MCP_SERVERS=(
 Майстер робить це автоматично трьома шляхами:
 1. Реєструє WezTerm через **`update-alternatives`** (`x-terminal-emulator`).
 2. Додає WezTerm до списків **`xdg-terminals.list`**.
-3. Прописує `export TERMINAL=wezterm` до `~/.bashrc` / `~/.zshrc` (без дублювання записів).
+3. Прописує `export TERMINAL=wezterm` та `export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` до `~/.bashrc` / `~/.zshrc` (без дублювання записів).
+
+> `OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` виправляє поведінку Tab — Tab перемикає лише режим агента (Agent/Edit/Search), а не модель.
 
 ### Windows 11:
 Інструкція виводиться в кінці роботи PowerShell:

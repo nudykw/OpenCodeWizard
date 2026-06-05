@@ -94,6 +94,11 @@ if [ -f "$HOME/.bashrc" ]; then
         log_error "✘ export TERMINAL=wezterm NOT found in ~/.bashrc"
         ((errors++))
     fi
+    if grep -q "export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true" "$HOME/.bashrc"; then
+        log_success "✔ export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true found in ~/.bashrc"
+    else
+        log_warning "export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true NOT found in ~/.bashrc"
+    fi
 else
     log_warning "\$HOME/.bashrc file does not exist (skipping check)."
 fi
