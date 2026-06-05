@@ -848,13 +848,20 @@ install_go() {
             log_success "Go 1.24.0 installed to /usr/local/go"
             ;;
         macos)
-            if command -v brew &>/dev/null; then
-                brew install go
-            else
-                curl -fsSL "https://go.dev/dl/go1.24.0.darwin-${go_arch}.tar.gz" | sudo tar -C /usr/local -xz
-                export PATH="/usr/local/go/bin:$PATH"
-                log_success "Go 1.24.0 installed to /usr/local/go"
+            if ! command -v brew &>/dev/null; then
+                log_info "Homebrew not found. Installing Homebrew first..."
+                if is_dry_run; then
+                    log_dry "Would install Homebrew (requires sudo)"
+                else
+                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                    if [ "$go_arch" = "arm64" ]; then
+                        export PATH="/opt/homebrew/bin:$PATH"
+                    else
+                        export PATH="/usr/local/bin:$PATH"
+                    fi
+                fi
             fi
+            brew install go
             ;;
         *)
             log_warning "Unsupported OS for automatic Go installation: $OS"
