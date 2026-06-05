@@ -13,6 +13,9 @@ This tool is designed to help **both programmers and non-programmers** set up a 
 > - 📊 **Analysts and researchers** — analyze CSV reports, cross-reference data across documents, generate summaries
 > - 🎓 **Students and educators** — research assistance, note organization, study material preparation
 > - 📝 **Everyone who works with text** — OpenCode understands natural language. Just ask: *"Find the document about the 2024 budget"* or *"Summarize all PDFs in this folder"*
+> - 🖥️ **Sysadmins and everyone who configures a computer** — too lazy to dig through OS menus and config files? Just describe what you need: *"Set swappiness to 10"* or *"Add a DNS server"*. OpenCode reads your system configs, applies the change, and verifies it. **Computer slowing down?** Describe the symptoms and tell OpenCode to check `journalctl`, `htop`, `dmesg` — it will find the root cause, create a fix plan, and **fix it autonomously** without you lifting another finger.
+> - 🤖 **What Microsoft and Google only promise** with Copilot — an AI agent that truly understands and controls your computer — is **already working** in OpenCode today. OpenCode has full system visibility: hardware via `/proc` and `lspci`, processes with `ps`/`top`, logs in `/var/log`, disks with `df`/`lsblk`. Anything the terminal can do, OpenCode can do for you.
+> - 🔓 **Why big corporations can't ship this** — genuine unsandboxed terminal access is a security liability they won't accept. OpenCode's creators chose radical honesty instead: [read the Security Guide](docs/security.md) to understand exactly how it works, what the real risks are, and how to stay safe.
 
 ---
 
