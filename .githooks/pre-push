@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Pre-push hook: run full CI (Docker tests) before pushing to main/master
+# ==============================================================================
+set -euo pipefail
+
+REMOTE="$1"
+URL="$2"
+
+# Only run full tests when pushing to main or master
+while read local_ref local_oid remote_ref remote_oid; do
+    case "$remote_ref" in
+        refs/heads/main|refs/heads/master)
+            echo ""
+            echo "=== Pre-push: running full CI suite (Docker: Ubuntu, Fedora, Arch) ==="
+            echo "  Target: $remote_ref"
+            echo ""
+
+            SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+            cd "$SCRIPT_DIR"
+
+            if [ ! -f "tests/run_tests.sh" ]; then
+                echo "[ERROR] tests/run_tests.sh not found — cannot run CI."
+                exit 1
+            fi
+
+            chmod +x tests/run_tests.sh
+
+            # Run all Docker-based tests
+            for TARGET in ubuntu fedora arch powershell; do
+                echo ""
+                echo ">>> Running test: $TARGET <<<"
+                if ! ./tests/run_tests.sh "$TARGET"; then
+                    echo ""
+                    echo "[FAIL] Test '$TARGET' failed."
+                    echo "Push aborted. Fix the issue and try again."
+                    echo "To skip (not recommended): git push --no-verify"
+                    exit 1
+                fi
+            done
+
+            echo ""
+            echo "=== All CI tests passed. Push OK. ==="
+            echo ""
+            ;;
+    esac
+done
+
+exit 0

@@ -1395,6 +1395,11 @@ EOF
 
 # Verify setup
 verify_setup() {
+    # Enable pre-push hook (full Docker tests before push to main)
+    if [ -f "$(dirname "$0")/.githooks/pre-push" ]; then
+        git config core.hooksPath "$(cd "$(dirname "$0")/.githooks" && pwd)" 2>/dev/null || true
+    fi
+
     echo -e "\n${MAGENTA}${BOLD}================================================================${NC}"
     log_info "$(msg "verifying")"
 
