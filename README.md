@@ -65,6 +65,7 @@ Command-line environments can be intimidating. However, they are incredibly powe
 - **Interactive Onboarding:** Tailored menus that let you install the default bundle instantly or customize your setup step-by-step.
 - **Safety Backups:** Automatically copies any existing configuration files (`wezterm.lua` and `opencode.jsonc`) to `.bak` before writing new ones.
 - **Desktop Shortcuts:** Optional one-click desktop shortcut creation to launch OpenCode inside WezTerm instantly (Linux & Windows).
+- **Windows Context Menu:** Optionally adds "Open in OpenCode" to the folder right-click menu in File Explorer — navigate to any folder and launch OpenCode there.
 - **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
 - **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md).
 
@@ -161,6 +162,8 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
    Set-ExecutionPolicy Bypass -Scope Process -Force
    .\OpenCodeWizard.ps1
    ```
+
+> **💡 Context Menu Tip:** After setup, you can right-click any folder in File Explorer and select **"Open in OpenCode"** to launch OpenCode in that folder. On **Windows 11**, this item appears in the **classic context menu** — press **`Shift + F10`** or select **"Show more options"** to see it.
 
 ---
 

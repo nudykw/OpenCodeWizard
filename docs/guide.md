@@ -116,6 +116,8 @@ OpenCode works with the **current directory** — it can see and access all file
 
 > **Tip:** To add WezTerm to Finder's toolbar, drag `/Applications/WezTerm.app` onto the toolbar while holding `Cmd`.
 
+> **💡 Windows Context Menu:** If you chose to install the context menu during setup, right-click any folder in File Explorer and select **"Open in OpenCode"** to launch WezTerm+OpenCode in that folder. On **Windows 11**, you may need to select **"Show more options"** or press **`Shift + F10`** to see it in the classic menu.
+
 ---
 
 ### Basic WezTerm Operations on Windows

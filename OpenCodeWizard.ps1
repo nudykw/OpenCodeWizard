@@ -158,6 +158,10 @@ $Translations = @{
         "verification_failed" = "Деякі компоненти відсутні. Будь ласка, перевірте помилки вище."
         "ask_desktop_shortcut" = "Створити ярлик швидкого запуску OpenCode в WezTerm на Робочому столі?"
         "desktop_shortcut_success" = "Ярлик на Робочому столі успішно створено!"
+        "ask_context_menu" = "Додати 'Open in OpenCode' до контекстного меню папок у Провіднику?"
+        "context_menu_success" = "Пункт контекстного меню додано."
+        "context_menu_failed" = "Не вдалося додати пункт контекстного меню:"
+        "dry_context_menu" = "Додасть 'Open in OpenCode' до контекстного меню папок (реєстр)"
         "preset_label" = "Обраний пресет:"
         "dry_backup_create" = "Створить бекап у"
         "invalid_choice_abort" = "Невірний вибір. Скасовано."
@@ -296,6 +300,10 @@ $Translations = @{
         "verification_failed" = "Some components are missing. Please review errors above."
         "ask_desktop_shortcut" = "Create a desktop shortcut to quickly launch OpenCode inside WezTerm?"
         "desktop_shortcut_success" = "Desktop shortcut created successfully!"
+        "ask_context_menu" = "Add 'Open in OpenCode' to the folder right-click context menu in File Explorer?"
+        "context_menu_success" = "Context menu entry added."
+        "context_menu_failed" = "Could not add context menu entry:"
+        "dry_context_menu" = "Would add 'Open in OpenCode' to folder context menu (registry)"
         "preset_label" = "Selected preset:"
         "dry_backup_create" = "Would create backup at"
         "invalid_choice_abort" = "Invalid choice. Aborting."
@@ -1386,6 +1394,54 @@ function Create-DesktopShortcut {
 }
 
 
+# 10. Add Windows Explorer context menu (right-click folder → Open in OpenCode)
+function Install-ContextMenu {
+    if (-not (Ask-Confirm "$(Get-Msg 'ask_context_menu')")) { return }
+
+    if ($DryRun) { Log-Dry "$(Get-Msg 'dry_context_menu')"; return }
+
+    try {
+        $wezDir = Split-Path -Parent (Get-Command wezterm -ErrorAction Stop).Source
+        $wezGui = Join-Path $wezDir "wezterm-gui.exe"
+        if (-not (Test-Path $wezGui)) { throw "wezterm-gui.exe not found in $wezDir" }
+
+        $opencodePath = if (Get-Command opencode.cmd -ErrorAction SilentlyContinue) {
+            (Get-Command opencode.cmd -ErrorAction Stop).Source
+        } elseif (Get-Command opencode -ErrorAction SilentlyContinue) {
+            $resolved = (Get-Command opencode -ErrorAction Stop).Source
+            if ($resolved -match '\.ps1$') {
+                [System.IO.Path]::ChangeExtension($resolved, ".cmd")
+            } else {
+                $resolved
+            }
+        } else {
+            "opencode.cmd"
+        }
+
+        $command = '"' + $wezGui + '" start --cwd "%1" -- "' + $opencodePath + '" -m opencode/deepseek-v4-flash-free'
+        $commandBg = '"' + $wezGui + '" start --cwd "%V" -- "' + $opencodePath + '" -m opencode/deepseek-v4-flash-free'
+
+        # Right-click on a folder
+        $dirKey = "HKCU:\Software\Classes\Directory\shell\OpenCodeInWezTerm"
+        New-Item -Path "$dirKey\command" -Force | Out-Null
+        Set-ItemProperty -Path $dirKey -Name "(default)" -Value "Open in OpenCode"
+        Set-ItemProperty -Path $dirKey -Name "Icon" -Value "$wezGui,0"
+        Set-ItemProperty -Path "$dirKey\command" -Name "(default)" -Value $command
+
+        # Right-click on empty space in a folder (background)
+        $bgKey = "HKCU:\Software\Classes\Directory\Background\shell\OpenCodeInWezTerm"
+        New-Item -Path "$bgKey\command" -Force | Out-Null
+        Set-ItemProperty -Path $bgKey -Name "(default)" -Value "Open in OpenCode"
+        Set-ItemProperty -Path $bgKey -Name "Icon" -Value "$wezGui,0"
+        Set-ItemProperty -Path "$bgKey\command" -Name "(default)" -Value $commandBg
+
+        Log-Success "$(Get-Msg 'context_menu_success')"
+    } catch {
+        Log-Warning "$(Get-Msg 'context_menu_failed') $_"
+    }
+}
+
+
 # Main Run Flow
 try {
     Generate-BackupId
@@ -1419,6 +1475,7 @@ try {
         Configure-WezTerm
         Configure-DefaultTerminal
         Create-DesktopShortcut
+        Install-ContextMenu
         Verify-Setup
     }
 } catch {
