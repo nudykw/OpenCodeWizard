@@ -21,25 +21,31 @@ This tool is designed to help **both programmers and non-programmers** set up a 
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Features](#features)
-- [📖 Beginner's Guide](#-beginners-guide)
-- [Included Components](#included-components)
-  - [OpenCode Plugins](#opencode-plugins)
-  - [Model Context Protocol (MCP) Servers](#model-context-protocol-mcp-servers)
-  - [Supported Document Formats](#supported-document-formats)
-- [Working with Sessions](docs/sessions.md)
-- [How to Use](#how-to-use)
-  - [Linux & macOS](#linux--macos)
-  - [Windows 11](#windows-11)
-- [CLI Reference](#cli-reference)
-- [Customizing Plugins & MCP Servers](#customizing-plugins--mcp-servers)
-- [WezTerm Customizations](#wezterm-customizations)
-- [Setting WezTerm as the Default Terminal](#setting-wezterm-as-the-default-terminal)
-- [Backups & Restore](#backups--restore)
-- [Safety & Idempotency](#safety--idempotency)
-- [🔒 Security](docs/security.md)
-- [⚖️ License](#-license)
+- [OpenCode \& WezTerm Setup Wizard (OpenCodeWizard)](#opencode--wezterm-setup-wizard-opencodewizard)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Features](#features)
+  - [📖 Beginner's Guide](#-beginners-guide)
+  - [Included Components](#included-components)
+    - [OpenCode Plugins](#opencode-plugins)
+    - [Model Context Protocol (MCP) Servers](#model-context-protocol-mcp-servers)
+    - [Supported Document Formats](#supported-document-formats)
+  - [How to Use](#how-to-use)
+    - [Linux \& macOS](#linux--macos)
+    - [Windows 11](#windows-11)
+  - [CLI Reference](#cli-reference)
+  - [Presets](#presets)
+  - [Customizing Plugins, MCP Servers \& Presets](#customizing-plugins-mcp-servers--presets)
+  - [Backups \& Restore](#backups--restore)
+  - [WezTerm Customizations](#wezterm-customizations)
+  - [Setting WezTerm as the Default Terminal](#setting-wezterm-as-the-default-terminal)
+    - [Linux:](#linux)
+    - [Windows 11:](#windows-11-1)
+    - [macOS:](#macos)
+  - [Safety \& Idempotency](#safety--idempotency)
+  - [🔒 Security](#-security)
+    - [At a Glance: Threat Levels](#at-a-glance-threat-levels)
+  - [⚖️ License](#️-license)
 
 ---
 
@@ -156,7 +162,6 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
    .\OpenCodeWizard.ps1
    ```
 
----
 ---
 
 ## CLI Reference

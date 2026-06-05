@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     OpenCode & WezTerm Setup Wizard.
     Майстер встановлення OpenCode та WezTerm.
@@ -37,14 +37,14 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # Colors for terminal
-$Magenta = "$([char]27)[1;35m"
-$Cyan = "$([char]27)[1;36m"
-$Green = "$([char]27)[1;32m"
-$Yellow = "$([char]27)[1;33m"
-$Red = "$([char]27)[1;31m"
-$Blue = "$([char]27)[1;34m"
-$ResetColorColor = "$([char]27)[0m"
-$Bold = "$([char]27)[1m"
+$Magenta = [char]27 + "[1;35m"
+$Cyan = [char]27 + "[1;36m"
+$Green = [char]27 + "[1;32m"
+$Yellow = [char]27 + "[1;33m"
+$Red = [char]27 + "[1;31m"
+$Blue = [char]27 + "[1;34m"
+$ResetColorColor = [char]27 + "[0m"
+$Bold = [char]27 + "[1m"
 
 # Default Language Code
 $LangCode = "en"
@@ -402,14 +402,14 @@ function Is-InPreset ($name, $presetList) {
 
 function Select-Preset {
     if ($Silent) { return }
-    Write-Host "`n${Bold}$(Get-Msg 'select_preset_title')${ResetColor}"
-    Write-Host "  ${Bold}$(Get-Msg 'preset_full')${ResetColor}"
-    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
-    Write-Host "     ${Cyan}$(Get-Msg 'preset_plugins_label')${ResetColor} oh-my-openagent, browser, smart-title, token-speed"
-    Write-Host "  ${Bold}$(Get-Msg 'preset_medium')${ResetColor}"
-    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, context7, codegraph, docs-mcp"
-    Write-Host "  ${Bold}$(Get-Msg 'preset_light')${ResetColor}"
-    Write-Host "     ${Cyan}$(Get-Msg 'preset_mcps_label')${ResetColor} fetch, context7"
+    Write-Host "`n$Bold$(Get-Msg 'select_preset_title')$ResetColorColor"
+    Write-Host "  $Bold$(Get-Msg 'preset_full')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
+    Write-Host "     $Cyan$(Get-Msg 'preset_plugins_label')$ResetColorColor oh-my-openagent, browser, smart-title, token-speed"
+    Write-Host "  $Bold$(Get-Msg 'preset_medium')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, context7, codegraph, docs-mcp"
+    Write-Host "  $Bold$(Get-Msg 'preset_light')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, context7"
     $presetChoice = Read-Host "$(Get-Msg 'preset_choice')"
     switch ($presetChoice) {
         "2" { $global:Preset = "medium" }
@@ -425,29 +425,29 @@ function Ask-Confirm ($prompt) {
         return $true
     }
     while ($true) {
-        $ans = Read-Host -Prompt "$Cyan$prompt [Y/n]$ResetColor"
+        $ans = Read-Host -Prompt "$Cyan$prompt [Y/n]$ResetColorColor"
         if ([string]::IsNullOrEmpty($ans)) { $ans = "y" }
         if ($ans -match '^[Yy]$') { return $true }
         if ($ans -match '^[Nn]$') { return $false }
     }
 }
 
-function Log-Info ($msg) { Write-Host "${Blue}[INFO]${ResetColor} $msg" }
-function Log-Success ($msg) { Write-Host "${Green}[SUCCESS]${ResetColor} $msg" }
-function Log-Warning ($msg) { Write-Host "${Yellow}[WARNING]${ResetColor} $msg" }
-function Log-Error ($msg) { Write-Host "${Red}[ERROR]${ResetColor} $msg" }
-function Log-Dry ($msg) { Write-Host "${Yellow}[DRY-RUN]${ResetColor} $msg" }
+function Log-Info ($msg) { Write-Host "$Blue[INFO]$ResetColorColor $msg" }
+function Log-Success ($msg) { Write-Host "$Green[SUCCESS]$ResetColorColor $msg" }
+function Log-Warning ($msg) { Write-Host "$Yellow[WARNING]$ResetColorColor $msg" }
+function Log-Error ($msg) { Write-Host "$Red[ERROR]$ResetColorColor $msg" }
+function Log-Dry ($msg) { Write-Host "$Yellow[DRY-RUN]$ResetColorColor $msg" }
 
 function Refresh-EnvPath {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 }
 
 # Onboarding Show
-Write-Host "${Magenta}================================================================${ResetColor}"
+Write-Host "$Magenta================================================================$ResetColorColor"
 Write-Host "  $(Get-Msg 'title')"
-Write-Host "${Magenta}================================================================${ResetColor}`n"
+Write-Host "$Magenta================================================================$ResetColorColor`n"
 Write-Host "$(Get-Msg 'intro_text')"
-Write-Host "`n${Magenta}================================================================${ResetColor}`n"
+Write-Host "`n$Magenta================================================================$ResetColorColor`n"
 
 # ==============================================================================
 # Backup system
@@ -597,7 +597,7 @@ function Remove-Backups {
     }
 
     $dirs = Get-ChildItem $global:BackupDir -Directory
-    Write-Host "`n$(Get-Msg 'backups_found_count') ${Bold}$($dirs.Count)${ResetColor} $(Get-Msg 'list_backups_label')."
+    Write-Host "`n$(Get-Msg 'backups_found_count') $Bold$($dirs.Count)$ResetColorColor $(Get-Msg 'list_backups_label')."
 
     if (-not (Ask-Confirm "$(Get-Msg 'remove_backups_confirm_permanent')")) {
         Log-Info "$(Get-Msg 'cancelled')"
@@ -1046,7 +1046,7 @@ function Configure-OpenCode {
 
         $shouldEnable = $true
         if (-not $useAllMcp) {
-            Write-Host "`n--> ${Bold}${mcpName}${ResetColor}"
+            Write-Host "`n--> $Bold$mcpName$ResetColorColor"
             Write-Host "    $mcpDesc"
             if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp_install') ${mcpName}?")) {
                 $shouldEnable = $false
@@ -1278,7 +1278,7 @@ function Configure-DefaultTerminal {
 
 # 8. Verify setup
 function Verify-Setup {
-    Write-Host "`n$Magenta================================================================$ResetColor"
+    Write-Host "`n$Magenta================================================================$ResetColorColor"
     Log-Info "$(Get-Msg 'verifying')"
 
     $allOk = $true
@@ -1307,38 +1307,37 @@ function Verify-Setup {
     }
 
     if ($DryRun) {
-        Write-Host "`n${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
-        Write-Host "${Yellow}  $(Get-Msg 'dry_run_complete')${ResetColor}"
-        Write-Host "${Yellow}  $(Get-Msg 'dry_run_apply')${ResetColor}"
-        Write-Host "${Yellow}══════════════════════════════════════════════════════════${ResetColor}"
+        Write-Host "`n$Yellow══════════════════════════════════════════════════════════$ResetColorColor"
+        Write-Host "$Yellow  $(Get-Msg 'dry_run_complete')$ResetColorColor"
+        Write-Host "$Yellow  $(Get-Msg 'dry_run_apply')$ResetColorColor"
+        Write-Host "$Yellow══════════════════════════════════════════════════════════$ResetColorColor"
     }
-    Write-Host "$Magenta================================================================$ResetColor"
+    Write-Host "$Magenta================================================================$ResetColorColor"
 }
 
 # 9. Create Desktop Shortcut (Windows 11)
 function Create-DesktopShortcut {
-    $desktopPath = [System.IO.Path]::Combine([System.Environment]::GetFolderPath('Desktop'), "OpenCode AI.lnk")
-    if (Ask-Confirm "$(Get-Msg 'ask_desktop_shortcut')") {
-        if ($DryRun) {
-            Log-Dry "$(Get-Msg 'dry_desktop_shortcut') $desktopPath"
-            return
-        }
-        try {
-            $WshShell = New-Object -ComObject WScript.Shell
-            $Shortcut = $WshShell.CreateShortcut($desktopPath)
-            $wezPath = (Get-Command wezterm -ErrorAction SilentlyContinue).Source
-            if (-not $wezPath) {
-                $wezPath = "wezterm.exe"
-            }
-            $Shortcut.TargetPath = $wezPath
-            $Shortcut.Arguments = "start -- opencode.cmd -m opencode/deepseek-v4-flash-free"
-            $Shortcut.WorkingDirectory = $HOME
-            $Shortcut.IconLocation = "$wezPath,0"
-            $Shortcut.Save()
-            Log-Success "$(Get-Msg 'desktop_shortcut_success')"
-        } catch {
-            Log-Warning "$(Get-Msg 'desktop_shortcut_failed') $_"
-        }
+    $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) "OpenCode AI.lnk"
+
+    if (-not (Ask-Confirm "$(Get-Msg 'ask_desktop_shortcut')")) { return }
+    if ($DryRun) { Log-Dry "$(Get-Msg 'dry_desktop_shortcut') $shortcutPath"; return }
+
+    try {
+        $wezDir = Split-Path -Parent (Get-Command wezterm -ErrorAction Stop).Source
+        $wezGui = Join-Path $wezDir "wezterm-gui.exe"
+        if (-not (Test-Path $wezGui)) { throw "wezterm-gui.exe not found in $wezDir" }
+
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $wezGui
+        $shortcut.Arguments = "start -- opencode.cmd -m opencode/deepseek-v4-flash-free"
+        $shortcut.WorkingDirectory = $HOME
+        $shortcut.IconLocation = "$wezGui, 0"
+        $shortcut.Description = "OpenCode AI in WezTerm"
+        $shortcut.Save()
+        Log-Success "$(Get-Msg 'desktop_shortcut_success')"
+    } catch {
+        Log-Warning "$(Get-Msg 'desktop_shortcut_failed') $_"
     }
 }
 
@@ -1354,8 +1353,8 @@ try {
             Log-Warning "$(Get-Msg 'no_backups_found_short')"
         } else {
             $totalSize = (Get-ChildItem $global:BackupDir -Recurse -File | Measure-Object Length -Sum).Sum / 1KB
-            Write-Host "`n${Bold}$(Get-Msg 'list_total')${ResetColor} $($dirs.Count) $(Get-Msg 'list_backups_label')"
-            Write-Host "${Bold}$(Get-Msg 'list_size')${ResetColor} ~$([Math]::Round($totalSize, 1)) KB"
+            Write-Host "`n$Bold$(Get-Msg 'list_total')$ResetColorColor $($dirs.Count) $(Get-Msg 'list_backups_label')"
+            Write-Host "$Bold$(Get-Msg 'list_size')$ResetColorColor ~$([Math]::Round($totalSize, 1)) KB"
         }
     } elseif ($Reset) {
         Reset-Config
