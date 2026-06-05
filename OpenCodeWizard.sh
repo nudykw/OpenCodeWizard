@@ -261,6 +261,13 @@ msg() {
                 "verification_failed") echo "Деякі компоненти відсутні. Будь ласка, перевірте помилки вище." ;;
                 "ask_desktop_shortcut") echo "Створити ярлик швидкого запуску OpenCode в WezTerm на Робочому столі?" ;;
                 "desktop_shortcut_success") echo "Ярлик на Робочому столі успішно створено!" ;;
+                "go_installing") echo "Встановлення Go 1.24.0..." ;;
+                "go_installed") echo "Go успішно встановлено" ;;
+                "go_install_failed") echo "Помилка встановлення Go." ;;
+                "go_manual") echo "Будь ласка, встановіть Go вручну: https://go.dev/dl/ , потім запустіть майстер знову." ;;
+                "gomcp_installing") echo "Встановлення go-docs-mcp через Go..." ;;
+                "gomcp_installed") echo "go-docs-mcp успішно встановлено." ;;
+                "gomcp_failed") echo "go-docs-mcp не знайдено після встановлення. Переконайтеся, що ~/go/bin є в PATH." ;;
             esac
             ;;
         *) # default to "en"
@@ -348,6 +355,13 @@ msg() {
                 "verification_failed") echo "Some components are missing. Please review errors above." ;;
                 "ask_desktop_shortcut") echo "Create a desktop shortcut to quickly launch OpenCode inside WezTerm?" ;;
                 "desktop_shortcut_success") echo "Desktop shortcut created successfully!" ;;
+                "go_installing") echo "Installing Go 1.24.0..." ;;
+                "go_installed") echo "Go installed successfully" ;;
+                "go_install_failed") echo "Go installation failed." ;;
+                "go_manual") echo "Please install Go manually from https://go.dev/dl/ then re-run the wizard." ;;
+                "gomcp_installing") echo "Installing go-docs-mcp via Go..." ;;
+                "gomcp_installed") echo "go-docs-mcp installed successfully." ;;
+                "gomcp_failed") echo "go-docs-mcp not found after install. Check that ~/go/bin is in your PATH." ;;
             esac
             ;;
     esac
@@ -799,6 +813,96 @@ install_wezterm() {
     hash -r
 }
 
+# ==============================================================================
+# Go Installation (required for docs-mcp)
+# ==============================================================================
+install_go() {
+    if command -v go &>/dev/null; then
+        local go_ver
+        go_ver=$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')
+        if command -v bc &>/dev/null && [ "$(echo "$go_ver >= 1.22" | bc 2>/dev/null)" = "1" ] || [ "${go_ver%%.*}" -ge 1 ] && [ "${go_ver#*.}" -ge 22 ] 2>/dev/null; then
+            log_success "Go ${go_ver} is already installed."
+            return 0
+        fi
+        log_info "Go version ${go_ver} is too old — need 1.22+."
+    fi
+
+    log_info "Installing Go 1.24.0..."
+
+    if is_dry_run; then
+        log_dry "Would install Go 1.24.0 for $OS/$ARCH"
+        return 0
+    fi
+
+    local go_arch
+    case "$(uname -m)" in
+        x86_64)  go_arch="amd64" ;;
+        aarch64|arm64) go_arch="arm64" ;;
+        *) log_error "Unsupported architecture: $(uname -m)"; return 1 ;;
+    esac
+
+    case "$OS" in
+        linux)
+            curl -fsSL "https://go.dev/dl/go1.24.0.linux-${go_arch}.tar.gz" | sudo tar -C /usr/local -xz
+            export PATH="/usr/local/go/bin:$PATH"
+            log_success "Go 1.24.0 installed to /usr/local/go"
+            ;;
+        macos)
+            if command -v brew &>/dev/null; then
+                brew install go
+            else
+                curl -fsSL "https://go.dev/dl/go1.24.0.darwin-${go_arch}.tar.gz" | sudo tar -C /usr/local -xz
+                export PATH="/usr/local/go/bin:$PATH"
+                log_success "Go 1.24.0 installed to /usr/local/go"
+            fi
+            ;;
+        *)
+            log_warning "Unsupported OS for automatic Go installation: $OS"
+            log_info "Please install Go manually from https://go.dev/dl/"
+            return 1
+            ;;
+    esac
+
+    if ! command -v go &>/dev/null; then
+        log_error "Go installation failed — not found in PATH after install."
+        return 1
+    fi
+    log_success "Go $(go version | grep -oP 'go\K[0-9.]+') installed successfully."
+}
+
+# ==============================================================================
+# Install docs-mcp (go-docs-mcp) via Go
+# ==============================================================================
+install_docs_mcp() {
+    if command -v go-docs-mcp &>/dev/null; then
+        log_success "go-docs-mcp already installed: $(go-docs-mcp --version 2>/dev/null || echo 'present')"
+        return 0
+    fi
+
+    if ! command -v go &>/dev/null; then
+        log_warning "Go is required for docs-mcp. Run 'install_go' first."
+        return 1
+    fi
+
+    if is_dry_run; then
+        log_dry "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        return 0
+    fi
+
+    log_info "Installing go-docs-mcp via Go..."
+    go install github.com/drolosoft/go-docs-mcp@v1.1.0
+
+    # Ensure ~/go/bin is in PATH for this session
+    export PATH="$HOME/go/bin:$PATH"
+
+    if command -v go-docs-mcp &>/dev/null; then
+        log_success "go-docs-mcp installed successfully: $(go-docs-mcp --version 2>/dev/null || echo 'present')"
+    else
+        log_error "go-docs-mcp not found after install. Check that ~/go/bin is in your PATH."
+        return 1
+    fi
+}
+
 # OpenCode Installation
 install_opencode() {
     if command -v opencode &>/dev/null; then
@@ -1049,8 +1153,13 @@ ${plugin_json}
 }
 EOF
     log_success "$(msg "opencode_config_updated") $config_file"
-}
 
+    # Install Go + go-docs-mcp if docs-mcp is in the current preset
+    if is_in_preset "docs-mcp" "${preset_mcps[@]}"; then
+        install_go
+        install_docs_mcp
+    fi
+}
 
 # WezTerm Lua configuration
 configure_wezterm() {

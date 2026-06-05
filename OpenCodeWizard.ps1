@@ -540,6 +540,75 @@ function Install-WezTerm {
     }
 }
 
+# 1.5. Go installation (required for docs-mcp)
+function Install-Go {
+    if (Get-Command go -ErrorAction SilentlyContinue) {
+        $goVer = go version
+        if ($goVer -match 'go([0-9]+)\.([0-9]+)') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            if ($major -ge 1 -and $minor -ge 22) {
+                Log-Success "Go $major.$minor is already installed."
+                return
+            }
+            Log-Warning "Go $major.$minor is too old - need 1.22+."
+        }
+    }
+
+    if ($DryRun) {
+        Log-Dry "Would install Go for Windows"
+        return
+    }
+
+    Log-Info "Installing Go via winget..."
+    winget install --id GoLang.Go --silent --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -eq 0) {
+        Log-Success "Go installed! Restart your terminal after setup to refresh PATH."
+        # Add Go to PATH for current session (fallback)
+        $goDirs = @(
+            "$env:ProgramFiles\Go\bin",
+            "$env:LocalAppData\Programs\Go\bin"
+        )
+        foreach ($d in $goDirs) {
+            if (Test-Path "$d\go.exe") {
+                $env:Path = "$d;$env:Path"
+                break
+            }
+        }
+    } else {
+        Log-Error "Failed to install Go via winget."
+        Log-Warning "Please install Go manually from https://go.dev/dl/ then re-run the wizard."
+    }
+}
+
+function Install-DocsMcp {
+    if (Get-Command go-docs-mcp -ErrorAction SilentlyContinue) {
+        Log-Success "go-docs-mcp is already installed."
+        return
+    }
+
+    if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+        Log-Warning "Go is not in PATH. Run Install-Go first."
+        return
+    }
+
+    if ($DryRun) {
+        Log-Dry "Would run: go install github.com/drolosoft/go-docs-mcp@v1.1.0"
+        return
+    }
+
+    Log-Info "Installing go-docs-mcp via Go..."
+    go install github.com/drolosoft/go-docs-mcp@v1.1.0
+
+    $goBin = "$env:USERPROFILE\go\bin"
+    if (Test-Path "$goBin\go-docs-mcp.exe") {
+        $env:Path = "$goBin;$env:Path"
+        Log-Success "go-docs-mcp installed successfully."
+    } else {
+        Log-Error "go-docs-mcp not found after install."
+    }
+}
+
 # 2. NodeJS installation
 function Install-NodeJS {
     if (Get-Command npm -ErrorAction SilentlyContinue) {
@@ -767,6 +836,12 @@ $pluginJson
 
     [System.IO.File]::WriteAllText($configFile, $jsoncContent, [System.Text.Encoding]::UTF8)
     Log-Success "$(Get-Msg 'opencode_config_updated') $configFile"
+
+    # Install Go + go-docs-mcp if docs-mcp is in current preset
+    if (Is-InPreset "docs-mcp" $presetMcps) {
+        Install-Go
+        Install-DocsMcp
+    }
 }
 
 # 6. WezTerm config
