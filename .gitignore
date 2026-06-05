@@ -4,3 +4,4 @@ Thumbs.db
 
 # Log files
 *.log
+.code-graph/

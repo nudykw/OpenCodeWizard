@@ -69,6 +69,7 @@ During the wizard, you can install the following plugins:
 | Plugin Name | Description |
 | :--- | :--- |
 | **`oh-my-opencode`** | Session management, workspace utilities, and advanced helper CLI commands. |
+| **`opencode-mem`** | Long-term Rust RAG memory with hybrid search (BM25 + vector). |
 | **`@different-ai/opencode-browser`** | Real browser integration, allowing the AI to browse the web when answering questions. |
 | **`@tarquinen/opencode-smart-title`** | Generates smart titles for your active chats automatically based on context. |
 | **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
@@ -84,7 +85,6 @@ MCP servers extend the AI's capabilities to interact with local APIs and tools:
 | **`postgres`** | Direct, secure connection to local databases (pre-configured for the `gpt_chat_bot` database). |
 | **`context7`** | Up-to-date library documentation and code examples. |
 | **`codegraph`** | AST-level code graph: semantic search, call chain analysis, impact analysis. |
-| **`opencode-mem`** | Long-term Rust RAG memory with hybrid search (BM25 + vector). |
 | **`docs-mcp`** | Multi-format document reader: PDF, DOCX, MD, CSV, OCR (via `go-docs-mcp`). |
 | **`lsp-mcp`** | Code intelligence: definitions, references, diagnostics via LSP protocol. |
 
@@ -150,7 +150,7 @@ The wizard includes three presets that control how many plugins and MCP servers 
 
 | Preset | Plugins | MCP Servers | Best For |
 | :--- | :--- | :--- | :--- |
-| **🍔 Full** (default) | All 4 plugins | All 8 MCPs | Full-featured AI coding environment |
+| **🍔 Full** (default) | All 5 plugins | All 7 MCPs | Full-featured AI coding environment |
 | **🥪 Medium** | oh-my-openagent, token-speed-plugin | fetch, context7, codegraph, docs-mcp | Balanced — essential tools only |
 | **🥗 Light** | oh-my-openagent only | fetch, context7 | Minimal — just the basics |
 

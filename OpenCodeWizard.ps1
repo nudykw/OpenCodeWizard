@@ -62,6 +62,7 @@ $global:BackupId = ""
 # Format: "plugin_name|plugin_description"
 $OpencodePlugins = @(
     "oh-my-openagent|Session management and advanced CLI commands"
+    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)"
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator, Tokens Per Second"
@@ -73,18 +74,17 @@ $OpencodeMcpServers = @(
     "puppeteer|Browser automation (screenshots, clicks)|npx -y @modelcontextprotocol/server-puppeteer"
     "postgres|Local database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
     "context7|Library documentation|npx -y @upstash/context7-mcp"
-    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y code-graph-mcp"
-    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)|npx -y opencode-mem"
-    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|npx -y go-docs-mcp"
-    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp"
+    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y @sdsrs/code-graph"
+    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|go-docs-mcp"
+    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp-server"
 )
 
 # Preset definitions
-$PresetFullPlugins  = @("oh-my-openagent", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin")
+$PresetFullPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin")
 $PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin")
 $PresetLightPlugins  = @("oh-my-openagent")
 
-$PresetFullMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "opencode-mem", "docs-mcp", "lsp-mcp")
+$PresetFullMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "docs-mcp", "lsp-mcp")
 $PresetMediumMcps = @("fetch", "context7", "codegraph", "docs-mcp")
 $PresetLightMcps  = @("fetch", "context7")
 

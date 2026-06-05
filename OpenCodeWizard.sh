@@ -28,6 +28,7 @@ BOLD='\033[1m'
 
 OPENCODE_PLUGINS=(
     "oh-my-openagent|Session management and advanced CLI commands"
+    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)"
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator (Tokens Per Second)"
@@ -38,10 +39,9 @@ OPENCODE_MCP_SERVERS=(
     "puppeteer|Browser automation: screenshots and clicking elements|npx -y @modelcontextprotocol/server-puppeteer"
     "postgres|Integration with local gpt_chat_bot database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
     "context7|Access real-time version-specific library documentation|npx -y @upstash/context7-mcp"
-    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y code-graph-mcp"
-    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)|npx -y opencode-mem"
-    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|npx -y go-docs-mcp"
-    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp"
+    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y @sdsrs/code-graph"
+    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|go-docs-mcp"
+    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp-server"
 )
 
 # ==============================================================================
@@ -53,13 +53,14 @@ OPENCODE_MCP_SERVERS=(
 # Full preset — everything (default)
 PRESET_FULL_PLUGINS=(
     "oh-my-openagent"
+    "opencode-mem"
     "@different-ai/opencode-browser"
     "@tarquinen/opencode-smart-title"
     "opencode-token-speed-plugin"
 )
 PRESET_FULL_MCPS=(
     "fetch" "puppeteer" "postgres" "context7"
-    "codegraph" "opencode-mem" "docs-mcp" "lsp-mcp"
+    "codegraph" "docs-mcp" "lsp-mcp"
 )
 
 # Medium preset — essential plugins, core MCPs
@@ -388,8 +389,8 @@ select_preset() {
     fi
     echo -e "\n${BOLD}Select configuration preset:${NC}"
     echo -e "  ${BOLD}1)🍔 Full${NC}     — everything included (recommended)"
-    echo -e "     ${CYAN}MCPs:${NC} fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
-    echo -e "     ${CYAN}Plugins:${NC} oh-my-openagent, browser, smart-title, token-speed"
+    echo -e "     ${CYAN}MCPs:${NC} fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
+    echo -e "     ${CYAN}Plugins:${NC} oh-my-openagent, opencode-mem, browser, smart-title, token-speed"
     echo -e "  ${BOLD}2)🥪 Medium${NC}   — essential plugins + core MCPs"
     echo -e "     ${CYAN}MCPs:${NC} fetch, context7, codegraph, docs-mcp"
     echo -e "  ${BOLD}3)🥗 Light${NC}    — minimal setup"
