@@ -116,23 +116,7 @@ OpenCode works with the **current directory** — it can see and access all file
 
 > **Tip:** To add WezTerm to Finder's toolbar, drag `/Applications/WezTerm.app` onto the toolbar while holding `Cmd`.
 
-> **💡 Windows Context Menu:** If you chose to install the context menu during setup, right-click any folder in File Explorer and select **"Open in OpenCode"** — this launches **WezTerm** with **OpenCode already running** in that folder. On **Windows 11**, you may need to select **"Show more options"** or press **`Shift + F10`** to see it in the classic menu.
-
----
-
-### Basic WezTerm Operations on Windows
-
-WezTerm is a terminal, not a regular text editor. Mouse and clipboard work differently here:
-
-| Action | How to do it |
-|---|---|
-| **Select / copy text** | Click and drag with the **left mouse button** — text is **automatically copied** to the clipboard when you release the mouse. No need to press any extra keys. |
-| **Select word** | **Double-click** a word to select it (also auto-copies). |
-| **Select line** | **Triple-click** a line to select it (also auto-copies). |
-| **Paste text** | **Right-click** anywhere in the terminal, **or** press **`CTRL + SHIFT + V`**. |
-| **Paste image** | **`CTRL + SHIFT + I`** (see [Working with Screenshots](#working-with-screenshots) above). |
-
-> **Why not `CTRL+C` / `CTRL+V`?** In terminals, `CTRL+C` sends the "interrupt" signal (kills the current command), and `CTRL+V` is often captured by terminal programs. WezTerm uses `CTRL+SHIFT+C/V` for copy/paste to avoid conflicts. If you just select text with the mouse, it's already copied — no need for any keyboard shortcut.
+> **💡 Windows Context Menu:** If you installed the context menu during setup, right-click any folder → **"Open in OpenCode"** to launch WezTerm+OpenCode in that folder. On **Windows 11**, press **`Shift + F10`** or select **"Show more options"**. Full reference: [Windows-Specific Features](../README.md#-windows-specific-features).
 
 ---
 

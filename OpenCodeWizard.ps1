@@ -162,6 +162,8 @@ $Translations = @{
         "context_menu_success" = "Пункт контекстного меню додано."
         "context_menu_failed" = "Не вдалося додати пункт контекстного меню:"
         "dry_context_menu" = "Додасть 'Open in OpenCode' до контекстного меню папок (реєстр)"
+        "context_menu_text" = "Відкрити в OpenCode"
+        "shortcut_intro" = "Тепер можна додати швидкі запуски. Спочатку — ярлик на робочому столі, потім — контекстне меню для папок. Якщо це не потрібно — просто відмовтеся на кожному кроці."
         "preset_label" = "Обраний пресет:"
         "dry_backup_create" = "Створить бекап у"
         "invalid_choice_abort" = "Невірний вибір. Скасовано."
@@ -304,6 +306,8 @@ $Translations = @{
         "context_menu_success" = "Context menu entry added."
         "context_menu_failed" = "Could not add context menu entry:"
         "dry_context_menu" = "Would add 'Open in OpenCode' to folder context menu (registry)"
+        "context_menu_text" = "Open in OpenCode"
+        "shortcut_intro" = "Now you can add quick-launch shortcuts. First, a desktop shortcut — then a folder context menu. If you do not need these, just decline each prompt."
         "preset_label" = "Selected preset:"
         "dry_backup_create" = "Would create backup at"
         "invalid_choice_abort" = "Invalid choice. Aborting."
@@ -1031,16 +1035,43 @@ function Install-Plugins {
 
 # 5. OpenCode Config setup
 function Configure-OpenCode {
-    if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp')")) {
-        Log-Info "$(Get-Msg 'skip_mcp')"
-        return
-    }
-
     $configDir = Join-Path $HOME ".config\opencode"
     if (-not (Test-Path $configDir)) {
         New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
     $configFile = Join-Path $configDir "opencode.jsonc"
+
+    # Always write system_info.md (includes strict rules)
+    $osName = (Get-CimInstance Win32_OperatingSystem).Caption
+    $osVersion = (Get-CimInstance Win32_OperatingSystem).Version
+    $cpuInfo = (Get-CimInstance Win32_Processor).Name
+    $ramGB = [Math]::Round((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB)
+    $ramInfo = "${ramGB} GB RAM"
+    $systemInfoFile = Join-Path $configDir "system_info.md"
+    $systemInfoContent = @"
+# System Environment Details
+
+This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
+
+- **Operating System:** $osName ($osVersion)
+- **Processor (CPU):** $cpuInfo
+- **System Memory (RAM):** $ramInfo
+- **User Shell:** PowerShell
+
+## ⚠️ STRICT RULES
+
+- **NEVER** commit or push changes without explicit user permission. This is a hard rule — violation is not allowed.
+"@
+    if ($DryRun) {
+        Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
+    } else {
+        [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.Encoding]::UTF8)
+    }
+
+    if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp')")) {
+        Log-Info "$(Get-Msg 'skip_mcp')"
+        return
+    }
 
     # Backup existing config using session BACKUP_ID
     if (Test-Path $configFile) {
@@ -1112,34 +1143,12 @@ function Configure-OpenCode {
         $firstPlugin = $false
     }
 
-    # Gather system/hardware info
-    $osName = (Get-CimInstance Win32_OperatingSystem).Caption
-    $osVersion = (Get-CimInstance Win32_OperatingSystem).Version
-    $cpuInfo = (Get-CimInstance Win32_Processor).Name
-    $ramGB = [Math]::Round((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB)
-    $ramInfo = "${ramGB} GB RAM"
-
-    # Write to ~/.config/opencode/system_info.md
-    $systemInfoFile = Join-Path $configDir "system_info.md"
-    $systemInfoContent = @"
-# System Environment Details
-
-This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
-
-- **Operating System:** $osName ($osVersion)
-- **Processor (CPU):** $cpuInfo
-- **System Memory (RAM):** $ramInfo
-- **User Shell:** PowerShell
-"@
     if ($DryRun) {
-        Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
         Log-Dry "$(Get-Msg 'dry_write_opencode_config') $configFile"
         Log-Dry "  $(Get-Msg 'dry_plugins_list') $($OpencodePlugins -join ', ')"
         Log-Dry "  $(Get-Msg 'dry_mcp_configured')"
         return
     }
-
-    [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.Encoding]::UTF8)
 
     $escapedSystemInfoPath = $systemInfoFile.Replace('\', '/')
 
@@ -1424,14 +1433,14 @@ function Install-ContextMenu {
         # Right-click on a folder
         $dirKey = "HKCU:\Software\Classes\Directory\shell\OpenCodeInWezTerm"
         New-Item -Path "$dirKey\command" -Force | Out-Null
-        Set-ItemProperty -Path $dirKey -Name "(default)" -Value "Open in OpenCode"
+        Set-ItemProperty -Path $dirKey -Name "(default)" -Value "$(Get-Msg 'context_menu_text')"
         Set-ItemProperty -Path $dirKey -Name "Icon" -Value "$wezGui,0"
         Set-ItemProperty -Path "$dirKey\command" -Name "(default)" -Value $command
 
         # Right-click on empty space in a folder (background)
         $bgKey = "HKCU:\Software\Classes\Directory\Background\shell\OpenCodeInWezTerm"
         New-Item -Path "$bgKey\command" -Force | Out-Null
-        Set-ItemProperty -Path $bgKey -Name "(default)" -Value "Open in OpenCode"
+        Set-ItemProperty -Path $bgKey -Name "(default)" -Value "$(Get-Msg 'context_menu_text')"
         Set-ItemProperty -Path $bgKey -Name "Icon" -Value "$wezGui,0"
         Set-ItemProperty -Path "$bgKey\command" -Name "(default)" -Value $commandBg
 
@@ -1474,6 +1483,7 @@ try {
         Configure-OpenCode
         Configure-WezTerm
         Configure-DefaultTerminal
+        Write-Host "`n$Cyan$(Get-Msg 'shortcut_intro')$ResetColorColor`n"
         Create-DesktopShortcut
         Install-ContextMenu
         Verify-Setup

@@ -33,6 +33,7 @@ This tool is designed to help **both programmers and non-programmers** set up a 
   - [How to Use](#how-to-use)
     - [Linux \& macOS](#linux--macos)
     - [Windows 11](#windows-11)
+  - [💡 Windows-Specific Features](#-windows-specific-features)
   - [CLI Reference](#cli-reference)
   - [Presets](#presets)
   - [Customizing Plugins, MCP Servers \& Presets](#customizing-plugins-mcp-servers--presets)
@@ -163,7 +164,54 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
    .\OpenCodeWizard.ps1
    ```
 
-> **💡 Context Menu Tip:** After setup, you can right-click any folder in File Explorer and select **"Open in OpenCode"** — this launches **WezTerm** with **OpenCode already running** in that folder. On **Windows 11**, this item appears in the **classic context menu** — press **`Shift + F10`** or select **"Show more options"** to see it.
+---
+
+## 💡 Windows-Specific Features
+
+This section covers everything that's unique to the Windows version of OpenCodeWizard.
+
+### 📋 Folder Context Menu ("Open in OpenCode")
+
+During setup, you can opt to add **"Open in OpenCode"** to File Explorer's right-click menu.
+
+| Right-click on | Action |
+|---|---|
+| **A folder** | Opens WezTerm in that folder with OpenCode already running |
+| **Empty space** (inside a folder) | Same — opens WezTerm in the current folder |
+
+> **Windows 11 note:** The item appears in the **classic** context menu. Press **`Shift + F10`** or select **"Show more options"** to see it. To make it appear in the streamlined menu, set WezTerm as your [default terminal](#setting-wezterm-as-the-default-terminal).
+
+### 🖼️ Unconventional Clipboard (`CTRL + SHIFT + I`)
+
+This is **not** a regular `CTRL+V` paste. The `CTRL+SHIFT+I` hotkey is a file-based image sharing mechanism:
+
+1. Copy an image to your clipboard (`PrintScreen`, `Win+Shift+S`, etc.)
+2. Press `CTRL+SHIFT+I` inside WezTerm
+3. The image is saved to `Pictures\opencode_screenshots\screenshot_<timestamp>.png`
+4. A `@C:/path/to/screenshot.png` reference is typed into your prompt
+5. OpenCode reads the image via the `docs-mcp` server
+
+This works because OpenCode's document reader (`docs-mcp`) can access files by path, but cannot directly read the Windows clipboard. The hotkey bridges that gap by writing the clipboard to a file first.
+
+On Linux/macOS, `CTRL+SHIFT+I` also works (Wayland `wl-paste`, X11 `xclip`, macOS `osascript`).
+
+### ⌨️ Basic Terminal Operations
+
+In WezTerm, mouse and keyboard work differently from a regular text editor:
+
+| Action | How |
+|---|---|
+| **Select / copy** | Left-click drag — **auto-copies** on release |
+| **Select word** | Double-click |
+| **Select line** | Triple-click |
+| **Paste text** | Right-click, or `CTRL + SHIFT + V` |
+| **Paste image** | `CTRL + SHIFT + I` (see above) |
+
+> `CTRL+C` sends an interrupt signal (kills the running command). `CTRL+V` is often captured by the program inside the terminal. Use `CTRL+SHIFT+C` / `CTRL+SHIFT+V` instead. But if you select text with the mouse, it's already copied — no keyboard needed.
+
+### ⚙️ PowerShell Execution Policy
+
+OpenCode is installed as `opencode.ps1`, which requires PowerShell's execution policy to allow script execution. The wizard **automatically** sets it to `RemoteSigned` for the current user. No manual action needed.
 
 ---
 
@@ -267,7 +315,7 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
   - `CTRL + SHIFT + D`: Split screen horizontally.
   - `CTRL + SHIFT + E`: Split screen vertically.
   - `CTRL + SHIFT + W`: Close the active split pane.
-  - `CTRL + SHIFT + I` **(Windows only)**: **Unconventional clipboard** — paste an image from the Windows clipboard as a `@filepath` reference into the terminal. Unlike a standard paste (`CTRL+V`), this hotkey saves the clipboard image to `Pictures\opencode_screenshots\screenshot_<timestamp>.png` and inserts an `@C:/path/to/screenshot.png` text that OpenCode can read. This is **not** a regular paste — it's a file-based image sharing mechanism for OpenCode's document reader (`docs-mcp`). On Linux/macOS, use `CTRL+SHIFT+I` as well (it supports Wayland `wl-paste`, X11 `xclip`, and macOS `osascript`).
+  - `CTRL + SHIFT + I`: **Unconventional clipboard** — paste clipboard images as `@filepath` references. Works on all platforms. See [Windows-Specific Features](#-windows-specific-features) for details.
 
 ---
 
