@@ -66,6 +66,7 @@ $OpencodePlugins = @(
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator, Tokens Per Second"
+    "opencode-codebase-index|Codebase RAG indexing with semantic search, file watching, and auto re-index"
 )
 
 # Format: "mcp_name|description|command"
@@ -80,8 +81,8 @@ $OpencodeMcpServers = @(
 )
 
 # Preset definitions
-$PresetFullPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin")
-$PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin")
+$PresetFullPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin", "opencode-codebase-index")
+$PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin", "opencode-codebase-index")
 $PresetLightPlugins  = @("oh-my-openagent")
 
 $PresetFullMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "docs-mcp", "lsp-mcp")
@@ -234,6 +235,11 @@ $Translations = @{
         "go_installing" = "Встановлення Go 1.24.0..."
         "go_manual" = "Будь ласка, встановіть Go вручну: https://go.dev/dl/ , потім запустіть майстер знову."
         "migrate_plugin" = "Виявлено застарілий плагін. Мігрую..."
+        "nerdfont_exists" = "JetBrainsMono Nerd Font вже встановлено."
+        "installing_nerdfont" = "Завантаження JetBrainsMono Nerd Font з GitHub..."
+        "nerdfont_success" = "JetBrainsMono Nerd Font встановлено!"
+        "nerdfont_failed" = "Не вдалося встановити JetBrainsMono Nerd Font"
+        "dry_nerdfont" = "Завантажить та встановить JetBrainsMono Nerd Font"
     }
     "en" = @{
         "title" = "OPENCODE & WEZTERM SETUP WIZARD"
@@ -378,6 +384,11 @@ $Translations = @{
         "go_installing" = "Installing Go 1.24.0..."
         "go_manual" = "Please install Go manually from https://go.dev/dl/ then re-run the wizard."
         "migrate_plugin" = "Legacy plugin detected. Migrating..."
+        "nerdfont_exists" = "JetBrainsMono Nerd Font already installed."
+        "installing_nerdfont" = "Downloading JetBrainsMono Nerd Font from GitHub..."
+        "nerdfont_success" = "JetBrainsMono Nerd Font installed!"
+        "nerdfont_failed" = "Failed to install JetBrainsMono Nerd Font"
+        "dry_nerdfont" = "Would download and install JetBrainsMono Nerd Font"
     }
 }
 
@@ -417,7 +428,7 @@ function Select-Preset {
     Write-Host "`n$Bold$(Get-Msg 'select_preset_title')$ResetColorColor"
     Write-Host "  $Bold$(Get-Msg 'preset_full')$ResetColorColor"
     Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
-    Write-Host "     $Cyan$(Get-Msg 'preset_plugins_label')$ResetColorColor oh-my-openagent, browser, smart-title, token-speed"
+     Write-Host "     $Cyan$(Get-Msg 'preset_plugins_label')$ResetColorColor oh-my-openagent, browser, smart-title, token-speed, codebase-index"
     Write-Host "  $Bold$(Get-Msg 'preset_medium')$ResetColorColor"
     Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, context7, codegraph, docs-mcp"
     Write-Host "  $Bold$(Get-Msg 'preset_light')$ResetColorColor"
@@ -747,6 +758,49 @@ function Install-WezTerm {
     }
 }
 
+# 1.4. JetBrainsMono Nerd Font (universal icon coverage, no mojibake)
+function Install-NerdFont {
+    if ($DryRun) {
+        Log-Dry "$(Get-Msg 'dry_nerdfont')"
+        return
+    }
+
+    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+
+    # Check if already installed (internal font family name is "JetBrainsMono NFM")
+    Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+    $installedFonts = New-Object System.Drawing.Text.InstalledFontCollection
+    $alreadyInstalled = $installedFonts.Families | Where-Object { $_.Name -eq "JetBrainsMono NFM" }
+    if ($alreadyInstalled -and (Test-Path "$fontDir\JetBrainsMonoNerdFontMono-Regular.ttf")) {
+        Log-Success "$(Get-Msg 'nerdfont_exists')"
+        return
+    }
+
+    Log-Info "$(Get-Msg 'installing_nerdfont')"
+
+    $url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip"
+    $zipPath = "$env:TEMP\JetBrainsMonoNerd.zip"
+
+    try {
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile($url, $zipPath)
+
+        $extractPath = "$env:TEMP\JetBrainsMonoNerd"
+        Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+        Get-ChildItem -Path $extractPath -Filter "*.ttf" | ForEach-Object {
+            Copy-Item $_.FullName -Destination (Join-Path $fontDir $_.Name) -Force
+        }
+
+        Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+        Log-Success "$(Get-Msg 'nerdfont_success')"
+    } catch {
+        Log-Warning "$(Get-Msg 'nerdfont_failed') $_"
+    }
+}
+
 # 1.5. Go installation (required for docs-mcp)
 function Install-Go {
     if (Get-Command go -ErrorAction SilentlyContinue) {
@@ -1065,7 +1119,7 @@ This file provides the OpenCode AI assistant with details about the current oper
     if ($DryRun) {
         Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
     } else {
-        [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.UTF8Encoding]::new($false))
     }
 
     if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp')")) {
@@ -1166,7 +1220,7 @@ $pluginJson
 }
 "@
 
-    [System.IO.File]::WriteAllText($configFile, $jsoncContent, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($configFile, $jsoncContent, [System.Text.UTF8Encoding]::new($false))
     Log-Success "$(Get-Msg 'opencode_config_updated') $configFile"
 
     # Install Go + go-docs-mcp if docs-mcp is in current preset
@@ -1191,7 +1245,7 @@ function Configure-WezTerm {
 
     if ($DryRun) {
         Log-Dry "$(Get-Msg 'dry_wezterm_dir') $wezDir"
-        Log-Dry "$(Get-Msg 'dry_wezterm_config') $wezConfig (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        Log-Dry "$(Get-Msg 'dry_wezterm_config') $wezConfig (Catppuccin Mocha, JetBrainsMono NFM, custom hotkeys)"
         return
     }
 
@@ -1209,7 +1263,7 @@ end
 
 -- Appearance & Styling
 config.color_scheme = 'Catppuccin Mocha'
-config.font = wezterm.font 'JetBrains Mono'
+config.font = wezterm.font 'JetBrainsMono NFM'
 config.font_size = 11.0
 config.window_background_opacity = 0.90
 config.text_background_opacity = 0.90
@@ -1223,6 +1277,23 @@ config.hide_tab_bar_if_only_one_tab = true
 
 -- Keybindings
 config.keys = {
+  -- Copy via CTRL+Insert / Paste via SHIFT+Insert (standard Windows)
+  {
+    key = 'Insert',
+    mods = 'CTRL',
+    action = wezterm.action.CopyTo 'Clipboard',
+  },
+  {
+    key = 'Insert',
+    mods = 'SHIFT',
+    action = wezterm.action.PasteFrom 'Clipboard',
+  },
+  -- CTRL+SHIFT+C passthrough — don't intercept for Copy, let the app handle it
+  {
+    key = 'C',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SendKey { key = 'c', mods = 'CTRL|SHIFT' },
+  },
   -- Split pane vertically and launch OpenCode with deepseek-v4-flash-free
   {
     key = 'O',
@@ -1311,7 +1382,7 @@ config.keys = {
 return config
 '@
 
-    [System.IO.File]::WriteAllText($wezConfig, $luaContent, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($wezConfig, $luaContent, [System.Text.UTF8Encoding]::new($false))
     Log-Success "$(Get-Msg 'wezterm_config_saved') $wezConfig"
 }
 
@@ -1387,11 +1458,21 @@ function Create-DesktopShortcut {
             "opencode.cmd"
         }
 
+        # Create a .cmd wrapper that kills stale mux processes before launching
+        $wrapperPath = [System.IO.Path]::ChangeExtension($shortcutPath, ".cmd")
+        $wrapperContent = @"
+@echo off
+taskkill /f /im wezterm-gui.exe 2>nul
+taskkill /f /im wezterm-mux-server.exe 2>nul
+timeout /t 1 /nobreak >nul
+start "" "$wezGui" start -- "$opencodePath" -m opencode/deepseek-v4-flash-free
+"@
+        [System.IO.File]::WriteAllText($wrapperPath, $wrapperContent, [System.Text.UTF8Encoding]::new($false))
+
+        # Create LNK pointing to the wrapper
         $shell = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $wezGui
-        # Arguments use the full opencode path, quoted for safety with spaces
-        $shortcut.Arguments = "start -- `"$opencodePath`" -m opencode/deepseek-v4-flash-free"
+        $shortcut.TargetPath = $wrapperPath
         $shortcut.WorkingDirectory = $HOME
         $shortcut.IconLocation = "$wezGui, 0"
         $shortcut.Description = "OpenCode AI in WezTerm"
@@ -1481,6 +1562,7 @@ try {
         Install-OpenCode
         Install-Plugins
         Configure-OpenCode
+        Install-NerdFont
         Configure-WezTerm
         Configure-DefaultTerminal
         Write-Host "`n$Cyan$(Get-Msg 'shortcut_intro')$ResetColorColor`n"

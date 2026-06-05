@@ -94,6 +94,7 @@ During the wizard, you can install the following plugins:
 | **`@different-ai/opencode-browser`** | Real browser integration, allowing the AI to browse the web when answering questions. |
 | **`@tarquinen/opencode-smart-title`** | Generates smart titles for your active chats automatically based on context. |
 | **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
+| **`DepsCian/opencode-codebase-index`** | Codebase RAG indexing with semantic search, file watching, and auto re-index on changes. |
 
 ### Model Context Protocol (MCP) Servers
 
@@ -204,10 +205,11 @@ In WezTerm, mouse and keyboard work differently from a regular text editor:
 | **Select / copy** | Left-click drag — **auto-copies** on release |
 | **Select word** | Double-click |
 | **Select line** | Triple-click |
-| **Paste text** | Right-click, or `CTRL + SHIFT + V` |
+| **Copy text** (keyboard) | `CTRL + Insert` (standard Windows) |
+| **Paste text** | Right-click, `SHIFT + Insert`, or `CTRL + SHIFT + V` |
 | **Paste image** | `CTRL + SHIFT + I` (see above) |
 
-> `CTRL+C` sends an interrupt signal (kills the running command). `CTRL+V` is often captured by the program inside the terminal. Use `CTRL+SHIFT+C` / `CTRL+SHIFT+V` instead. But if you select text with the mouse, it's already copied — no keyboard needed.
+> `CTRL+C` sends an interrupt signal (kills the running command). `CTRL+V` is often captured by the program inside the terminal. Use `CTRL+Insert` / `SHIFT+Insert` or `CTRL+SHIFT+C` passthrough (inside OpenCode) / `CTRL+SHIFT+V` instead. But if you select text with the mouse, it's already copied — no keyboard needed.
 
 ### ⚙️ PowerShell Execution Policy
 
@@ -239,8 +241,8 @@ The wizard includes three presets that control how many plugins and MCP servers 
 
 | Preset | Plugins | MCP Servers | Best For |
 | :--- | :--- | :--- | :--- |
-| **🍔 Full** (default) | All 5 plugins | All 7 MCPs | Full-featured AI coding environment |
-| **🥪 Medium** | oh-my-openagent, token-speed-plugin | fetch, context7, codegraph, docs-mcp | Balanced — essential tools only |
+| **🍔 Full** (default) | All 6 plugins | All 7 MCPs | Full-featured AI coding environment |
+| **🥪 Medium** | oh-my-openagent, token-speed-plugin, codebase-index | fetch, context7, codegraph, docs-mcp | Balanced — essential tools only |
 | **🥗 Light** | oh-my-openagent only | fetch, context7 | Minimal — just the basics |
 
 ---
@@ -309,13 +311,16 @@ Restoration is **transactional**: all files are restored together or none at all
 
 The script sets up a premium terminal layout using the `wezterm.lua` file:
 - **Theme:** Catppuccin Mocha (elegant, high-contrast dark theme).
-- **Font:** JetBrains Mono (customized for maximum readability).
+- **Font:** JetBrainsMono Nerd Font Mono (full Unicode/Nerd Font icon coverage for terminals, no mojibake).
 - **Hotkeys:**
   - `CTRL + SHIFT + O`: Split screen vertically and launch OpenCode with the free, fast `deepseek-v4-flash-free` model.
   - `CTRL + SHIFT + D`: Split screen horizontally.
   - `CTRL + SHIFT + E`: Split screen vertically.
   - `CTRL + SHIFT + W`: Close the active split pane.
   - `CTRL + SHIFT + I`: **Unconventional clipboard** — paste clipboard images as `@filepath` references. Works on all platforms. See [Windows-Specific Features](#-windows-specific-features) for details.
+  - `CTRL + Insert`: Copy selected text to clipboard (standard Windows).
+  - `SHIFT + Insert`: Paste text from clipboard (standard Windows).
+  - `CTRL + SHIFT + C`: Passthrough — sends the shortcut to the running app (useful inside OpenCode). Previously intercepted by WezTerm for Copy.
 
 ---
 

@@ -135,6 +135,22 @@ If you wish to use other models (like Claude 3.5 Sonnet or GPT-4o), you can swit
 
 ---
 
+> **💡 Why context matters**
+>
+> Two people look out a window:
+>
+> — *See that man across the street? Guess his name.*
+> — *No idea. Could be anything.*
+> — *Exactly. Without **context** — who he is, where he's from, what I know about him — you can only guess.*
+>
+> Same with an AI. It knows a lot, but without details about *your* situation it can only guess. It has two sources: what you put in your prompt, and what it can discover using tools called **MCP**.
+>
+> Ask *"what time is it?"* — the AI checks a time server, finds your IP, figures out your time zone. Works, but wastes space. Ask *"what time is it in New York?"* — one tool. Cleaner.
+>
+> **No context = guessing. Context = knowing. MCP = seeing for myself.**
+>
+> ---
+
 ## 5. How to Use OpenCode
 
 OpenCode acts as an agentic assistant. You can talk to it in natural language.
@@ -171,6 +187,30 @@ OpenCode can use the following tools automatically:
 - **`puppeteer`**: Ask *"Take a screenshot of http://localhost:3000"* to capture webpage visuals.
 - **`postgres`**: Ask *"Show me the tables in my local database"* to interact directly with PostgreSQL.
 - **`context7`**: Ask *"Find the documentation for Upstash Redis"* to fetch real-time, version-specific library docs.
+
+> **💡 Should you enable all MCP servers?**
+>
+> Ask a person: *"What's the third digit in 123?"* — instant answer: **3**.
+>
+> Now ask: *"What's the fifth digit in 76740286596068625595?"* — they'll pause, squint, maybe lose count, maybe get it wrong.
+>
+> Each MCP server is like an extra digit the AI has to keep in its head. Every time it processes your request, it considers *all* enabled tools — even the ones you never use. The more MCPs you enable:
+> - The more **context space** they consume (less room for your actual work)
+> - The more **CPU/RAM** background processes use (some watch files for changes)
+> - The **slower** the AI narrows down the right tool
+>
+> To decide what to keep, you need to know what each tool does:
+> - **`fetch`** — reads web pages. Keep if you ask about websites / documentation.
+> - **`puppeteer`** — controls a browser. Keep if you need screenshots or inspect rendered pages.
+> - **`postgres`** — talks to your local database. Keep only if you work with PostgreSQL.
+> - **`context7`** — searches library docs. Keep if you code with third-party libraries.
+> - **`codegraph`** — analyzes code structure (call graphs). Keep if you work with large codebases.
+> - **`docs-mcp`** — reads PDFs, images, office files. Keep if you analyze documents.
+> - **`lsp-mcp`** — gives the AI language server intelligence (go-to-definition, references). Keep for coding.
+>
+> **You can also ask OpenCode itself** to disable tools you don't need. Just tell it what you're working on — for example: *"I'm just writing plain text today, disable all coding tools"* or *"Disable postgres and puppeteer, I don't need them"*. OpenCode will turn them off for the session. But remember: **it won't turn them back on** without your explicit command. If you need a tool later, just say *"enable postgres"* or restart the session.
+>
+> See [Customizing Plugins & MCP Servers](#6-customizing-plugins--mcp-servers) for manual configuration.
 
 ### Working with Screenshots
 OpenCode has integrated browser support through the `puppeteer` MCP server or `@different-ai/opencode-browser` plugin.

@@ -32,6 +32,7 @@ OPENCODE_PLUGINS=(
     "@different-ai/opencode-browser|Integration with a real web browser"
     "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
     "opencode-token-speed-plugin|Real-time speed indicator (Tokens Per Second)"
+    "opencode-codebase-index|Codebase RAG indexing with semantic search, file watching, and auto re-index"
 )
 
 OPENCODE_MCP_SERVERS=(
@@ -57,6 +58,7 @@ PRESET_FULL_PLUGINS=(
     "@different-ai/opencode-browser"
     "@tarquinen/opencode-smart-title"
     "opencode-token-speed-plugin"
+    "opencode-codebase-index"
 )
 PRESET_FULL_MCPS=(
     "fetch" "puppeteer" "postgres" "context7"
@@ -67,6 +69,7 @@ PRESET_FULL_MCPS=(
 PRESET_MEDIUM_PLUGINS=(
     "oh-my-openagent"
     "opencode-token-speed-plugin"
+    "opencode-codebase-index"
 )
 PRESET_MEDIUM_MCPS=(
     "fetch" "context7" "codegraph" "docs-mcp"
@@ -304,7 +307,7 @@ msg() {
                 "removing_plugin") echo "Видалення плагіна:" ;;
                 "dry_migrate_plugin") echo "Мігрує oh-my-opencode → oh-my-openagent у" ;;
                 "dry_wezterm_brew") echo "Виконає: brew install --cask wezterm" ;;
-                "dry_wezterm_ubuntu") echo "Додасть репозиторій WezTerm APT + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
+                "dry_wezterm_ubuntu") echo "Додасть репозиторій WezTerm APT + apt install wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_redhat") echo "Виконає: dnf install wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_arch") echo "Виконає: pacman -S wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_unsupported_distro") echo "Дистрибутив не підтримується для авто-встановлення:" ;;
@@ -364,6 +367,11 @@ msg() {
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_choice") echo "Вибір [1-3] (за замовчуванням: 1):" ;;
+                "nerdfont_exists") echo "JetBrainsMono Nerd Font вже встановлено." ;;
+                "installing_nerdfont") echo "Завантаження JetBrainsMono Nerd Font з GitHub..." ;;
+                "nerdfont_success") echo "JetBrainsMono Nerd Font встановлено!" ;;
+                "nerdfont_failed") echo "Не вдалося встановити JetBrainsMono Nerd Font" ;;
+                "dry_nerdfont") echo "Завантажить та встановить JetBrainsMono Nerd Font" ;;
             esac
             ;;
         *) # default to "en"
@@ -494,7 +502,7 @@ msg() {
                 "removing_plugin") echo "Removing plugin:" ;;
                 "dry_migrate_plugin") echo "Would migrate oh-my-opencode → oh-my-openagent in" ;;
                 "dry_wezterm_brew") echo "Would run: brew install --cask wezterm" ;;
-                "dry_wezterm_ubuntu") echo "Would add WezTerm APT repo + apt install wezterm xclip wl-clipboard fonts-jetbrains-mono" ;;
+                "dry_wezterm_ubuntu") echo "Would add WezTerm APT repo + apt install wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_redhat") echo "Would run: dnf install wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_arch") echo "Would run: pacman -S wezterm xclip wl-clipboard" ;;
                 "dry_wezterm_unsupported_distro") echo "Unsupported distro for auto-install:" ;;
@@ -554,6 +562,11 @@ msg() {
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_choice") echo "Choice [1-3] (default: 1):" ;;
+                "nerdfont_exists") echo "JetBrainsMono Nerd Font already installed." ;;
+                "installing_nerdfont") echo "Downloading JetBrainsMono Nerd Font from GitHub..." ;;
+                "nerdfont_success") echo "JetBrainsMono Nerd Font installed!" ;;
+                "nerdfont_failed") echo "Failed to install JetBrainsMono Nerd Font" ;;
+                "dry_nerdfont") echo "Would download and install JetBrainsMono Nerd Font" ;;
             esac
             ;;
     esac
@@ -978,7 +991,7 @@ install_wezterm() {
                     curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
                     echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' | sudo tee /etc/apt/sources.list.d/wezterm.list
                     sudo apt update
-                    sudo apt install -y wezterm xclip wl-clipboard fonts-jetbrains-mono
+                    sudo apt install -y wezterm xclip wl-clipboard
                     ;;
                  redhat)
                     log_info "$(msg "adding_repo")"
@@ -1003,6 +1016,82 @@ install_wezterm() {
     esac
     log_success "$(msg "wezterm_success")"
     hash -r
+}
+
+# ==============================================================================
+# JetBrainsMono Nerd Font (universal icon coverage, no mojibake)
+# ==============================================================================
+install_nerd_font() {
+    if is_dry_run; then
+        log_dry "$(msg "dry_nerdfont")"
+        return 0
+    fi
+
+    case "$OS" in
+        linux)
+            local font_dir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts"
+            mkdir -p "$font_dir"
+
+            # Check if already installed
+            if [ -f "$font_dir/JetBrainsMonoNerdFontMono-Regular.ttf" ]; then
+                log_success "$(msg "nerdfont_exists")"
+                return 0
+            fi
+
+            log_info "$(msg "installing_nerdfont")"
+
+            local tmp_dir
+            tmp_dir=$(mktemp -d)
+            cd "$tmp_dir" || return 1
+
+            if command -v curl &>/dev/null; then
+                curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip" -o JetBrainsMono.zip
+            else
+                wget -q "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip" -O JetBrainsMono.zip
+            fi
+
+            unzip -q JetBrainsMono.zip -d JetBrainsMonoNerd
+            find JetBrainsMonoNerd -name "*.ttf" -exec cp {} "$font_dir/" \;
+
+            # Update font cache
+            if command -v fc-cache &>/dev/null; then
+                fc-cache -f "$font_dir" 2>/dev/null
+            fi
+
+            cd /tmp || true
+            rm -rf "$tmp_dir"
+
+            log_success "$(msg "nerdfont_success")"
+            ;;
+        macos)
+            local font_dir="$HOME/Library/Fonts"
+
+            # Check if already installed
+            if [ -f "$font_dir/JetBrainsMonoNerdFontMono-Regular.ttf" ]; then
+                log_success "$(msg "nerdfont_exists")"
+                return 0
+            fi
+
+            log_info "$(msg "installing_nerdfont")"
+
+            local tmp_dir
+            tmp_dir=$(mktemp -d)
+            cd "$tmp_dir" || return 1
+
+            curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip" -o JetBrainsMono.zip
+            unzip -q JetBrainsMono.zip -d JetBrainsMonoNerd
+            find JetBrainsMonoNerd -name "*.ttf" -exec cp {} "$font_dir/" \;
+
+            cd /tmp || true
+            rm -rf "$tmp_dir"
+
+            log_success "$(msg "nerdfont_success")"
+            ;;
+        *)
+            log_info "$(msg "unsupported_os") $OS"
+            return 0
+            ;;
+    esac
 }
 
 # ==============================================================================
@@ -1505,7 +1594,7 @@ configure_wezterm() {
 
     if is_dry_run; then
         log_dry "$(msg "dry_wezterm_dir") $wez_dir"
-        log_dry "$(msg "dry_wezterm_config") $wez_config (Catppuccin Mocha, JetBrains Mono, custom hotkeys)"
+        log_dry "$(msg "dry_wezterm_config") $wez_config (Catppuccin Mocha, JetBrainsMono NFM, custom hotkeys)"
         log_dry "$(msg "dry_wezterm_config_skipped")"
         return 0
     fi
@@ -1526,7 +1615,7 @@ end
 
 -- Appearance & Styling
 config.color_scheme = 'Catppuccin Mocha'
-config.font = wezterm.font 'JetBrains Mono'
+config.font = wezterm.font 'JetBrainsMono NFM'
 config.font_size = 11.0
 config.window_background_opacity = 0.90
 config.text_background_opacity = 0.90
@@ -1801,6 +1890,7 @@ main() {
             install_opencode
             install_plugins
             configure_opencode
+            install_nerd_font
             configure_wezterm
             configure_default_terminal
             create_desktop_shortcut
