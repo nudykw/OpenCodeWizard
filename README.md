@@ -4,7 +4,15 @@
 
 A cross-platform, idempotent, and highly customizable setup wizard to configure **OpenCode** (a local AI coding assistant) and **WezTerm** (a high-performance, GPU-accelerated terminal emulator written in Rust). 
 
-This tool is designed to help both programmers and everyday users set up a state-of-the-art AI-assisted command-line environment without any hassle.
+This tool is designed to help **both programmers and non-programmers** set up a state-of-the-art AI-assisted command-line environment without any hassle.
+
+> **Not just for coders.** OpenCode is a powerful tool for anyone who works with text and documents:
+>
+> - ✍️ **Writers, copywriters, journalists** — instantly find information across hundreds of files, summarize research, rewrite drafts
+> - 📋 **Document specialists, clerks, office workers** — search through document archives, extract data from PDFs and spreadsheets, automate document processing
+> - 📊 **Analysts and researchers** — analyze CSV reports, cross-reference data across documents, generate summaries
+> - 🎓 **Students and educators** — research assistance, note organization, study material preparation
+> - 📝 **Everyone who works with text** — OpenCode understands natural language. Just ask: *"Find the document about the 2024 budget"* or *"Summarize all PDFs in this folder"*
 
 ---
 
@@ -16,6 +24,7 @@ This tool is designed to help both programmers and everyday users set up a state
 - [Included Components](#included-components)
   - [OpenCode Plugins](#opencode-plugins)
   - [Model Context Protocol (MCP) Servers](#model-context-protocol-mcp-servers)
+  - [Supported Document Formats](#supported-document-formats)
 - [Working with Sessions](docs/sessions.md)
 - [How to Use](#how-to-use)
   - [Linux & macOS](#linux--macos)
@@ -26,6 +35,7 @@ This tool is designed to help both programmers and everyday users set up a state
 - [Setting WezTerm as the Default Terminal](#setting-wezterm-as-the-default-terminal)
 - [Backups & Restore](#backups--restore)
 - [Safety & Idempotency](#safety--idempotency)
+- [🔒 Security](docs/security.md)
 - [⚖️ License](#-license)
 
 ---
@@ -87,6 +97,26 @@ MCP servers extend the AI's capabilities to interact with local APIs and tools:
 | **`codegraph`** | AST-level code graph: semantic search, call chain analysis, impact analysis. |
 | **`docs-mcp`** | Multi-format document reader: PDF, DOCX, MD, CSV, OCR (via `go-docs-mcp`). |
 | **`lsp-mcp`** | Code intelligence: definitions, references, diagnostics via LSP protocol. |
+
+### Supported Document Formats
+
+Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work with a wide range of document types directly through the AI:
+
+| Format | Description | Supported |
+| --- | --- | --- |
+| **PDF** | Scanned documents, reports, forms | ✅ Read + OCR |
+| **DOCX** | Microsoft Word documents | ✅ Read |
+| **MD** | Markdown notes and documentation | ✅ Read |
+| **CSV** | Spreadsheets and data tables | ✅ Read + table extraction |
+| **TXT** | Plain text files | ✅ Read |
+| **Images** (PNG, JPG, TIFF, BMP) | Screenshots, diagrams, photos of text | ✅ OCR text extraction |
+
+**Can't find your format?** The MCP ecosystem is extensible. With additional MCP servers, you can add support for:
+- **EPUB** (ebooks), **ODT** (LibreOffice), **RTF** (rich text)
+- **XLSX** (Excel), **PPTX** (PowerPoint)
+- **HTML** (web pages), **XML** (structured data)
+- **ZIP archives** (scan inside compressed files)
+- And more — search for MCP servers in the npm registry or build your own.
 
 ---
 
@@ -257,6 +287,34 @@ Instructions are shown at the end of the PowerShell wizard:
 - All commands are **idempotent** (can be re-run safely multiple times).
 - Shell RC exports are guarded with `grep` checks to prevent duplicate lines.
 - Safe backup copy creations prevent your customized lua/json configs from being accidentally overwritten.
+
+---
+
+## 🔒 Security
+
+> **Working with sensitive documents? Read our full [Security Guide](docs/security.md).**
+
+OpenCode gives AI assistants powerful access to your files and system. Understanding the security model is essential — especially when working with confidential or sensitive data.
+
+**Key facts you should know:**
+
+- OpenCode runs with **your user permissions** — it can read, write, and execute commands
+- There is **no OS-level sandbox** — the AI has access to everything you do
+- **Prompt injection** is the #1 risk — a malicious file could trick the AI into taking unintended actions
+- **Offline mode + local model** eliminates data exfiltration risk, but does not prevent local damage
+- **Fewer plugins/MCPs = smaller attack surface**
+
+### At a Glance: Threat Levels
+
+| Risk | Level | Mitigation |
+| --- | --- | --- |
+| Data exfiltration (offline) | 🟢 None | Air gap (no network) |
+| Data exfiltration (online) | 🔴 High | Disable network; use local model |
+| File deletion/modification | 🟡 Medium | File permissions, backups |
+| Prompt injection | 🔴 High | Don't read untrusted files |
+| Session DB theft | 🟡 Medium | `chmod 600`, encrypt |
+
+👉 **Full analysis, attack vectors, safest configuration, and checklist:** [`docs/security.md`](docs/security.md)
 
 ---
 

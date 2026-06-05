@@ -10,9 +10,11 @@ Welcome! If you are new to the command line or using local AI assistants, this g
 - [1. Cloning the Repository](#1-cloning-the-repository)
 - [2. Running the Setup Wizard](#2-running-the-setup-wizard)
 - [3. Launching WezTerm & OpenCode](#3-launching-wezterm--opencode)
+  - [Opening WezTerm in a Specific Folder](#opening-wezterm-in-a-specific-folder)
 - [4. Choosing an AI Model](#4-choosing-an-ai-model)
 - [5. How to Use OpenCode](#5-how-to-use-opencode)
   - [Working with Sessions](sessions.md)
+  - [Working Directory and File Access](#working-directory-and-file-access)
   - [Interacting with files](#interacting-with-files)
   - [Using Plugins](#using-plugins)
   - [Running MCP Servers](#running-mcp-servers)
@@ -69,6 +71,53 @@ Once the wizard completes, open **WezTerm** from your desktop or application lis
 
 ---
 
+### Opening WezTerm in a Specific Folder
+
+OpenCode works with the **current directory** — it can see and access all files in the folder where the terminal was opened. To work with your documents, always open WezTerm inside the folder containing your files.
+
+#### Linux
+
+| File Manager | How to Open Terminal Here |
+| --- | --- |
+| **Nautilus** (GNOME, Ubuntu) | Right-click in the folder → **Open in Terminal** (or press `Ctrl+T` if the Nautilus terminal plugin is enabled) |
+| **Dolphin** (KDE) | Right-click in the folder → **Open Terminal** (or press `F4`) |
+| **Thunar** (XFCE) | Right-click → **Open Terminal Here** |
+| **Nemo** (Cinnamon) | Right-click → **Open in Terminal** |
+| Any file manager | Navigate to the folder, then press `` Ctrl+` `` (backtick) to toggle the built-in terminal panel (if available) |
+
+> **Tip:** If "Open in Terminal" doesn't appear, you may need to install the terminal plugin for your file manager:
+> ```bash
+> # For Nautilus (Ubuntu/Debian)
+> sudo apt install nautilus-extension-gnome-terminal
+>
+> # For Nautilus with WezTerm specifically
+> sudo apt install nautilus-open-any-terminal
+> ```
+
+#### Windows 11
+
+1. Open **File Explorer** and navigate to your folder
+2. **Shift + Right-click** on an empty area inside the folder
+3. Select **Open in Terminal** (opens Windows Terminal)
+4. Type `wezterm` and press Enter, **or** set WezTerm as your default terminal (see [Setting WezTerm as the Default Terminal](../README.md#setting-wezterm-as-the-default-terminal))
+
+> **Alternative:** Type `cmd` or `powershell` in the File Explorer address bar and press Enter — this opens a terminal already in that folder. Then run `wezterm` to switch.
+
+#### macOS
+
+1. Open **Finder** and navigate to your folder
+2. **Right-click** the folder (or Ctrl+Click)
+3. Go to **Services** → **New Terminal at Folder**
+4. This opens the default terminal (Terminal.app or iTerm2). If you want WezTerm, install the [WezTerm CLI](https://wezfurlong.org/wezterm/install.html) and run:
+   ```bash
+   # From any terminal, open WezTerm in the current directory
+   wezterm start
+   ```
+
+> **Tip:** To add WezTerm to Finder's toolbar, drag `/Applications/WezTerm.app` onto the toolbar while holding `Cmd`.
+
+---
+
 ## 4. Choosing an AI Model
 
 By default, the `CTRL + SHIFT + O` shortcut launches OpenCode using a free model:
@@ -90,11 +139,25 @@ OpenCode acts as an agentic assistant. You can talk to it in natural language.
 
 > **💡 Working with sessions:** Each conversation in OpenCode is a separate **session**. To get the best results, use fresh sessions for different tasks — [learn more about sessions](sessions.md).
 
+### Working Directory and File Access
+
+OpenCode automatically has access to **all files in the folder where you launched it** (the current working directory). This means:
+
+- You can ask the AI to read, search, or modify any file in this folder
+- The AI can navigate into **subfolders** and work with files there
+- Files **outside** the current directory can also be accessed if you provide an absolute path, but it's more convenient to open OpenCode from the folder you want to work with
+
+> **In short:** The folder you open the terminal in = the folder OpenCode can see. If your documents are in `~/Documents/Reports/`, open the terminal there.
+
 ### Interacting with files
 - You can say:
   - *"Read the file `src/App.js` and explain what it does."*
   - *"Help me add a new endpoint to `routes/users.js`."*
   - *"Find all files containing the word 'database' in this directory."*
+  - *"Summarize all PDF files in the `reports/` folder."*
+  - *"Search through all documents for anything related to the 2024 budget."*
+  - *"Create a new directory called `notes` and save a summary there."*
+  - *"Compare the CSV files in this folder and tell me what changed."*
 
 ### Using Plugins
 - **`opencode-mem`** lets OpenCode remember details across different chat sessions.
