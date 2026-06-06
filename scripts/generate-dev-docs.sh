@@ -5,25 +5,11 @@ set -euo pipefail
 
 BASE_DIR="$(dirname "$0")/.."
 CONF_FILE="$BASE_DIR/config/dev-tools.conf"
-PLUGINS_CONF="$BASE_DIR/config/plugins.conf"
-MCP_CONF="$BASE_DIR/config/mcp.conf"
 
 DOC_EN="$BASE_DIR/docs/developer-tools.md"
 DOC_UK="$BASE_DIR/docs/developer-tools.uk.md"
 
-# Developer preset lists (from OpenCodeWizard.sh line 48-59)
-DEV_PLUGINS=(
-  "oh-my-openagent"
-  "opencode-mem"
-  "@different-ai/opencode-browser"
-  "@tarquinen/opencode-smart-title"
-  "opencode-token-speed-plugin"
-  "opencode-codebase-index"
-)
-DEV_MCPS=(
-  "fetch" "puppeteer" "postgres" "context7"
-  "codegraph" "docs-mcp" "lsp-mcp"
-)
+source "$BASE_DIR/config/variables.conf"
 
 # Short descriptions for plugins/MCPs that aren't in conf files
 declare -A PLUGIN_DESC_EN
@@ -99,7 +85,7 @@ All 6 plugins are installed with the Developer preset. See the main [Plugins ref
 |--------|-------------|
 PLUGINS
 
-  for plugin in "${DEV_PLUGINS[@]}"; do
+  for plugin in "${PRESET_DEVELOPER_PLUGINS[@]}"; do
     echo "| \`$plugin\` | ${PLUGIN_DESC_EN[$plugin]} |" >> "$DOC_EN"
   done
 
@@ -113,7 +99,7 @@ All 7 MCP servers are enabled with the Developer preset. See the main [MCP refer
 |-----|-------------|
 MCP
 
-  for mcp in "${DEV_MCPS[@]}"; do
+  for mcp in "${PRESET_DEVELOPER_MCPS[@]}"; do
     echo "| \`$mcp\` | ${MCP_DESC_EN[$mcp]} |" >> "$DOC_EN"
   done
 }
@@ -156,7 +142,7 @@ TOOL
 |--------|------|
 PLUGINS
 
-  for plugin in "${DEV_PLUGINS[@]}"; do
+  for plugin in "${PRESET_DEVELOPER_PLUGINS[@]}"; do
     echo "| \`$plugin\` | ${PLUGIN_DESC_UK[$plugin]} |" >> "$DOC_UK"
   done
 
@@ -170,7 +156,7 @@ PLUGINS
 |-----|------|
 MCP
 
-  for mcp in "${DEV_MCPS[@]}"; do
+  for mcp in "${PRESET_DEVELOPER_MCPS[@]}"; do
     echo "| \`$mcp\` | ${MCP_DESC_UK[$mcp]} |" >> "$DOC_UK"
   done
 }

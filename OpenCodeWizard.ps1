@@ -50,11 +50,16 @@ $Bold = [char]27 + "[1m"
 # Default Language Code
 $LangCode = "en"
 
-# Preset selection (full, medium, light)
-if ($Silent -and $Preset -in @("developer", "standard", "minimal")) {
+# Preset selection (developer, standard, minimal)
+# Must stay consistent with config/variables.conf
+$PresetDeveloper = "developer"
+$PresetStandard = "standard"
+$PresetMinimal = "minimal"
+
+if ($Silent -and $Preset -in @($PresetDeveloper, $PresetStandard, $PresetMinimal)) {
     $global:Preset = $Preset
 } else {
-    $global:Preset = "developer"
+    $global:Preset = $PresetDeveloper
 }
 
 # Backup State
@@ -71,14 +76,14 @@ if (Test-Path "$ScriptDir\config\mcp.conf") {
 }
 
 # ==============================================================================
-# Preset definitions
-$PresetFullPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin", "opencode-codebase-index")
-$PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin", "opencode-codebase-index")
-$PresetLightPlugins  = @("oh-my-openagent")
+# Preset definitions (must match config/variables.conf)
+$PresetDeveloperPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin", "opencode-codebase-index")
+$PresetStandardPlugins = @("oh-my-openagent", "opencode-token-speed-plugin", "opencode-codebase-index")
+$PresetMinimalPlugins  = @("oh-my-openagent")
 
-$PresetFullMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "docs-mcp", "lsp-mcp")
-$PresetMediumMcps = @("fetch", "context7", "codegraph", "docs-mcp")
-$PresetLightMcps  = @("fetch", "context7")
+$PresetDeveloperMcps  = @("fetch", "puppeteer", "postgres", "context7", "codegraph", "docs-mcp", "lsp-mcp")
+$PresetStandardMcps = @("fetch", "docs-mcp")
+$PresetMinimalMcps  = @("fetch")
 
 
 # Translations Dictionary
@@ -217,9 +222,9 @@ $Translations = @{
         "select_lang_uk" = "2) Українська (uk)"
         "select_lang_choice" = "Вибір / Choice [1-2]"
         "select_preset_title" = "Оберіть пресет конфігурації:"
-        "preset_full" = "1) 🍔 Full — все включено (рекомендовано)"
-        "preset_medium" = "2) 🥪 Medium — основні плагіни + базові MCP"
-        "preset_light" = "3) 🥗 Light — мінімальне налаштування"
+        "preset_developer" = "1) 🍔 Developer — все включено (рекомендовано)"
+        "preset_standard" = "2) 🥪 Standard — основні плагіни + базові MCP (fetch, docs-mcp)"
+        "preset_minimal" = "3) 🥗 Minimal — мінімальне налаштування"
         "preset_mcps_label" = "MCPs:"
         "preset_plugins_label" = "Plugins:"
         "preset_choice" = "Вибір [1-3] (за замовчуванням: 1)"
@@ -373,9 +378,9 @@ $Translations = @{
         "select_lang_uk" = "2) Українська (uk)"
         "select_lang_choice" = "Вибір / Choice [1-2]"
         "select_preset_title" = "Select configuration preset:"
-        "preset_full" = "1) 🍔 Full — everything included (recommended)"
-        "preset_medium" = "2) 🥪 Medium — essential plugins + core MCPs"
-        "preset_light" = "3) 🥗 Light — minimal setup"
+        "preset_developer" = "1) 🍔 Developer — everything included (recommended)"
+        "preset_standard" = "2) 🥪 Standard — essential plugins + core MCPs (fetch, docs-mcp)"
+        "preset_minimal" = "3) 🥗 Minimal — minimal setup"
         "preset_mcps_label" = "MCPs:"
         "preset_plugins_label" = "Plugins:"
         "preset_choice" = "Choice [1-3] (default: 1)"
@@ -431,18 +436,18 @@ function Is-InPreset ($name, $presetList) {
 function Select-Preset {
     if ($Silent) { return }
     Write-Host "`n$Bold$(Get-Msg 'select_preset_title')$ResetColorColor"
-    Write-Host "  $Bold$(Get-Msg 'preset_full')$ResetColorColor"
-    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, puppeteer, postgres, context7, codegraph, opencode-mem, docs-mcp, lsp-mcp"
-     Write-Host "     $Cyan$(Get-Msg 'preset_plugins_label')$ResetColorColor oh-my-openagent, browser, smart-title, token-speed, codebase-index"
-    Write-Host "  $Bold$(Get-Msg 'preset_medium')$ResetColorColor"
-    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, context7, codegraph, docs-mcp"
-    Write-Host "  $Bold$(Get-Msg 'preset_light')$ResetColorColor"
-    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, context7"
+    Write-Host "  $Bold$(Get-Msg 'preset_developer')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
+    Write-Host "     $Cyan$(Get-Msg 'preset_plugins_label')$ResetColorColor oh-my-openagent, opencode-mem, @different-ai/opencode-browser, @tarquinen/opencode-smart-title, opencode-token-speed-plugin, opencode-codebase-index"
+    Write-Host "  $Bold$(Get-Msg 'preset_standard')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch, docs-mcp"
+    Write-Host "  $Bold$(Get-Msg 'preset_minimal')$ResetColorColor"
+    Write-Host "     $Cyan$(Get-Msg 'preset_mcps_label')$ResetColorColor fetch"
     $presetChoice = Read-Host "$(Get-Msg 'preset_choice')"
     switch ($presetChoice) {
-        "2" { $global:Preset = "medium" }
-        "3" { $global:Preset = "light" }
-        default { $global:Preset = "full" }
+        "2" { $global:Preset = $PresetStandard }
+        "3" { $global:Preset = $PresetMinimal }
+        default { $global:Preset = $PresetDeveloper }
     }
     Log-Info "$(Get-Msg 'preset_label') $($global:Preset)"
     Write-Host ""
@@ -1109,9 +1114,9 @@ function Install-Plugins {
 
     # Resolve preset plugin list
     $presetPlugins = switch ($global:Preset) {
-        "medium" { $PresetMediumPlugins }
-        "light"  { $PresetLightPlugins }
-        default  { $PresetFullPlugins }
+        $PresetStandard { $PresetStandardPlugins }
+        $PresetMinimal  { $PresetMinimalPlugins }
+        default         { $PresetDeveloperPlugins }
     }
 
     $installAll = Ask-Confirm "$(Get-Msg 'ask_plugins_default')"
@@ -1203,14 +1208,14 @@ This file provides the OpenCode AI assistant with details about the current oper
 
     # Resolve preset lists
     $presetPlugins = switch ($global:Preset) {
-        "medium" { $PresetMediumPlugins }
-        "light"  { $PresetLightPlugins }
-        default  { $PresetFullPlugins }
+        $PresetStandard { $PresetStandardPlugins }
+        $PresetMinimal  { $PresetMinimalPlugins }
+        default         { $PresetDeveloperPlugins }
     }
     $presetMcps = switch ($global:Preset) {
-        "medium" { $PresetMediumMcps }
-        "light"  { $PresetLightMcps }
-        default  { $PresetFullMcps }
+        $PresetStandard { $PresetStandardMcps }
+        $PresetMinimal  { $PresetMinimalMcps }
+        default         { $PresetDeveloperMcps }
     }
 
     $useAllMcp = $true

@@ -38,51 +38,15 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 done < "$(dirname "$0")/config/mcp.conf"
 
 # ==============================================================================
-# Preset system — defines which plugins and MCPs are included per preset
-# Preset names must match one of: full, medium, light
-# Each list contains plugin/MCP names (first field of the | separated entries above)
-# ==============================================================================
-
-# Full preset — everything (default)
-# Presets
-PRESET_DEVELOPER_PLUGINS=(
-    "oh-my-openagent"
-    "opencode-mem"
-    "@different-ai/opencode-browser"
-    "@tarquinen/opencode-smart-title"
-    "opencode-token-speed-plugin"
-    "opencode-codebase-index"
-)
-PRESET_DEVELOPER_MCPS=(
-    "fetch" "puppeteer" "postgres" "context7"
-    "codegraph" "docs-mcp" "lsp-mcp"
-)
-
-# Standard preset — essential plugins, core MCPs
-PRESET_STANDARD_PLUGINS=(
-    "oh-my-openagent"
-    "opencode-token-speed-plugin"
-    "opencode-codebase-index"
-)
-PRESET_STANDARD_MCPS=(
-    "fetch" "docs-mcp"
-)
-
-# Minimal preset — minimal setup
-PRESET_MINIMAL_PLUGINS=(
-    "oh-my-openagent"
-)
-PRESET_MINIMAL_MCPS=(
-    "fetch"
-)
-
-# ==============================================================================
 # Global state
 # ==============================================================================
 LANG_CODE="en"
 SILENT=false
 DRY_RUN=false
-PRESET="developer"   # developer | standard | minimal
+
+# Load shared preset definitions
+source "$(dirname "$0")/config/variables.conf"
+PRESET="$PRESET_DEVELOPER"
 COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
 COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
 OS=""
@@ -150,7 +114,7 @@ while [[ $# -gt 0 ]]; do
         -y|--silent|--non-interactive)
             SILENT=true
             # Check if next argument is a valid preset
-            if [[ -n "${2:-}" ]] && [[ "$2" =~ ^(developer|standard|minimal)$ ]]; then
+            if [[ -n "${2:-}" ]] && [[ "$2" =~ ^($PRESET_DEVELOPER|$PRESET_STANDARD|$PRESET_MINIMAL)$ ]]; then
                 PRESET="$2"
                 shift
             fi
@@ -264,8 +228,8 @@ msg() {
                 "wezterm_legacy_remove") echo "1) Видалити ~/.wezterm.lua (рекомендовано)" ;;
                 "wezterm_legacy_symlink") echo "2) Замінити ~/.wezterm.lua на симлінк до нового конфігу" ;;
                 "wezterm_legacy_skip") echo "3) Залишити як є (може ігнорувати новий конфіг)" ;;
-                "wezterm_legacy_removed") echo "~/.wezterm.lua видалено." ;;
-                "wezterm_legacy_symlinked") echo "~/.wezterm.lua тепер вказує на новий конфіг." ;;
+                "wezterm_legacy_removed") echo "$HOME/.wezterm.lua видалено." ;;
+                "wezterm_legacy_symlinked") echo "$HOME/.wezterm.lua тепер вказує на новий конфіг." ;;
                 "wezterm_legacy_skipped") echo "Пропуск, залишено ~/.wezterm.lua." ;;
                 "default_terminal_title") echo "--- Налаштування терміналу за замовчуванням ---" ;;
                 "default_terminal_explain")
@@ -375,8 +339,8 @@ msg() {
                 "list_size") echo "Розмір:" ;;
                 "select_preset_title") echo "Оберіть пресет конфігурації:" ;;
                 "preset_developer") echo "1)🍔 Developer — все включено (рекомендовано)" ;;
-                "preset_standard") echo "2)🥪 Standard — основні плагіни + базові MCP" ;;
-                "preset_light") echo "3)🥗 Light — мінімальне налаштування" ;;
+                "preset_standard") echo "2)🥪 Standard — основні плагіни + базові MCP (fetch, docs-mcp)" ;;
+                "preset_minimal") echo "3)🥗 Minimal — мінімальне налаштування" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_tools_label") echo "Інструменти:" ;;
@@ -475,8 +439,8 @@ msg() {
                 "wezterm_legacy_remove") echo "1) Remove ~/.wezterm.lua (recommended)" ;;
                 "wezterm_legacy_symlink") echo "2) Replace ~/.wezterm.lua with a symlink to the new config" ;;
                 "wezterm_legacy_skip") echo "3) Leave as-is (may ignore the new config)" ;;
-                "wezterm_legacy_removed") echo "~/.wezterm.lua removed." ;;
-                "wezterm_legacy_symlinked") echo "~/.wezterm.lua now points to the new config." ;;
+                "wezterm_legacy_removed") echo "$HOME/.wezterm.lua removed." ;;
+                "wezterm_legacy_symlinked") echo "$HOME/.wezterm.lua now points to the new config." ;;
                 "wezterm_legacy_skipped") echo "Skipped, ~/.wezterm.lua left unchanged." ;;
                 "default_terminal_title") echo "--- Default Terminal Configuration ---" ;;
                 "default_terminal_explain")
@@ -586,8 +550,8 @@ msg() {
                 "list_size") echo "Size:" ;;
                 "select_preset_title") echo "Select configuration preset:" ;;
                 "preset_developer") echo "1)🍔 Developer — everything included (recommended)" ;;
-                "preset_standard") echo "2)🥪 Standard — essential plugins + core MCPs" ;;
-                "preset_light") echo "3)🥗 Light — minimal setup" ;;
+                "preset_standard") echo "2)🥪 Standard — essential plugins + core MCPs (fetch, docs-mcp)" ;;
+                "preset_minimal") echo "3)🥗 Minimal — minimal setup" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_tools_label") echo "Tools:" ;;
@@ -640,7 +604,7 @@ is_in_preset() {
 # Select preset interactively
 select_preset() {
     if [ "$SILENT" = true ]; then
-        PRESET="full"
+        [ -z "$PRESET" ] && PRESET="$PRESET_DEVELOPER"
         return 0
     fi
     echo -e "\n${BOLD}$(msg "select_preset_title")${NC}"
@@ -649,14 +613,14 @@ select_preset() {
     echo -e "     ${CYAN}$(msg "preset_plugins_label")${NC} oh-my-openagent, opencode-mem, @different-ai/opencode-browser, @tarquinen/opencode-smart-title, opencode-token-speed-plugin, opencode-codebase-index"
     echo -e "     ${CYAN}$(msg "preset_tools_label")${NC} gitui — $(grep '^tool:gitui:' "$(dirname "$0")/config/dev-tools.conf" 2>/dev/null | cut -d: -f3- || echo "Git TUI with real-time monitoring")"
     echo -e "  ${BOLD}$(msg "preset_standard")${NC}"
-    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7, codegraph, docs-mcp"
-    echo -e "  ${BOLD}$(msg "preset_light")${NC}"
-    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7"
+    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, docs-mcp"
+    echo -e "  ${BOLD}$(msg "preset_minimal")${NC}"
+    echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch"
     read -p "$(msg "preset_choice") " preset_choice
     case "$preset_choice" in
-        2) PRESET="standard" ;;
-        3) PRESET="light" ;;
-        *) PRESET="developer" ;;
+        2) PRESET="$PRESET_STANDARD" ;;
+        3) PRESET="$PRESET_MINIMAL" ;;
+        *) PRESET="$PRESET_DEVELOPER" ;;
     esac
     log_info "$(msg "preset_label") ${BOLD}${PRESET}${NC}"
     echo ""
@@ -1245,7 +1209,8 @@ install_docs_mcp() {
 # Read description from config/dev-tools.conf for a given tool name
 show_dev_tool_info() {
     local tool_name="$1"
-    local conf_file="$(dirname "$0")/config/dev-tools.conf"
+    local conf_file
+    conf_file="$(dirname "$0")/config/dev-tools.conf"
     if [ -f "$conf_file" ]; then
         local desc
         desc=$(grep "^tool:${tool_name}:" "$conf_file" 2>/dev/null | cut -d: -f3-)
@@ -1495,9 +1460,9 @@ install_plugins() {
     # Use central definitions from components.sh
     local preset_plugins=()
     case "$PRESET" in
-        medium) preset_plugins=("${PRESET_MEDIUM_PLUGINS[@]}") ;;
-        light)  preset_plugins=("${PRESET_LIGHT_PLUGINS[@]}") ;;
-        *)      preset_plugins=("${PRESET_DEVELOPER_PLUGINS[@]}") ;;
+        "$PRESET_STANDARD") preset_plugins=("${PRESET_STANDARD_PLUGINS[@]}") ;;
+        "$PRESET_MINIMAL")  preset_plugins=("${PRESET_MINIMAL_PLUGINS[@]}") ;;
+        *)                  preset_plugins=("${PRESET_DEVELOPER_PLUGINS[@]}") ;;
     esac
 
     local install_all=true
@@ -1572,17 +1537,17 @@ configure_opencode() {
     local preset_plugins=()
     local preset_mcps=()
     case "$PRESET" in
-        medium)
-            preset_plugins=("${PRESET_MEDIUM_PLUGINS[@]}")
-            preset_mcps=("${PRESET_MEDIUM_MCPS[@]}")
+        "$PRESET_STANDARD")
+            preset_plugins=("${PRESET_STANDARD_PLUGINS[@]}")
+            preset_mcps=("${PRESET_STANDARD_MCPS[@]}")
             ;;
-        light)
-            preset_plugins=("${PRESET_LIGHT_PLUGINS[@]}")
-            preset_mcps=("${PRESET_LIGHT_MCPS[@]}")
+        "$PRESET_MINIMAL")
+            preset_plugins=("${PRESET_MINIMAL_PLUGINS[@]}")
+            preset_mcps=("${PRESET_MINIMAL_MCPS[@]}")
             ;;
         *)
-            preset_plugins=("${PRESET_FULL_PLUGINS[@]}")
-            preset_mcps=("${PRESET_FULL_MCPS[@]}")
+            preset_plugins=("${PRESET_DEVELOPER_PLUGINS[@]}")
+            preset_mcps=("${PRESET_DEVELOPER_MCPS[@]}")
             ;;
     esac
 
@@ -2101,9 +2066,9 @@ main() {
             install_plugins
             configure_opencode
             install_nerd_font
-            [[ "$PRESET" == "developer" ]] && install_gitui
+            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && install_gitui
             configure_wezterm
-            [[ "$PRESET" == "developer" ]] && bash "$(dirname "$0")/scripts/generate-dev-docs.sh"
+            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && bash "$(dirname "$0")/scripts/generate-dev-docs.sh"
             configure_default_terminal
             create_desktop_shortcut
             verify_setup

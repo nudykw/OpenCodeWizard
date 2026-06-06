@@ -14,4 +14,22 @@ if echo "$CHANGED" | grep -qE '^(config/dev-tools\.conf|config/plugins\.conf|con
     git add "$SCRIPT_DIR/docs/developer-tools.md" "$SCRIPT_DIR/docs/developer-tools.uk.md" 2>/dev/null || true
 fi
 
+# Run shellcheck on staged .sh files
+SH_FILES=$(echo "$CHANGED" | grep -E '\.sh$' | tr '\n' ' ')
+if [ -n "$SH_FILES" ]; then
+    if command -v shellcheck &>/dev/null; then
+        echo ">>> Running shellcheck on staged scripts <<<"
+        cd "$SCRIPT_DIR"
+        if ! shellcheck --severity=warning $SH_FILES; then
+            echo ""
+            echo "[FAIL] Shellcheck reported warnings. Fix before commit."
+            echo "To skip (not recommended): git commit --no-verify"
+            exit 1
+        fi
+        echo "Shellcheck: no issues found"
+    else
+        echo "[WARN] shellcheck not installed — skipping lint"
+    fi
+fi
+
 exit 0

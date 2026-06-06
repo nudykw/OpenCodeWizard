@@ -42,6 +42,24 @@ while read local_ref local_oid remote_ref remote_oid; do
                 echo "  Changed scripts:"
                 echo "$CHANGED" | grep -E '\.(sh|ps1)$' | sed 's/^/    - /'
                 echo ""
+
+                # Run shellcheck on changed .sh files
+                SH_FILES=$(echo "$CHANGED" | grep -E '\.sh$' | tr '\n' ' ')
+                if [ -n "$SH_FILES" ]; then
+                    if command -v shellcheck &>/dev/null; then
+                        echo ">>> Running shellcheck on changed scripts <<<"
+                        if ! shellcheck --severity=warning $SH_FILES; then
+                            echo ""
+                            echo "[FAIL] Shellcheck reported warnings. Push aborted."
+                            echo "Fix the issues above or run: shellcheck $SH_FILES"
+                            echo "To skip (not recommended): git push --no-verify"
+                            exit 1
+                        fi
+                        echo "Shellcheck: no issues found"
+                    else
+                        echo "[WARN] shellcheck not installed — skipping lint"
+                    fi
+                fi
             else
                 echo "=== Pre-push: no script changes (*.sh, *.ps1) — CI skipped ==="
                 echo "  Target: $remote_ref"

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$SCRIPT_DIR/config/variables.conf"
+
 run_macos_mock_test() {
     echo ">>> Testing macOS Mock (Dry-Run)"
     OCW_FORCE_OS=macos ./OpenCodeWizard.sh --silent --dry-run
@@ -49,7 +52,7 @@ case "${1:-}" in
     *)
         run_powershell_syntax_check
         run_macos_mock_test
-        for preset in developer standard minimal; do
+        for preset in "$PRESET_DEVELOPER" "$PRESET_STANDARD" "$PRESET_MINIMAL"; do
             run_linux_test "ubuntu:latest" "$preset"
             run_linux_test "fedora:latest" "$preset"
             run_linux_test "archlinux:latest" "$preset"
