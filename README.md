@@ -68,7 +68,7 @@ Command-line environments can be intimidating. However, they are incredibly powe
 - **Desktop Shortcuts:** Optional one-click desktop shortcut creation to launch OpenCode inside WezTerm instantly (Linux & Windows).
 - **Windows Context Menu:** Optionally adds "Open in OpenCode" to the folder right-click menu in File Explorer — launches WezTerm with OpenCode already running in the selected folder.
 - **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
-- **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md).
+- **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md). ⚠️ **Important:** Without understanding how sessions and context work, you cannot work effectively with *any* AI assistant. This is a fundamental skill for getting actual results.
 
 ---
 

@@ -19,6 +19,22 @@ OpenCode automatically saves your conversations in **sessions** — separate cha
 
 ---
 
+## Session Architecture & Storage
+
+**Why are sessions separated by folder?**
+OpenCode organizes sessions based on the folder where you launch it. This provides critical benefits:
+
+* **Contextual Isolation:** Your work on "Project A" remains completely separate from "Project B." The AI never mixes ideas or file history between different tasks.
+* **Project-Specific Memory:** When you open a project folder, OpenCode automatically loads the chat history relevant to that folder, ensuring the AI "remembers" exactly what you were working on there.
+* **Data Integrity:** Because the session history is stored within the project, you can move or backup the folder, and your chats will travel with it.
+
+> **⚠️ Important:** All your conversation history (sessions) is saved in a hidden file within the project folder. If you launch OpenCode in a different folder, you won't see chats from the first one. This is not a bug — it's a feature to keep your AI context clean. If you can't find a session, simply launch OpenCode in the same folder where you started that conversation.
+
+**How it works:**
+OpenCode creates a "log file" inside each folder where you work. This acts as a private notebook for that project, ensuring your AI assistant stays focused on the current task.
+
+---
+
 ## What Is a Context Window?
 
 Every AI model has a **context window** — the maximum amount of text (measured in **tokens**) it can "see" at once. Think of it as the model's short-term memory:

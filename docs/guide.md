@@ -151,6 +151,24 @@ If you wish to use other models (like Claude 3.5 Sonnet or GPT-4o), you can swit
 >
 > ---
 
+> **💡 Put Yourself in the AI's Shoes**
+> 
+> Think the AI is being slow or making things up? Let’s put you in the exact same spot, working without proper context.
+> 
+> **Task:** Quickly answer the following question: 
+> *"How much is 5 + ... = ?"*
+> 
+> **Your reaction:** You probably felt confused or annoyed. Why?
+> 1. You don't know what number goes in the blank.
+> 2. You don't know the expected result (Is it 10? Is it 50?).
+> 3. You are missing the "context" of the task.
+> 
+> **Conclusion:** You aren't "slow"—you simply can't answer accurately because you only have a fragment of the data. This is exactly what happens with an AI: when you ask it to "fix this code" or "summarize this document" without providing file access or explaining the goal, it *has* to guess.
+> 
+> **Give the AI context, and it will stop guessing.**
+
+---
+
 ## 5. How to Use OpenCode
 
 OpenCode acts as an agentic assistant. You can talk to it in natural language.
