@@ -1667,6 +1667,18 @@ configure_opencode() {
 
     # Write system_info.md
     cat << EOF > "$config_dir/system_info.md"
+# GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
+
+**ABSOLUTE PROHIBITION: Never commit or push to git without explicit user confirmation.**
+
+- Before \`git commit\`: ask "Commit changes?"
+- Before \`git push\`: ask "Push to remote?"
+- Wait for explicit "yes", "да", "push", "коммить" before proceeding.
+- NO auto-commit, NO auto-push, NO --no-verify shortcuts.
+- This applies to ALL repositories and ALL sessions.
+
+---
+
 # System Environment Details
 
 This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
@@ -1675,7 +1687,7 @@ This file provides the OpenCode AI assistant with details about the current oper
 - **Kernel Version:** ${kernel_ver:-Unknown}
 - **Processor (CPU):** ${cpu_info:-Unknown CPU}
 - **System Memory (RAM):** ${ram_info:-Unknown RAM}
-- **User Shell:** ${SHELL:-/bin/bash}
+- **User Shell:** \${SHELL:-/bin/bash}
 EOF
 
     # Write opencode.jsonc
