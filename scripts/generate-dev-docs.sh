@@ -68,7 +68,7 @@ HEADER
 - **WezTerm Hotkeys:**
 
   | Hotkey | Action |
-  |--------|--------|
+  | ------- | ------- |
   | \`CTRL+SHIFT+G\` | Open $name + OpenCode split in a new tab |
   | \`CTRL+SHIFT+O\` | Split pane: $name (left, 40%) + OpenCode (right) |
   | \`CTRL+SHIFT+ALT+G\` | Open $name + OpenCode split in a new workspace |
@@ -82,7 +82,7 @@ TOOL
 All 6 plugins are installed with the Developer preset. See the main [Plugins reference](plugins.md) for full details.
 
 | Plugin | Description |
-|--------|-------------|
+| ------- | ----------- |
 PLUGINS
 
   for plugin in "${PRESET_DEVELOPER_PLUGINS[@]}"; do
@@ -96,7 +96,7 @@ PLUGINS
 All 7 MCP servers are enabled with the Developer preset. See the main [MCP reference](mcp.md) for full details.
 
 | MCP | Description |
-|-----|-------------|
+| ----- | ----------- |
 MCP
 
   for mcp in "${PRESET_DEVELOPER_MCPS[@]}"; do
@@ -125,7 +125,7 @@ HEADER
 - **Гарячі клавіші WezTerm:**
 
   | Хоткей | Дія |
-  |--------|-----|
+  | ------- | ----- |
   | \`CTRL+SHIFT+G\` | Відкрити $name + OpenCode у спліті в новому табі |
   | \`CTRL+SHIFT+O\` | Розділити екран: $name (зліва, 40%) + OpenCode (справа) |
   | \`CTRL+SHIFT+ALT+G\` | Відкрити $name + OpenCode у спліті в новому робочому середовищі |
@@ -139,7 +139,7 @@ TOOL
 Всі 6 плагінів встановлюються з пресетом Developer. Детальніше в [документації плагінів](plugins.uk.md).
 
 | Плагін | Опис |
-|--------|------|
+| ------- | ----- |
 PLUGINS
 
   for plugin in "${PRESET_DEVELOPER_PLUGINS[@]}"; do
@@ -153,7 +153,7 @@ PLUGINS
 Всі 7 MCP-серверів активуються з пресетом Developer. Детальніше в [документації MCP](mcp.uk.md).
 
 | MCP | Опис |
-|-----|------|
+| ----- | ----- |
 MCP
 
   for mcp in "${PRESET_DEVELOPER_MCPS[@]}"; do

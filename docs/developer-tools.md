@@ -11,7 +11,7 @@ This document describes the additional tools, keybindings, and components that a
 - **WezTerm Hotkeys:**
 
   | Hotkey | Action |
-  |--------|--------|
+  | ------- | ------- |
   | `CTRL+SHIFT+G` | Open gitui + OpenCode split in a new tab |
   | `CTRL+SHIFT+O` | Split pane: gitui (left, 40%) + OpenCode (right) |
   | `CTRL+SHIFT+ALT+G` | Open gitui + OpenCode split in a new workspace |
@@ -21,7 +21,7 @@ This document describes the additional tools, keybindings, and components that a
 All 6 plugins are installed with the Developer preset. See the main [Plugins reference](plugins.md) for full details.
 
 | Plugin | Description |
-|--------|-------------|
+| ------- | ----------- |
 | `oh-my-openagent` | Session management and advanced CLI commands |
 | `opencode-mem` | Long-term Rust RAG memory with hybrid search (BM25 + vectors) |
 | `@different-ai/opencode-browser` | Integration with a real web browser |
@@ -34,7 +34,7 @@ All 6 plugins are installed with the Developer preset. See the main [Plugins ref
 All 7 MCP servers are enabled with the Developer preset. See the main [MCP reference](mcp.md) for full details.
 
 | MCP | Description |
-|-----|-------------|
+| ----- | ----------- |
 | `fetch` | Fast web page text retrieval without loading a browser |
 | `puppeteer` | Browser automation: screenshots and clicking elements |
 | `postgres` | Integration with local gpt_chat_bot database |
