@@ -69,6 +69,7 @@ Command-line environments can be intimidating. However, they are incredibly powe
 - **Windows Context Menu:** Optionally adds "Open in OpenCode" to the folder right-click menu in File Explorer — launches WezTerm with OpenCode already running in the selected folder.
 - **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
 - **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md). ⚠️ **Important:** Without understanding how sessions and context work, you cannot work effectively with *any* AI assistant. This is a fundamental skill for getting actual results.
+- **Developer Preset:** Automatic gitui setup, dedicated WezTerm workspaces, and specialized hotkeys for git-aware AI coding. [See docs](docs/developer-tools.md).
 
 ---
 
@@ -231,7 +232,7 @@ The wizard includes three presets that control how many plugins and MCP servers 
 
 | Preset | Plugins | MCP Servers | Best For |
 | :--- | :--- | :--- | :--- |
-| **🍔 Developer** | All 6 plugins | All 7 MCPs | Full-featured AI coding environment |
+| **🍔 Developer** | All 6 plugins + [dev tools](docs/developer-tools.md) | All 7 MCPs | Full-featured AI coding environment |
 | **🥪 Standard** | Essential plugins | Core MCPs | Balanced — general use & writing |
 | **🥗 Minimal** | Minimal setup | Basic MCPs | Quickest — essential tools only |
 
@@ -296,7 +297,7 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
 - **Theme:** Catppuccin Mocha (elegant, high-contrast dark theme).
 - **Font:** JetBrainsMono Nerd Font Mono (full Unicode/Nerd Font icon coverage for terminals, no mojibake).
 - **Hotkeys:**
-  - `CTRL + SHIFT + O`: Split screen vertically and launch OpenCode with the free, fast `deepseek-v4-flash-free` model.
+  - `CTRL + SHIFT + O`: Split pane: gitui (left 40%), OpenCode starts automatically in the right pane.
   - `CTRL + SHIFT + D`: Split screen horizontally.
   - `CTRL + SHIFT + E`: Split screen vertically.
   - `CTRL + SHIFT + W`: Close the active split pane.
@@ -304,6 +305,8 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
   - `CTRL + Insert`: Copy selected text to clipboard (standard Windows).
   - `SHIFT + Insert`: Paste text from clipboard (standard Windows).
   - `CTRL + SHIFT + C`: Passthrough — sends the shortcut to the running app (useful inside OpenCode). Previously intercepted by WezTerm for Copy.
+
+> 🛠️ **Developer preset** adds `CTRL+SHIFT+G` (gitui + OpenCode split in new tab), `CTRL+SHIFT+O` (gitui + OpenCode split in current pane), and `CTRL+SHIFT+ALT+G` (gitui + OpenCode split in new workspace). [Full reference →](docs/developer-tools.md)
 
 ---
 

@@ -231,6 +231,13 @@ $Translations = @{
         "nerdfont_success" = "JetBrainsMono Nerd Font встановлено!"
         "nerdfont_failed" = "Не вдалося встановити JetBrainsMono Nerd Font"
         "dry_nerdfont" = "Завантажить та встановить JetBrainsMono Nerd Font"
+        "gitui_exists" = "Gitui вже встановлено:" 
+        "ask_gitui" = "Встановити Gitui (термінальний TUI для Git)?"
+        "skip_gitui" = "Пропуск встановлення Gitui."
+        "installing_gitui" = "Встановлення Gitui..."
+        "gitui_success" = "Gitui успішно встановлено!"
+        "gitui_manual" = "Будь ласка, встановіть Gitui вручну: https://github.com/extrawurst/gitui"
+        "dry_install_gitui" = "Встановить Gitui за допомогою"
     }
     "en" = @{
         "title" = "OPENCODE & WEZTERM SETUP WIZARD"
@@ -380,6 +387,13 @@ $Translations = @{
         "nerdfont_success" = "JetBrainsMono Nerd Font installed!"
         "nerdfont_failed" = "Failed to install JetBrainsMono Nerd Font"
         "dry_nerdfont" = "Would download and install JetBrainsMono Nerd Font"
+        "gitui_exists" = "Gitui is already installed:" 
+        "ask_gitui" = "Install Gitui (terminal TUI for Git)?"
+        "skip_gitui" = "Skipping Gitui installation."
+        "installing_gitui" = "Installing Gitui..."
+        "gitui_success" = "Gitui installed successfully!"
+        "gitui_manual" = "Please install Gitui manually: https://github.com/extrawurst/gitui"
+        "dry_install_gitui" = "Would install Gitui via"
     }
 }
 
@@ -861,6 +875,62 @@ function Install-DocsMcp {
     }
 }
 
+# Developer Tools
+
+function Show-DevToolInfo ($toolName) {
+    $confFile = Join-Path $PSScriptRoot "config\dev-tools.conf"
+    if (Test-Path $confFile) {
+        $line = Select-String "^tool:${toolName}:" $confFile | ForEach-Object { $_ -split ':', 3 }
+        if ($line -and $line[2]) {
+            Log-Info "🔧 $toolName — $($line[2])"
+        }
+    }
+}
+
+function Install-Gitui {
+    if (Get-Command gitui -ErrorAction SilentlyContinue) {
+        Log-Success "$(Get-Msg 'gitui_exists')"
+        return
+    }
+
+    if (-not (Ask-Confirm "$(Get-Msg 'ask_gitui')")) {
+        Log-Info "$(Get-Msg 'skip_gitui')"
+        return
+    }
+
+    Show-DevToolInfo "gitui"
+
+    if ($DryRun) {
+        Log-Dry "$(Get-Msg 'dry_install_gitui') winget/scoop/choco"
+        return
+    }
+
+    Log-Info "$(Get-Msg 'installing_gitui')"
+
+    # Try winget first, then scoop, then choco
+    $installed = $false
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        $result = winget install --id extrawurst.gitui --exact --silent --accept-package-agreements 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $installed = $true
+        }
+    }
+    if (-not $installed -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        scoop install gitui 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { $installed = $true }
+    }
+    if (-not $installed -and (Get-Command choco -ErrorAction SilentlyContinue)) {
+        choco install gitui -y 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { $installed = $true }
+    }
+
+    if ($installed -or (Get-Command gitui -ErrorAction SilentlyContinue)) {
+        Log-Success "$(Get-Msg 'gitui_success')"
+    } else {
+        Log-Warning "$(Get-Msg 'gitui_manual')"
+    }
+}
+
 # 2. NodeJS installation (with user consent)
 function Install-NodeJS {
     if (Get-Command npm -ErrorAction SilentlyContinue) {
@@ -1293,14 +1363,47 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = wezterm.action.SendKey { key = 'c', mods = 'CTRL|SHIFT' },
   },
-  -- Split pane vertically and launch OpenCode with deepseek-v4-flash-free
+  -- Gitui + OpenCode split in new tab (left: gitui 40%, right: opencode)
+  {
+    key = 'G',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SpawnCommandInNewTab {
+      args = { "sh", "-c",
+        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
+        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
+        .. "bash -l -c 'gitui' "
+        .. "&& opencode -m opencode/deepseek-v4-flash-free"
+      },
+    },
+  },
+  -- Gitui + OpenCode split (left: gitui 40%, right: opencode)
   {
     key = 'O',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SplitPane {
-      direction = 'Right',
-      size = { Percent = 40 },
-      command = { args = { 'opencode.cmd', '-m', 'opencode/deepseek-v4-flash-free' } },
+    action = wezterm.action_callback(function(window, pane)
+      window:perform_action(
+        wezterm.action.SplitPane {
+          direction = 'Left',
+          size = { Percent = 40 },
+          command = { args = { "sh", "-c", "root=$(git rev-parse --show-toplevel 2>/dev/null) && cd \"$root\" && gitui || echo 'Not in a git repository here - cd to a repo first'; sleep 3" } },
+        },
+        pane
+      )
+      pane:send_text("opencode -m opencode/deepseek-v4-flash-free\n")
+    end),
+  },
+  -- Gitui + OpenCode split in new workspace (left: gitui 40%, right: opencode)
+  {
+    key = 'G',
+    mods = 'CTRL|SHIFT|ALT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'git',
+      spawn = { args = { "sh", "-c",
+        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
+        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
+        .. "bash -l -c 'gitui' "
+        .. "&& opencode -m opencode/deepseek-v4-flash-free"
+      } },
     },
   },
   -- Standard splits
@@ -1554,6 +1657,8 @@ try {
     } elseif ($RemoveBackups) {
         Remove-Backups
     } else {
+        # Generate developer docs upfront if configs exist
+        & "$PSScriptRoot\scripts\generate-dev-docs.sh" 2>$null
         Select-Preset
         Set-OpenCodeExecutionPolicy
         Install-WezTerm
@@ -1562,7 +1667,11 @@ try {
         Install-Plugins
         Configure-OpenCode
         Install-NerdFont
+        if ($global:Preset -eq "developer") { Install-Gitui }
         Configure-WezTerm
+        if ($global:Preset -eq "developer") {
+            & "$PSScriptRoot\scripts\generate-dev-docs.sh"
+        }
         Configure-DefaultTerminal
         Write-Host "`n$Cyan$(Get-Msg 'shortcut_intro')$ResetColorColor`n"
         Create-DesktopShortcut

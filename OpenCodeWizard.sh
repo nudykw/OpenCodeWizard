@@ -374,17 +374,25 @@ msg() {
                 "list_backups_label") echo "бекапів" ;;
                 "list_size") echo "Розмір:" ;;
                 "select_preset_title") echo "Оберіть пресет конфігурації:" ;;
-                "preset_full") echo "1)🍔 Developer — все включено (рекомендовано)" ;;
-                "preset_medium") echo "2)🥪 Standard — основні плагіни + базові MCP" ;;
+                "preset_developer") echo "1)🍔 Developer — все включено (рекомендовано)" ;;
+                "preset_standard") echo "2)🥪 Standard — основні плагіни + базові MCP" ;;
                 "preset_light") echo "3)🥗 Light — мінімальне налаштування" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
+                "preset_tools_label") echo "Інструменти:" ;;
                 "preset_choice") echo "Вибір [1-3] (за замовчуванням: 1):" ;;
                 "nerdfont_exists") echo "JetBrainsMono Nerd Font вже встановлено." ;;
                 "installing_nerdfont") echo "Завантаження JetBrainsMono Nerd Font з GitHub..." ;;
                 "nerdfont_success") echo "JetBrainsMono Nerd Font встановлено!" ;;
                 "nerdfont_failed") echo "Не вдалося встановити JetBrainsMono Nerd Font" ;;
                 "dry_nerdfont") echo "Завантажить та встановить JetBrainsMono Nerd Font" ;;
+                "gitui_exists") echo "Gitui вже встановлено:" ;;
+                "ask_gitui") echo "Встановити Gitui (термінальний TUI для Git)?" ;;
+                "skip_gitui") echo "Пропуск встановлення Gitui." ;;
+                "installing_gitui") echo "Встановлення Gitui..." ;;
+                "gitui_success") echo "Gitui успішно встановлено!" ;;
+                "gitui_manual") echo "Будь ласка, встановіть Gitui вручну: https://github.com/extrawurst/gitui" ;;
+                "dry_install_gitui") echo "Встановить Gitui для" ;;
             esac
             ;;
         *) # default to "en"
@@ -577,17 +585,25 @@ msg() {
                 "list_backups_label") echo "backup(s)" ;;
                 "list_size") echo "Size:" ;;
                 "select_preset_title") echo "Select configuration preset:" ;;
-                "preset_full") echo "1)🍔 Developer — everything included (recommended)" ;;
-                "preset_medium") echo "2)🥪 Standard — essential plugins + core MCPs" ;;
+                "preset_developer") echo "1)🍔 Developer — everything included (recommended)" ;;
+                "preset_standard") echo "2)🥪 Standard — essential plugins + core MCPs" ;;
                 "preset_light") echo "3)🥗 Light — minimal setup" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
+                "preset_tools_label") echo "Tools:" ;;
                 "preset_choice") echo "Choice [1-3] (default: 1):" ;;
                 "nerdfont_exists") echo "JetBrainsMono Nerd Font already installed." ;;
                 "installing_nerdfont") echo "Downloading JetBrainsMono Nerd Font from GitHub..." ;;
                 "nerdfont_success") echo "JetBrainsMono Nerd Font installed!" ;;
                 "nerdfont_failed") echo "Failed to install JetBrainsMono Nerd Font" ;;
                 "dry_nerdfont") echo "Would download and install JetBrainsMono Nerd Font" ;;
+                "gitui_exists") echo "Gitui is already installed:" ;;
+                "ask_gitui") echo "Install Gitui (terminal TUI for Git)?" ;;
+                "skip_gitui") echo "Skipping Gitui installation." ;;
+                "installing_gitui") echo "Installing Gitui..." ;;
+                "gitui_success") echo "Gitui installed successfully!" ;;
+                "gitui_manual") echo "Please install Gitui manually: https://github.com/extrawurst/gitui" ;;
+                "dry_install_gitui") echo "Would install Gitui for" ;;
             esac
             ;;
     esac
@@ -631,15 +647,16 @@ select_preset() {
     echo -e "  ${BOLD}$(msg "preset_developer")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
     echo -e "     ${CYAN}$(msg "preset_plugins_label")${NC} oh-my-openagent, opencode-mem, @different-ai/opencode-browser, @tarquinen/opencode-smart-title, opencode-token-speed-plugin, opencode-codebase-index"
+    echo -e "     ${CYAN}$(msg "preset_tools_label")${NC} gitui — $(grep '^tool:gitui:' "$(dirname "$0")/config/dev-tools.conf" 2>/dev/null | cut -d: -f3- || echo "Git TUI with real-time monitoring")"
     echo -e "  ${BOLD}$(msg "preset_standard")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7, codegraph, docs-mcp"
     echo -e "  ${BOLD}$(msg "preset_light")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7"
     read -p "$(msg "preset_choice") " preset_choice
     case "$preset_choice" in
-        2) PRESET="medium" ;;
+        2) PRESET="standard" ;;
         3) PRESET="light" ;;
-        *) PRESET="full" ;;
+        *) PRESET="developer" ;;
     esac
     log_info "$(msg "preset_label") ${BOLD}${PRESET}${NC}"
     echo ""
@@ -1221,6 +1238,77 @@ install_docs_mcp() {
     fi
 }
 
+# ==============================================================================
+# Developer Tools
+# ==============================================================================
+
+# Read description from config/dev-tools.conf for a given tool name
+show_dev_tool_info() {
+    local tool_name="$1"
+    local conf_file="$(dirname "$0")/config/dev-tools.conf"
+    if [ -f "$conf_file" ]; then
+        local desc
+        desc=$(grep "^tool:${tool_name}:" "$conf_file" 2>/dev/null | cut -d: -f3-)
+        if [ -n "$desc" ]; then
+            log_info "🔧 $tool_name — $desc"
+        fi
+    fi
+}
+
+# Install Gitui (terminal TUI for Git)
+install_gitui() {
+    if command -v gitui &>/dev/null; then
+        log_success "$(msg "gitui_exists") $(gitui --version 2>/dev/null || true)"
+        return 0
+    fi
+
+    if ! ask_confirm "$(msg "ask_gitui")"; then
+        log_info "$(msg "skip_gitui")"
+        return 0
+    fi
+
+    show_dev_tool_info "gitui"
+
+    if is_dry_run; then
+        log_dry "$(msg "dry_install_gitui") $OS/$DISTRO"
+        return 0
+    fi
+
+    log_info "$(msg "installing_gitui")"
+    case "$OS" in
+        macos)
+            brew install gitui
+            ;;
+        linux)
+            case "$DISTRO" in
+                ubuntu)
+                    sudo apt install -y gitui
+                    ;;
+                redhat)
+                    sudo dnf install -y gitui
+                    ;;
+                arch)
+                    sudo pacman -S --noconfirm gitui
+                    ;;
+                *)
+                    log_warning "$(msg "gitui_manual")"
+                    return 1
+                    ;;
+            esac
+            ;;
+        *)
+            log_warning "$(msg "gitui_manual")"
+            return 1
+            ;;
+    esac
+
+    if command -v gitui &>/dev/null; then
+        log_success "$(msg "gitui_success")"
+    else
+        log_warning "$(msg "gitui_manual")"
+    fi
+}
+
 # Node.js / npm installation (with user consent)
 install_nodejs() {
     if command -v npm &>/dev/null; then
@@ -1654,7 +1742,7 @@ configure_wezterm() {
         create_backup
     fi
 
-    cat << EOF > "$wez_config"
+    cat << 'EOF' > "$wez_config"
 local wezterm = require 'wezterm'
 local config = {}
 
@@ -1678,14 +1766,47 @@ config.hide_tab_bar_if_only_one_tab = true
 
 -- Keybindings
 config.keys = {
-  -- Split pane vertically and launch OpenCode with deepseek-v4-flash-free
+  -- Gitui + OpenCode split in new tab (left: gitui 40%, right: opencode)
+  {
+    key = 'G',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action.SpawnCommandInNewTab {
+      args = { "sh", "-c",
+        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
+        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
+        .. "bash -l -c 'gitui' "
+        .. "&& opencode -m opencode/deepseek-v4-flash-free"
+      },
+    },
+  },
+  -- Gitui + OpenCode split (left: gitui 40%, right: opencode)
   {
     key = 'O',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SplitPane {
-      direction = 'Right',
-      size = { Percent = 40 },
-      command = { args = { "/usr/bin/opencode", "-m", "opencode/deepseek-v4-flash-free" } },
+    action = wezterm.action_callback(function(window, pane)
+      window:perform_action(
+        wezterm.action.SplitPane {
+          direction = 'Left',
+          size = { Percent = 40 },
+          command = { args = { "sh", "-c", "root=$(git rev-parse --show-toplevel 2>/dev/null) && cd \"$root\" && gitui || echo 'Not in a git repository here - cd to a repo first'; sleep 3" } },
+        },
+        pane
+      )
+      pane:send_text("opencode -m opencode/deepseek-v4-flash-free\n")
+    end),
+  },
+  -- Gitui + OpenCode split in new workspace (left: gitui 40%, right: opencode)
+  {
+    key = 'G',
+    mods = 'CTRL|SHIFT|ALT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'git',
+      spawn = { args = { "sh", "-c",
+        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
+        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
+        .. "bash -l -c 'gitui' "
+        .. "&& opencode -m opencode/deepseek-v4-flash-free"
+      } },
     },
   },
   -- Standard splits
@@ -1969,6 +2090,7 @@ main() {
             fi
             ;;
         setup)
+            bash "$(dirname "$0")/scripts/generate-dev-docs.sh" 2>/dev/null || true
             select_language
             show_onboarding
             detect_os
@@ -1979,7 +2101,9 @@ main() {
             install_plugins
             configure_opencode
             install_nerd_font
+            [[ "$PRESET" == "developer" ]] && install_gitui
             configure_wezterm
+            [[ "$PRESET" == "developer" ]] && bash "$(dirname "$0")/scripts/generate-dev-docs.sh"
             configure_default_terminal
             create_desktop_shortcut
             verify_setup
