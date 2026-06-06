@@ -1172,8 +1172,15 @@ install_go() {
 # Install docs-mcp (go-docs-mcp) via Go
 # ==============================================================================
 install_docs_mcp() {
-    # Check both PATH and the default Go bin location
-    if command -v go-docs-mcp &>/dev/null || [ -f "$HOME/go/bin/go-docs-mcp" ]; then
+    # Resolve Go binary path dynamically (respects custom GOPATH)
+    local go_mcp_path=""
+    if command -v go &>/dev/null; then
+        go_mcp_path="$(go env GOPATH)/bin/go-docs-mcp"
+    else
+        go_mcp_path="$HOME/go/bin/go-docs-mcp"
+    fi
+
+    if command -v go-docs-mcp &>/dev/null || [ -f "$go_mcp_path" ]; then
         log_success "$(msg "gomcp_already_installed")"
         return 0
     fi
@@ -1191,10 +1198,12 @@ install_docs_mcp() {
     log_info "$(msg "gomcp_installing")"
     go install github.com/drolosoft/go-docs-mcp@v1.1.0
 
-    # Ensure ~/go/bin is in PATH for this session
-    export PATH="$HOME/go/bin:$PATH"
+    # Resolve path again (GOPATH may have changed after install)
+    go_mcp_path="$(go env GOPATH)/bin/go-docs-mcp"
+    PATH="$(go env GOPATH)/bin:$PATH"
+    export PATH
 
-    if command -v go-docs-mcp &>/dev/null; then
+    if [ -f "$go_mcp_path" ] && command -v go-docs-mcp &>/dev/null; then
         log_success "$(msg "gomcp_installed") $(go-docs-mcp --version 2>/dev/null || echo 'present')"
     else
         log_error "$(msg "gomcp_failed")"
@@ -1585,6 +1594,12 @@ configure_opencode() {
             if [ "$mcp_name" = "docs-mcp" ]; then
                 install_go
                 install_docs_mcp || true
+                # Use absolute path so OpenCode finds the binary regardless of $PATH
+                if command -v go &>/dev/null; then
+                    mcp_cmd="$(go env GOPATH)/bin/go-docs-mcp"
+                else
+                    mcp_cmd="$HOME/go/bin/go-docs-mcp"
+                fi
             fi
 
             local json_arr

@@ -853,6 +853,8 @@ function Install-Go {
 }
 
 function Install-DocsMcp {
+    # Check by absolute path first (go env GOPATH), fallback to PATH lookup
+    $goBin = if (Get-Command go -ErrorAction SilentlyContinue) { &go env GOPATH } else { "$env:USERPROFILE\go" }
     if (Get-Command go-docs-mcp -ErrorAction SilentlyContinue) {
         Log-Success "$(Get-Msg 'gomcp_already_installed')"
         return
@@ -871,9 +873,10 @@ function Install-DocsMcp {
     Log-Info "$(Get-Msg 'gomcp_installing')"
     go install github.com/drolosoft/go-docs-mcp@v1.1.0
 
-    $goBin = "$env:USERPROFILE\go\bin"
-    if (Test-Path "$goBin\go-docs-mcp.exe") {
-        $env:Path = "$goBin;$env:Path"
+    $goBin = if (Get-Command go -ErrorAction SilentlyContinue) { &go env GOPATH } else { "$env:USERPROFILE\go" }
+    $goMcpExe = "$goBin\bin\go-docs-mcp.exe"
+    if (Test-Path $goMcpExe) {
+        $env:Path = "$goBin\bin;$env:Path"
         Log-Success "$(Get-Msg 'gomcp_installed')"
     } else {
         Log-Error "$(Get-Msg 'gomcp_failed')"
@@ -1251,6 +1254,19 @@ This file provides the OpenCode AI assistant with details about the current oper
             # On Windows, node scripts from npx usually run through cmd
             # We will use 'npx.cmd' instead of 'npx' for reliability, but the list uses 'npx'
             $mcpCmdStr = $mcpCmd -replace "^npx ", "npx.cmd "
+
+            # docs-mcp: install and use absolute path (independent of $PATH)
+            if ($mcpName -eq "docs-mcp") {
+                Install-Go
+                Install-DocsMcp
+                if (Get-Command go -ErrorAction SilentlyContinue) {
+                    $goPath = &go env GOPATH
+                    $mcpCmdStr = "$goPath\bin\go-docs-mcp.exe"
+                } else {
+                    $mcpCmdStr = "$env:USERPROFILE\go\bin\go-docs-mcp.exe"
+                }
+            }
+
             $jsonArr = Args-ToJsonArray -ArgsStr $mcpCmdStr
             if (-not $firstMcp) { $mcpJson += "," }
             $mcpJson += "`n    `"$mcpName`": {`n      `"type`": `"local`",`n      `"command`": $jsonArr,`n      `"enabled`": true`n    }"
@@ -1296,12 +1312,6 @@ $pluginJson
 
     [System.IO.File]::WriteAllText($configFile, $jsoncContent, [System.Text.UTF8Encoding]::new($false))
     Log-Success "$(Get-Msg 'opencode_config_updated') $configFile"
-
-    # Install Go + go-docs-mcp if docs-mcp is in current preset
-    if (Is-InPreset "docs-mcp" $presetMcps) {
-        Install-Go
-        Install-DocsMcp
-    }
 }
 
 # 6. WezTerm config
