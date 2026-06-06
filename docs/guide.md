@@ -7,6 +7,7 @@ Welcome! If you are new to the command line or using local AI assistants, this g
 ---
 
 ## 📋 Table of Contents
+
 - [1. Cloning the Repository](#1-cloning-the-repository)
 - [2. Running the Setup Wizard](#2-running-the-setup-wizard)
 - [3. Launching WezTerm & OpenCode](#3-launching-wezterm--opencode)
@@ -40,18 +41,24 @@ cd OpenCodeWizard
 ## 2. Running the Setup Wizard
 
 ### Linux & macOS:
+
 1. Make the script executable:
+
    ```bash
    chmod +x OpenCodeWizard.sh
    ```
+
 2. Run the script:
+
    ```bash
    ./OpenCodeWizard.sh
    ```
 
 ### Windows 11:
+
 1. Open PowerShell **as Administrator**.
 2. Run the script:
+
    ```powershell
    Set-ExecutionPolicy Bypass -Scope Process -Force
    .\OpenCodeWizard.ps1
@@ -86,6 +93,7 @@ OpenCode works with the **current directory** — it can see and access all file
 | Any file manager | Navigate to the folder, then press `` Ctrl+` `` (backtick) to toggle the built-in terminal panel (if available) |
 
 > **Tip:** If "Open in Terminal" doesn't appear, you may need to install the terminal plugin for your file manager:
+>
 > ```bash
 > # For Nautilus (Ubuntu/Debian)
 > sudo apt install nautilus-extension-gnome-terminal
@@ -109,13 +117,14 @@ OpenCode works with the **current directory** — it can see and access all file
 2. **Right-click** the folder (or Ctrl+Click)
 3. Go to **Services** → **New Terminal at Folder**
 4. This opens the default terminal (Terminal.app or iTerm2). If you want WezTerm, install the [WezTerm CLI](https://wezfurlong.org/wezterm/install.html) and run:
+
    ```bash
    # From any terminal, open WezTerm in the current directory
    wezterm start
    ```
 
 > **Tip:** To add WezTerm to Finder's toolbar, drag `/Applications/WezTerm.app` onto the toolbar while holding `Cmd`.
-
+>
 > **💡 Windows Context Menu:** If you installed the context menu during setup, right-click any folder → **"Open in OpenCode"** to launch WezTerm+OpenCode in that folder. On **Windows 11**, press **`Shift + F10`** or select **"Show more options"**. Full reference: [Windows-Specific Features](../README.md#-windows-specific-features).
 
 ---
@@ -123,11 +132,13 @@ OpenCode works with the **current directory** — it can see and access all file
 ## 4. Choosing an AI Model
 
 By default, the `CTRL + SHIFT + O` shortcut launches OpenCode using a free model:
+
 ```bash
 opencode -m opencode/deepseek-v4-flash-free
 ```
 
 If you wish to use other models (like Claude 3.5 Sonnet or GPT-4o), you can switch models inside the chat:
+
 1. Type `/models` to view all available models.
 2. Type `/model provider/model-name` to change model (e.g., `/model openrouter/anthropic/claude-3.5-sonnet`).
 
@@ -150,21 +161,22 @@ If you wish to use other models (like Claude 3.5 Sonnet or GPT-4o), you can swit
 > **No context = guessing. Context = knowing. MCP = seeing for myself.**
 >
 > ---
-
+>
 > **💡 Put Yourself in the AI's Shoes**
-> 
+>
 > Think the AI is being slow or making things up? Let’s put you in the exact same spot, working without proper context.
-> 
-> **Task:** Quickly answer the following question: 
+>
+> **Task:** Quickly answer the following question:
 > *"How much is 5 + ... = ?"*
-> 
+>
 > **Your reaction:** You probably felt confused or annoyed. Why?
+>
 > 1. You don't know what number goes in the blank.
 > 2. You don't know the expected result (Is it 10? Is it 50?).
 > 3. You are missing the "context" of the task.
-> 
+>
 > **Conclusion:** You aren't "slow"—you simply can't answer accurately because you only have a fragment of the data. This is exactly what happens with an AI: when you ask it to "fix this code" or "summarize this document" without providing file access or explaining the goal, it *has* to guess.
-> 
+>
 > **Give the AI context, and it will stop guessing.**
 
 ---
@@ -186,6 +198,7 @@ OpenCode automatically has access to **all files in the folder where you launche
 > **In short:** The folder you open the terminal in = the folder OpenCode can see. If your documents are in `~/Documents/Reports/`, open the terminal there.
 
 ### Interacting with files
+
 - You can say:
   - *"Read the file `src/App.js` and explain what it does."*
   - *"Help me add a new endpoint to `routes/users.js`."*
@@ -196,6 +209,7 @@ OpenCode automatically has access to **all files in the folder where you launche
   - *"Compare the CSV files in this folder and tell me what changed."*
 
 ### Using Plugins
+
 - **`opencode-mem`** lets OpenCode remember details across different chat sessions.
 - **`opencode-token-speed-plugin`** prints the speed of output generation in tokens per second in real-time.
 
@@ -204,11 +218,13 @@ OpenCode automatically has access to **all files in the folder where you launche
 [Read the detailed guide about available MCP servers](mcp.md) to understand which tools are available and why you should use them selectively to maintain context quality.
 
 ### Working with Screenshots
+
 OpenCode has integrated browser support through the `puppeteer` MCP server or `@different-ai/opencode-browser` plugin.
-1. **Taking a Screenshot**: Simply ask: *"Take a screenshot of https://github.com"* or *"Render the UI of http://localhost:3000 and show it to me"*.
+
+1. **Taking a Screenshot**: Simply ask: *"Take a screenshot of <https://github.com>"* or *"Render the UI of <http://localhost:3000> and show it to me"*.
 2. **Visual Verification**: The AI agent will launch a headless browser, navigate to the target address, take a screenshot, and analyze the image content to assist you.
 3. **Inline Terminal Rendering**: Thanks to WezTerm, any screenshots captured by OpenCode will be rendered directly inside the terminal window inline, allowing you to see exactly what the AI sees without opening an external image viewer.
-4. **Pasting Screenshots from Clipboard (⚠️ Not a regular paste)**: 
+4. **Pasting Screenshots from Clipboard (⚠️ Not a regular paste)**:
    - **⚠️ This is NOT a standard `CTRL+V` paste.** `CTRL+SHIFT+I` is an **unconventional clipboard** mechanism built into the WezTerm config — it saves the clipboard image to a file on disk (`~/Pictures/opencode_screenshots/`) and types the `@/path/to/image.png` reference so OpenCode can read it via `docs-mcp`.
    - Take a screenshot using your system shortcut (e.g., `PrintScreen`, `Win+Shift+S`, or `Cmd+Shift+4` on macOS) to copy it to your clipboard.
    - Click inside the active OpenCode chat pane in WezTerm and press **`CTRL + SHIFT + I`**.
@@ -219,7 +235,7 @@ OpenCode has integrated browser support through the `puppeteer` MCP server or `@
 
 ## 6. Customizing Plugins & MCP Servers
 
-You can easily modify which plugins and MCP servers are installed by the wizard without any programming knowledge. 
+You can easily modify which plugins and MCP servers are installed by the wizard without any programming knowledge.
 
 Open `OpenCodeWizard.sh` (or `OpenCodeWizard.ps1` on Windows) in a text editor and look for the arrays at the very top of the script:
 

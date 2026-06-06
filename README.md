@@ -2,7 +2,7 @@
 
 *Read this in other languages: [Українська (README.uk.md)](README.uk.md)*
 
-A cross-platform, idempotent, and highly customizable setup wizard to configure **OpenCode** (a local AI coding assistant) and **WezTerm** (a high-performance, GPU-accelerated terminal emulator written in Rust). 
+A cross-platform, idempotent, and highly customizable setup wizard to configure **OpenCode** (a local AI coding assistant) and **WezTerm** (a high-performance, GPU-accelerated terminal emulator written in Rust).
 
 This tool is designed to help **both programmers and non-programmers** set up a state-of-the-art AI-assisted command-line environment without any hassle.
 
@@ -115,6 +115,7 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
 | **Images** (PNG, JPG, TIFF, BMP) | Screenshots, diagrams, photos of text | ✅ OCR text extraction |
 
 **Can't find your format?** The MCP ecosystem is extensible. With additional MCP servers, you can add support for:
+
 - **EPUB** (ebooks), **ODT** (LibreOffice), **RTF** (rich text)
 - **XLSX** (Excel), **PPTX** (PowerPoint)
 - **HTML** (web pages), **XML** (structured data)
@@ -131,26 +132,33 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
 ### Linux & macOS
 
 1. Open your terminal and clone the repository:
+
    ```bash
    git clone https://github.com/nudykw/OpenCodeWizard.git
    cd OpenCodeWizard
    ```
+
 2. Make the script executable and run:
+
    ```bash
    chmod +x OpenCodeWizard.sh
    ./OpenCodeWizard.sh
    ```
+
 3. Follow the friendly interactive prompt (defaults are preselected—just press `Enter` to proceed).
 
 ### Windows 11
 
 1. Open PowerShell **as Administrator**.
 2. Clone the repository and navigate into it:
+
    ```powershell
    git clone https://github.com/nudykw/OpenCodeWizard.git
    cd OpenCodeWizard
    ```
+
 3. Execute the script:
+
    ```powershell
    Set-ExecutionPolicy Bypass -Scope Process -Force
    .\OpenCodeWizard.ps1
@@ -213,7 +221,7 @@ OpenCode is installed as `opencode.ps1`, which requires PowerShell's execution p
 | Command | Description |
 | :--- | :--- |
 | `./OpenCodeWizard.sh` | Run the interactive setup wizard |
-| `./OpenCodeWizard.sh --silent [preset]` | Automated setup with optional preset (developer|standard|minimal) |
+| `./OpenCodeWizard.sh --silent [preset]` | Automated setup with optional preset (developer\|standard\|minimal) |
 | `./OpenCodeWizard.sh --dry-run` | Preview all changes without applying anything |
 | `./OpenCodeWizard.sh --create-backup` | Save a snapshot of current config files |
 | `./OpenCodeWizard.sh --restore-backup` | Interactively restore a previous snapshot |
@@ -249,17 +257,19 @@ These files use a simple pipe-separated format (`|`) and are shared by both the 
 
 **To add or disable a plugin or MCP server:**
 
-1.  Open the corresponding configuration file.
-2.  **To disable:** Add a `#` at the beginning of the line to comment it out.
-3.  **To enable/add:** Uncomment the line or add a new one following the format.
+1. Open the corresponding configuration file.
+2. **To disable:** Add a `#` at the beginning of the line to comment it out.
+3. **To enable/add:** Uncomment the line or add a new one following the format.
 
 ### Plugin Format (`plugins.conf`):
+
 ```text
 # name|Description
 my-cool-plugin|What this plugin does
 ```
 
 ### MCP Format (`mcp.conf`):
+
 ```text
 # name|Description|Command
 my-mcp|Local tool description|npx -y package-name [args]
@@ -290,10 +300,10 @@ Every time the wizard modifies a config file, it creates a **transactional backu
 
 Restoration is **transactional**: all files are restored together or none at all. A silent pre-restore backup is created automatically before any restore operation.
 
-
 ## WezTerm Customizations
 
 The script sets up a premium terminal layout using the `wezterm.lua` file:
+
 - **Theme:** Catppuccin Mocha (elegant, high-contrast dark theme).
 - **Font:** JetBrainsMono Nerd Font Mono (full Unicode/Nerd Font icon coverage for terminals, no mojibake).
 - **Hotkeys:**
@@ -313,7 +323,9 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
 ## Setting WezTerm as the Default Terminal
 
 ### Linux:
+
 The script automatically handles default registration using three methods:
+
 1. Registers via **`update-alternatives`** (`x-terminal-emulator`).
 2. Configures modern Freedesktop **`xdg-terminals.list`** layouts.
 3. Appends `export TERMINAL=wezterm` and `export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` to `~/.bashrc` / `~/.zshrc` without duplicate lines.
@@ -321,12 +333,15 @@ The script automatically handles default registration using three methods:
 > `OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true` fixes Tab switching behaviour — Tab changes only the agent mode (Agent/Edit/Search), not the AI model.
 
 ### Windows 11:
+
 Instructions are shown at the end of the PowerShell wizard:
+
 1. Open Windows Terminal (or Settings -> System -> For Developers).
 2. Go to the **Startup** section.
 3. Change the **Default terminal application** to **WezTerm**.
 
 ### macOS:
+
 1. Open Finder -> Applications -> Utilities -> Terminal.app.
 2. Go to Preferences -> General -> Shells open with.
 3. Set it to the **Default Login Shell**.
@@ -376,6 +391,7 @@ Distributed under the **MIT License with Ethical Peace Protest Clause**.
 > [!IMPORTANT]
 > **Ethical Peace Protest Clause (Section 3)**:
 > In memory of the lessons of WWII, and as a peaceful humanitarian protest against the unprovoked military aggression, violence, and invasion of Ukraine by the Russian Federation:
+>
 > 1. This software, its components, or derivatives **MUST NOT be translated or localized into the Russian language** in any UI, resources, or documentation.
 > 2. Any deployment **MUST NOT present a Russian language user interface**.
 > 3. These restrictions will be automatically repealed upon the complete cessation of military activities, full withdrawal of occupation forces from all internationally recognized territories of Ukraine (borders of 1991), and payment of war reparations.

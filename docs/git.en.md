@@ -4,9 +4,9 @@ Imagine you are working on an important document, book, or project. Usually, we 
 
 **Git** is your personal "time machine" and "archivist" for any files.
 
-*   **Up-to-date without fear:** Git remembers every change. If you accidentally delete a paragraph or ruin a file, you can "rewind" its state at any moment to when everything was working perfectly.
-*   **Revision history:** You can always see **who, when, and what exactly** was changed. No more guessing: "Where did this error come from?" or "Who fixed this?"
-*   **Managing via communication:** You don't need to learn complex Git commands. You simply write in the chat:
+* **Up-to-date without fear:** Git remembers every change. If you accidentally delete a paragraph or ruin a file, you can "rewind" its state at any moment to when everything was working perfectly.
+* **Revision history:** You can always see **who, when, and what exactly** was changed. No more guessing: "Where did this error come from?" or "Who fixed this?"
+* **Managing via communication:** You don't need to learn complex Git commands. You simply write in the chat:
 
 > *"commit my changes"*, *"fix my current work"*, *"push everything to the server"*, or *"send my files to GitHub"*.
 
@@ -14,7 +14,7 @@ OpenCode will perform all technical operations within Git for you.
 
 ---
 
-### Working with documents and tools
+## Working with documents and tools
 
 OpenCode can edit many types of documents, but for complex tasks, it uses specialized instruments:
 
@@ -38,8 +38,9 @@ It's a command to "send everything from my local machine to the cloud server." W
 your work becomes accessible and secure in the cloud. It is your [backup](https://en.wikipedia.org/wiki/Backup).
 
 **Private vs. Public Repository:**
-*   **Private repository:** Your personal safe. Only you and those you give a key to can see it. Ideal for personal documents or work projects with confidential information.
-*   **Public repository:** A showcase. Your project is open to the whole world. Anyone can view it or learn from it.
+
+* **Private repository:** Your personal safe. Only you and those you give a key to can see it. Ideal for personal documents or work projects with confidential information.
+* **Public repository:** A showcase. Your project is open to the whole world. Anyone can view it or learn from it.
 
 **GitHub CLI ([gh](https://cli.github.com/)):**
 This is a special "remote control" from GitHub developers. It allows you to communicate with the server directly. You just ask in the chat: *"create a repository on GitHub"* or *"create a private repository on GitHub"*, and everything is done in a second without needing to open a browser.
@@ -51,8 +52,9 @@ This is a special "remote control" from GitHub developers. It allows you to comm
 You can work on the same project from a laptop, a desktop PC, or another device.
 
 **How it works through communication:**
-1.  **On one computer:** You write in the chat: *"fix my changes and push them"*.
-2.  **On another computer:** You sit down, open the chat, and write: *"pull the latest changes from the cloud"*.
+
+1. **On one computer:** You write in the chat: *"fix my changes and push them"*.
+2. **On another computer:** You sit down, open the chat, and write: *"pull the latest changes from the cloud"*.
 
 **Synchronizing OpenCode settings:**
 You can also synchronize your OpenCode environment settings between different computers. Just ask:
