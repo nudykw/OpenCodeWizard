@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Pre-commit hook: regenerate developer docs from config files if they changed.
+# Pre-commit hook: regenerate developer docs, run shellcheck + markdownlint.
 # ==============================================================================
 set -euo pipefail
 
@@ -29,6 +29,24 @@ if [ -n "$SH_FILES" ]; then
         echo "Shellcheck: no issues found"
     else
         echo "[WARN] shellcheck not installed — skipping lint"
+    fi
+fi
+
+# Run markdownlint on staged .md files (especially auto-generated docs)
+MD_FILES=$(echo "$CHANGED" | grep -E '\.md$' | tr '\n' ' ')
+if [ -n "$MD_FILES" ]; then
+    if command -v markdownlint-cli2 &>/dev/null; then
+        echo ">>> Running markdownlint on staged markdown files <<<"
+        cd "$SCRIPT_DIR"
+        if ! markdownlint-cli2 $MD_FILES; then
+            echo ""
+            echo "[FAIL] Markdownlint reported errors. Fix before commit."
+            echo "To skip (not recommended): git commit --no-verify"
+            exit 1
+        fi
+        echo "Markdownlint: no issues found"
+    else
+        echo "[WARN] markdownlint-cli2 not installed — skipping lint"
     fi
 fi
 
