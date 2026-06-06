@@ -81,15 +81,15 @@ jobs:
           ./tests/run_tests.sh powershell
 
   test-macos:
-    name: Test macOS (dry-run)
+    name: Test macOS
     runs-on: macos-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
-      - name: Run dry-run on macOS
+      - name: Run setup on macOS
         run: |
           chmod +x OpenCodeWizard.sh
-          ./OpenCodeWizard.sh --silent --dry-run
+          ./OpenCodeWizard.sh --silent
 
   test-windows:
     name: Test Windows (dry-run)

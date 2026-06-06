@@ -1110,7 +1110,7 @@ install_nerd_font() {
 install_go() {
     if command -v go &>/dev/null; then
         local go_ver
-        go_ver=$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')
+        go_ver=$(go version | awk '{v=substr($3,3); sub(/\.[0-9]+$/,"",v); print v}')
         if command -v bc &>/dev/null && [ "$(echo "$go_ver >= 1.22" | bc 2>/dev/null)" = "1" ] || [ "${go_ver%%.*}" -ge 1 ] && [ "${go_ver#*.}" -ge 22 ] 2>/dev/null; then
             log_success "$(msg "go_already_installed") ${go_ver}"
             return 0
@@ -1165,7 +1165,7 @@ install_go() {
         log_error "$(msg "go_install_path_failed")"
         return 1
     fi
-    log_success "$(msg "go_installed_version") $(go version | grep -oP 'go\K[0-9.]+')"
+    log_success "$(msg "go_installed_version") $(go version | awk '{print substr($3,3)}')"
 }
 
 # ==============================================================================

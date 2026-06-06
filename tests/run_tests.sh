@@ -30,11 +30,11 @@ run_linux_test() {
     echo ">>> Testing Linux ($distro) with preset: $preset"
     docker run --rm -v "$(pwd):/app" "$distro" bash -c "
         if command -v apt-get &>/dev/null; then
-            apt-get update && apt-get install -y sudo git nodejs npm curl
+            apt-get update && apt-get install -y sudo git nodejs npm curl unzip
         elif command -v dnf &>/dev/null; then
-            dnf install -y sudo git nodejs npm curl
+            dnf install -y sudo git nodejs npm curl unzip
         elif command -v pacman &>/dev/null; then
-            pacman -Sy --noconfirm sudo git nodejs npm curl
+            pacman -Sy --noconfirm sudo git nodejs npm curl unzip
         fi
         cd /app
         chmod +x OpenCodeWizard.sh tests/verify_install.sh
