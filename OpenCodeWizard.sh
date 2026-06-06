@@ -1902,3 +1902,12 @@ main() {
 }
 
 main
+msg() {
+  local line=$(grep "^$1=" messages.conf)
+  local text=${line#*=}
+  if [ "$LANG_CODE" == "uk" ]; then
+    echo "${text#*|}"
+  else
+    echo "${text%%|*}"
+  fi
+}

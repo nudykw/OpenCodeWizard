@@ -1,0 +1,5 @@
+FROM mcr.microsoft.com/powershell:latest
+WORKDIR /app
+COPY . .
+# Запускаем тест из корня проекта
+ENTRYPOINT ["pwsh", "-Command", "& {./OpenCodeWizard.ps1 -Silent -DryRun}"]

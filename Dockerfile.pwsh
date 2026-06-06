@@ -1,0 +1,5 @@
+FROM mcr.microsoft.com/powershell:latest
+WORKDIR /app
+COPY . .
+# Простой тест запуска скрипта
+ENTRYPOINT ["pwsh", "-Command", "& {./OpenCodeWizard.ps1 -Silent -DryRun}"]
