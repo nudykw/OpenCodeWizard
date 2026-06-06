@@ -106,23 +106,27 @@ fi
 # 6. Verify Desktop shortcut
 log_info "Verifying desktop shortcut..."
 desktop_file="$HOME/Desktop/OpenCode.desktop"
-if [ -f "$desktop_file" ]; then
-    log_success "✔ Desktop shortcut created at $desktop_file"
-    if [ -x "$desktop_file" ]; then
-        log_success "✔ Desktop shortcut is executable"
+if [ -d "$HOME/Desktop" ]; then
+    if [ -f "$desktop_file" ]; then
+        log_success "✔ Desktop shortcut created at $desktop_file"
+        if [ -x "$desktop_file" ]; then
+            log_success "✔ Desktop shortcut is executable"
+        else
+            log_error "✘ Desktop shortcut is NOT executable!"
+            ((errors++))
+        fi
+        if grep -q "Exec=wezterm start --" "$desktop_file" && grep -q "opencode" "$desktop_file"; then
+            log_success "✔ Desktop shortcut Exec target is correct"
+        else
+            log_error "✘ Desktop shortcut Exec target is incorrect!"
+            ((errors++))
+        fi
     else
-        log_error "✘ Desktop shortcut is NOT executable!"
-        ((errors++))
-    fi
-    if grep -q "Exec=wezterm start --" "$desktop_file" && grep -q "opencode" "$desktop_file"; then
-        log_success "✔ Desktop shortcut Exec target is correct"
-    else
-        log_error "✘ Desktop shortcut Exec target is incorrect!"
+        log_error "✘ Desktop shortcut was NOT created!"
         ((errors++))
     fi
 else
-    log_error "✘ Desktop shortcut was NOT created!"
-    ((errors++))
+    log_info "No Desktop directory found (headless environment), skipping shortcut check."
 fi
 
 # 7. Verify OpenCode Query Execution

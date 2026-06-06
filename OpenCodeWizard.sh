@@ -1592,7 +1592,7 @@ configure_opencode() {
 
         if [ "$should_enable" = true ]; then
             if [ "$mcp_name" = "docs-mcp" ]; then
-                install_go
+                install_go || true
                 install_docs_mcp || true
                 # Use absolute path so OpenCode finds the binary regardless of $PATH
                 if command -v go &>/dev/null; then
@@ -2080,10 +2080,10 @@ main() {
             install_opencode
             install_plugins
             configure_opencode
-            install_nerd_font
-            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && install_gitui
+            install_nerd_font || true
+            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && install_gitui || true
             configure_wezterm
-            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && bash "$(dirname "$0")/scripts/generate-dev-docs.sh"
+            [[ "$PRESET" == "$PRESET_DEVELOPER" ]] && bash "$(dirname "$0")/scripts/generate-dev-docs.sh" 2>/dev/null || true
             configure_default_terminal
             create_desktop_shortcut
             verify_setup
