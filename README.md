@@ -96,9 +96,9 @@ During the wizard, you can install the following plugins:
 | **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
 | **`DepsCian/opencode-codebase-index`** | Codebase RAG indexing with semantic search, file watching, and auto re-index on changes. |
 
-### [Model Context Protocol (MCP) Servers](docs/mcp/mcp.md)
+### [Model Context Protocol (MCP) Servers](docs/mcp.md)
 
-MCP servers extend the AI's capabilities to interact with local APIs and tools. [Read more about available MCP servers](docs/mcp/mcp.md).
+MCP servers extend the AI's capabilities to interact with local APIs and tools. [Read more about available MCP servers](docs/mcp.md).
 
 ### Supported Document Formats
 

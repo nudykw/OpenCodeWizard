@@ -17,7 +17,7 @@ Welcome! If you are new to the command line or using local AI assistants, this g
   - [Working Directory and File Access](#working-directory-and-file-access)
   - [Interacting with files](#interacting-with-files)
   - [Using Plugins](#using-plugins)
-  - [Working with MCP Servers](mcp/mcp.md)
+  - [Working with MCP Servers](mcp.md)
 - [6. Customizing Plugins & MCP Servers](#6-customizing-plugins--mcp-servers)
 - [7. Backups and Restore](#7-backups-and-restore)
 
@@ -201,7 +201,7 @@ OpenCode automatically has access to **all files in the folder where you launche
 
 ### Working with MCP Servers
 
-[Read the detailed guide about available MCP servers](mcp/mcp.md) to understand which tools are available and why you should use them selectively to maintain context quality.
+[Read the detailed guide about available MCP servers](mcp.md) to understand which tools are available and why you should use them selectively to maintain context quality.
 
 ### Working with Screenshots
 OpenCode has integrated browser support through the `puppeteer` MCP server or `@different-ai/opencode-browser` plugin.
