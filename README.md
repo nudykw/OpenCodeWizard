@@ -96,19 +96,9 @@ During the wizard, you can install the following plugins:
 | **`opencode-token-speed-plugin`** | Displays real-time model speed (Tokens Per Second, TPS) during streaming. |
 | **`DepsCian/opencode-codebase-index`** | Codebase RAG indexing with semantic search, file watching, and auto re-index on changes. |
 
-### Model Context Protocol (MCP) Servers
+### [Model Context Protocol (MCP) Servers](docs/mcp/mcp.md)
 
-MCP servers extend the AI's capabilities to interact with local APIs and tools:
-
-| MCP Server | Description |
-| :--- | :--- |
-| **`fetch`** | Instantly downloads and parses the text content of web URLs without loading a GUI. |
-| **`puppeteer`** | Full browser automation, allowing the agent to click buttons, fill forms, and take screenshots. |
-| **`postgres`** | Direct, secure connection to local databases (pre-configured for the `gpt_chat_bot` database). |
-| **`context7`** | Up-to-date library documentation and code examples. |
-| **`codegraph`** | AST-level code graph: semantic search, call chain analysis, impact analysis. |
-| **`docs-mcp`** | Multi-format document reader: PDF, DOCX, MD, CSV, OCR (via `go-docs-mcp`). |
-| **`lsp-mcp`** | Code intelligence: definitions, references, diagnostics via LSP protocol. |
+MCP servers extend the AI's capabilities to interact with local APIs and tools. [Read more about available MCP servers](docs/mcp/mcp.md).
 
 ### Supported Document Formats
 
