@@ -49,11 +49,11 @@ config_file="$HOME/.config/opencode/opencode.jsonc"
 if [ -f "$config_file" ]; then
     log_success "OpenCode config file exists at $config_file"
     
-    # Check for the correct plugin name (allowing auto-migrated name from CLI)
-    if grep -q -E "oh-my-opencode|oh-my-openagent" "$config_file"; then
-        log_success "✔ Config contains 'oh-my-opencode' (or auto-migrated 'oh-my-openagent')"
+    # Check for the correct plugin name (searching within the "plugin" array context)
+    if grep -q "\"oh-my-openagent\"" "$config_file" || grep -q "\"oh-my-opencode\"" "$config_file"; then
+        log_success "✔ Config contains 'oh-my-openagent' or 'oh-my-opencode'"
     else
-        log_error "✘ Config is missing 'oh-my-opencode'/'oh-my-openagent' plugin entry!"
+        log_error "✘ Config is missing 'oh-my-openagent' or 'oh-my-opencode' plugin entry!"
         ((errors++))
     fi
     

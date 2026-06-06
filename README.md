@@ -212,7 +212,7 @@ OpenCode is installed as `opencode.ps1`, which requires PowerShell's execution p
 | Command | Description |
 | :--- | :--- |
 | `./OpenCodeWizard.sh` | Run the interactive setup wizard |
-| `./OpenCodeWizard.sh --silent` | Automated setup with all defaults |
+| `./OpenCodeWizard.sh --silent [preset]` | Automated setup with optional preset (developer|standard|minimal) |
 | `./OpenCodeWizard.sh --dry-run` | Preview all changes without applying anything |
 | `./OpenCodeWizard.sh --create-backup` | Save a snapshot of current config files |
 | `./OpenCodeWizard.sh --restore-backup` | Interactively restore a previous snapshot |
@@ -239,39 +239,32 @@ The wizard includes three presets that control how many plugins and MCP servers 
 
 ## Customizing Plugins, MCP Servers & Presets
 
-All plugins and MCP servers are defined as **plain lists at the very top of the script** — no programming knowledge required to edit them.
+All plugins and MCP servers are defined in central configuration files located in the `config/` directory:
 
-Preset arrays (`PRESET_FULL_PLUGINS`, `PRESET_MEDIUM_PLUGINS`, `PRESET_LIGHT_*`, etc.) control which items from the master lists are included per preset. You can freely move items between presets or create your own.
+- **Plugins:** `config/plugins.conf`
+- **MCP Servers:** `config/mcp.conf`
 
-**To add a new plugin**, open `OpenCodeWizard.sh` and add one line to `OPENCODE_PLUGINS`:
+These files use a simple pipe-separated format (`|`) and are shared by both the Bash (`OpenCodeWizard.sh`) and PowerShell (`OpenCodeWizard.ps1`) versions of the wizard.
 
-```bash
-OPENCODE_PLUGINS=(
-    "oh-my-openagent|Session management and advanced CLI commands"
-    # Add your plugin on a new line:
-    "my-cool-plugin|What this plugin does"
-)
+**To add or disable a plugin or MCP server:**
+
+1.  Open the corresponding configuration file.
+2.  **To disable:** Add a `#` at the beginning of the line to comment it out.
+3.  **To enable/add:** Uncomment the line or add a new one following the format.
+
+### Plugin Format (`plugins.conf`):
+```text
+# name|Description
+my-cool-plugin|What this plugin does
 ```
 
-Then add it to the desired preset:
-
-```bash
-PRESET_FULL_PLUGINS=("oh-my-openagent" "@different-ai/opencode-browser" "@tarquinen/opencode-smart-title" "opencode-token-speed-plugin" "my-cool-plugin")
-PRESET_MEDIUM_PLUGINS=("oh-my-openagent" "opencode-token-speed-plugin")
-PRESET_LIGHT_PLUGINS=("oh-my-openagent")
+### MCP Format (`mcp.conf`):
+```text
+# name|Description|Command
+my-mcp|Local tool description|npx -y package-name [args]
 ```
 
-**To disable an MCP server**, comment out its line from `OPENCODE_MCP_SERVERS` or exclude it from the preset array:
-
-```bash
-OPENCODE_MCP_SERVERS=(
-    "fetch|Fast web page text retrieval|npx -y mcp-server-fetch-typescript"
-    # "postgres|Local database|..."    <- disabled
-    "context7|Library documentation|npx -y @upstash/context7-mcp"
-)
-```
-
-On Windows, find `$OpencodePlugins`, `$OpencodeMcpServers`, and the `$Preset*` arrays at the top of `OpenCodeWizard.ps1` — same format, same approach.
+*Note: Changes to these files automatically propagate to the interactive installation flow next time you run the wizard.*
 
 ---
 

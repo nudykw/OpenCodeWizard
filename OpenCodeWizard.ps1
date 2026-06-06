@@ -24,6 +24,7 @@
 #>
 param (
     [switch]$Silent,
+    [string]$Preset,
     [string]$Lang = "en",
     [switch]$ResetColor,
     [switch]$CreateBackup,
@@ -50,36 +51,26 @@ $Bold = [char]27 + "[1m"
 $LangCode = "en"
 
 # Preset selection (full, medium, light)
-$global:Preset = "full"
+if ($Silent -and $Preset -in @("developer", "standard", "minimal")) {
+    $global:Preset = $Preset
+} else {
+    $global:Preset = "developer"
+}
 
 # Backup State
 $global:BackupDir = "$HOME\.local\share\opencodeWizard\backups"
 $global:BackupId = ""
 
-# ==============================================================================
-# CONFIGURATION
-# ==============================================================================
-# Format: "plugin_name|plugin_description"
-$OpencodePlugins = @(
-    "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)"
-    "@different-ai/opencode-browser|Integration with a real web browser"
-    "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
-    "opencode-token-speed-plugin|Real-time speed indicator, Tokens Per Second"
-    "opencode-codebase-index|Codebase RAG indexing with semantic search, file watching, and auto re-index"
-)
+# Load central configuration
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (Test-Path "$ScriptDir\config\plugins.conf") {
+    $OpencodePlugins = Get-Content "$ScriptDir\config\plugins.conf" | Where-Object { $_ -match '\|' -and $_ -notmatch '^#' }
+}
+if (Test-Path "$ScriptDir\config\mcp.conf") {
+    $OpencodeMcpServers = Get-Content "$ScriptDir\config\mcp.conf" | Where-Object { $_ -match '\|' -and $_ -notmatch '^#' }
+}
 
-# Format: "mcp_name|description|command"
-$OpencodeMcpServers = @(
-    "fetch|Fast retrieval of web page text content|npx -y mcp-server-fetch-typescript"
-    "puppeteer|Browser automation (screenshots, clicks)|npx -y @modelcontextprotocol/server-puppeteer"
-    "postgres|Local database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
-    "context7|Library documentation|npx -y @upstash/context7-mcp"
-    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y @sdsrs/code-graph"
-    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|go-docs-mcp"
-    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp-server"
-)
-
+# ==============================================================================
 # Preset definitions
 $PresetFullPlugins  = @("oh-my-openagent", "opencode-mem", "@different-ai/opencode-browser", "@tarquinen/opencode-smart-title", "opencode-token-speed-plugin", "opencode-codebase-index")
 $PresetMediumPlugins = @("oh-my-openagent", "opencode-token-speed-plugin", "opencode-codebase-index")
@@ -1096,10 +1087,18 @@ function Configure-OpenCode {
     $configFile = Join-Path $configDir "opencode.jsonc"
 
     # Always write system_info.md (includes strict rules)
-    $osName = (Get-CimInstance Win32_OperatingSystem).Caption
-    $osVersion = (Get-CimInstance Win32_OperatingSystem).Version
-    $cpuInfo = (Get-CimInstance Win32_Processor).Name
-    $ramGB = [Math]::Round((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB)
+    # Detect OS, CPU, RAM using CIM if available, fallback for Linux/Core
+    if (Get-Command "Get-CimInstance" -ErrorAction SilentlyContinue) {
+        $osName = (Get-CimInstance Win32_OperatingSystem).Caption
+        $osVersion = (Get-CimInstance Win32_OperatingSystem).Version
+        $cpuInfo = (Get-CimInstance Win32_Processor).Name
+        $ramGB = [Math]::Round((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB)
+    } else {
+        $osName = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+        $osVersion = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+        $cpuInfo = "Generic CPU"
+        $ramGB = 0
+    }
     $ramInfo = "${ramGB} GB RAM"
     $systemInfoFile = Join-Path $configDir "system_info.md"
     $systemInfoContent = @"

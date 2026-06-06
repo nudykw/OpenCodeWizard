@@ -21,29 +21,21 @@ BOLD='\033[1m'
 
 # ==============================================================================
 # USER-CONFIGURABLE: Plugins & MCP Servers
-# Add, remove, or comment out entries to customise your setup.
-# Plugin format : "package-name|Description shown in wizard"
-# MCP format    : "name|Description|npx -y package [extra-args]"
+# Configuration moved to config/components.sh
 # ==============================================================================
 
-OPENCODE_PLUGINS=(
-    "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Long-term Rust RAG memory with hybrid search (BM25 + vectors)"
-    "@different-ai/opencode-browser|Integration with a real web browser"
-    "@tarquinen/opencode-smart-title|Smart auto-naming of active sessions"
-    "opencode-token-speed-plugin|Real-time speed indicator (Tokens Per Second)"
-    "opencode-codebase-index|Codebase RAG indexing with semantic search, file watching, and auto re-index"
-)
+# Load central configuration (parses .conf files into arrays)
+OPENCODE_PLUGINS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^#.* ]] || [[ -z "$line" ]] && continue
+    OPENCODE_PLUGINS+=("$line")
+done < "$(dirname "$0")/config/plugins.conf"
 
-OPENCODE_MCP_SERVERS=(
-    "fetch|Fast web page text retrieval without loading a browser|npx -y mcp-server-fetch-typescript"
-    "puppeteer|Browser automation: screenshots and clicking elements|npx -y @modelcontextprotocol/server-puppeteer"
-    "postgres|Integration with local gpt_chat_bot database|npx -y @modelcontextprotocol/server-postgres postgresql://postgres:postgres@localhost:5432/gpt_chat_bot"
-    "context7|Access real-time version-specific library documentation|npx -y @upstash/context7-mcp"
-    "codegraph|AST code graph: semantic search, call chain, impact analysis|npx -y @sdsrs/code-graph"
-    "docs-mcp|Multi-format document reader: PDF, DOCX, MD, CSV, OCR|go-docs-mcp"
-    "lsp-mcp|Code intelligence: definitions, references, diagnostics via LSP|npx -y lsp-mcp-server"
-)
+OPENCODE_MCP_SERVERS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^#.* ]] || [[ -z "$line" ]] && continue
+    OPENCODE_MCP_SERVERS+=("$line")
+done < "$(dirname "$0")/config/mcp.conf"
 
 # ==============================================================================
 # Preset system — defines which plugins and MCPs are included per preset
@@ -156,7 +148,13 @@ while [[ $# -gt 0 ]]; do
         --remove-backups)  COMMAND="remove-backups" ;;
         --list-backups)   COMMAND="list-backups" ;;
         -y|--silent|--non-interactive)
-            SILENT=true ;;
+            SILENT=true
+            # Check if next argument is a valid preset
+            if [[ -n "${2:-}" ]] && [[ "$2" =~ ^(developer|standard|minimal)$ ]]; then
+                PRESET="$2"
+                shift
+            fi
+            ;;
         --dry-run)
             DRY_RUN=true ;;
         -h|--help)
@@ -175,6 +173,11 @@ is_dry_run() { [ "$DRY_RUN" = true ]; }
 
 log_dry() {
     echo -e "${YELLOW}[DRY-RUN]${NC} $1"
+}
+
+# Function to detect OpenCode path
+get_opencode_path() {
+    command -v opencode || echo "/usr/bin/opencode"
 }
 
 # Helper Translation Function
@@ -257,6 +260,13 @@ msg() {
                 "ask_wezterm_config") echo "Налаштувати зовнішній вигляд та гарячі клавіші WezTerm?" ;;
                 "skip_wezterm_config") echo "Пропуск налаштування WezTerm." ;;
                 "wezterm_config_saved") echo "Конфігурація WezTerm збережена в" ;;
+                "wezterm_legacy_conflict") echo "УВАГА: Виявлено ~/.wezterm.lua! Він має вищий пріоритет і перекриває ~/.config/wezterm/wezterm.lua." ;;
+                "wezterm_legacy_remove") echo "1) Видалити ~/.wezterm.lua (рекомендовано)" ;;
+                "wezterm_legacy_symlink") echo "2) Замінити ~/.wezterm.lua на симлінк до нового конфігу" ;;
+                "wezterm_legacy_skip") echo "3) Залишити як є (може ігнорувати новий конфіг)" ;;
+                "wezterm_legacy_removed") echo "~/.wezterm.lua видалено." ;;
+                "wezterm_legacy_symlinked") echo "~/.wezterm.lua тепер вказує на новий конфіг." ;;
+                "wezterm_legacy_skipped") echo "Пропуск, залишено ~/.wezterm.lua." ;;
                 "default_terminal_title") echo "--- Налаштування терміналу за замовчуванням ---" ;;
                 "default_terminal_explain")
                     echo "Встановлення WezTerm за замовчуванням дозволить:"
@@ -315,6 +325,7 @@ msg() {
                 "dry_wezterm_unsupported_distro") echo "Дистрибутив не підтримується для авто-встановлення:" ;;
                 "dry_wezterm_unsupported_os") echo "ОС не підтримується:" ;;
                 "dry_wezterm_skipped") echo "Встановлення WezTerm пропущено (dry-run)" ;;
+                "dry_wezterm_legacy_resolve") echo "Видалить або замінить ~/.wezterm.lua (якщо є конфлікт)" ;;
                 "go_already_installed") echo "Go вже встановлено:" ;;
                 "go_version_old") echo "Версія Go застаріла — потрібна 1.22+." ;;
                 "dry_install_go") echo "Встановить Go 1.24.0 для" ;;
@@ -363,8 +374,8 @@ msg() {
                 "list_backups_label") echo "бекапів" ;;
                 "list_size") echo "Розмір:" ;;
                 "select_preset_title") echo "Оберіть пресет конфігурації:" ;;
-                "preset_full") echo "1)🍔 Full — все включено (рекомендовано)" ;;
-                "preset_medium") echo "2)🥪 Medium — основні плагіни + базові MCP" ;;
+                "preset_full") echo "1)🍔 Developer — все включено (рекомендовано)" ;;
+                "preset_medium") echo "2)🥪 Standard — основні плагіни + базові MCP" ;;
                 "preset_light") echo "3)🥗 Light — мінімальне налаштування" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
@@ -452,6 +463,13 @@ msg() {
                 "ask_wezterm_config") echo "Configure WezTerm styling and hotkeys?" ;;
                 "skip_wezterm_config") echo "Skipping WezTerm configuration." ;;
                 "wezterm_config_saved") echo "WezTerm configuration saved at" ;;
+                "wezterm_legacy_conflict") echo "WARNING: ~/.wezterm.lua exists! It has higher priority and overrides ~/.config/wezterm/wezterm.lua." ;;
+                "wezterm_legacy_remove") echo "1) Remove ~/.wezterm.lua (recommended)" ;;
+                "wezterm_legacy_symlink") echo "2) Replace ~/.wezterm.lua with a symlink to the new config" ;;
+                "wezterm_legacy_skip") echo "3) Leave as-is (may ignore the new config)" ;;
+                "wezterm_legacy_removed") echo "~/.wezterm.lua removed." ;;
+                "wezterm_legacy_symlinked") echo "~/.wezterm.lua now points to the new config." ;;
+                "wezterm_legacy_skipped") echo "Skipped, ~/.wezterm.lua left unchanged." ;;
                 "default_terminal_title") echo "--- Default Terminal Configuration ---" ;;
                 "default_terminal_explain")
                     echo "Setting WezTerm as the default terminal will:"
@@ -542,6 +560,7 @@ msg() {
                 "dry_wezterm_dir") echo "Would create directory:" ;;
                 "dry_wezterm_config") echo "Would write WezTerm config to" ;;
                 "dry_wezterm_config_skipped") echo "WezTerm config skipped (dry-run)" ;;
+                "dry_wezterm_legacy_resolve") echo "Would remove or symlink ~/.wezterm.lua (if conflicting)" ;;
                 "dry_default_terminal_register") echo "Would register WezTerm as default x-terminal-emulator (update-alternatives)" ;;
                 "dry_xdg_terminals") echo "Would write XDG terminal configs to ~/.config/xdg-terminals.list" ;;
                 "dry_terminal_export") echo "Would append 'export TERMINAL=wezterm' to shell configs (bashrc/zshrc/profile)" ;;
@@ -558,8 +577,8 @@ msg() {
                 "list_backups_label") echo "backup(s)" ;;
                 "list_size") echo "Size:" ;;
                 "select_preset_title") echo "Select configuration preset:" ;;
-                "preset_full") echo "1)🍔 Full — everything included (recommended)" ;;
-                "preset_medium") echo "2)🥪 Medium — essential plugins + core MCPs" ;;
+                "preset_full") echo "1)🍔 Developer — everything included (recommended)" ;;
+                "preset_medium") echo "2)🥪 Standard — essential plugins + core MCPs" ;;
                 "preset_light") echo "3)🥗 Light — minimal setup" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
@@ -609,10 +628,10 @@ select_preset() {
         return 0
     fi
     echo -e "\n${BOLD}$(msg "select_preset_title")${NC}"
-    echo -e "  ${BOLD}$(msg "preset_full")${NC}"
+    echo -e "  ${BOLD}$(msg "preset_developer")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, puppeteer, postgres, context7, codegraph, docs-mcp, lsp-mcp"
-    echo -e "     ${CYAN}$(msg "preset_plugins_label")${NC} oh-my-openagent, opencode-mem, browser, smart-title, token-speed"
-    echo -e "  ${BOLD}$(msg "preset_medium")${NC}"
+    echo -e "     ${CYAN}$(msg "preset_plugins_label")${NC} oh-my-openagent, opencode-mem, @different-ai/opencode-browser, @tarquinen/opencode-smart-title, opencode-token-speed-plugin, opencode-codebase-index"
+    echo -e "  ${BOLD}$(msg "preset_standard")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7, codegraph, docs-mcp"
     echo -e "  ${BOLD}$(msg "preset_light")${NC}"
     echo -e "     ${CYAN}$(msg "preset_mcps_label")${NC} fetch, context7"
@@ -679,6 +698,14 @@ show_onboarding() {
 
 # OS detection
 detect_os() {
+    # System Mocking: Force OS for testing
+    if [[ -n "${OCW_FORCE_OS:-}" ]]; then
+        OS="$OCW_FORCE_OS"
+        DISTRO="mock"
+        log_warning "OS Emulation enabled: Operating as $OS"
+        return 0
+    fi
+    
     log_info "$(msg "detecting_os")"
     OS="unknown"
     DISTRO="unknown"
@@ -895,8 +922,8 @@ reset_config() {
         if [ -f "$dest/$backup_name" ]; then
             local full_path="$HOME/$shell_file"
             if [ -f "$full_path" ] && grep -q "export TERMINAL=wezterm" "$full_path"; then
-                sed -i '/^# OpenCode default terminal$/d' "$full_path"
-                sed -i '/^export TERMINAL=wezterm$/d' "$full_path"
+                sed -i.bak '/^# OpenCode default terminal$/d' "$full_path" && rm -f "$full_path.bak"
+                sed -i.bak '/^export TERMINAL=wezterm$/d' "$full_path" && rm -f "$full_path.bak"
                 log_info "$(msg "removed_terminal_export") $full_path"
             fi
         fi
@@ -924,7 +951,7 @@ migrate_plugin_names() {
             return 0
         fi
         create_backup
-        sed -i 's/oh-my-opencode/oh-my-openagent/g' "$config"
+        sed -i.bak 's/oh-my-opencode/oh-my-openagent/g' "$config" && rm -f "$config.bak"
         if command -v opencode &>/dev/null; then
             opencode plugin oh-my-openagent --global 2>/dev/null || true
         fi
@@ -1164,8 +1191,9 @@ install_go() {
 # Install docs-mcp (go-docs-mcp) via Go
 # ==============================================================================
 install_docs_mcp() {
-    if command -v go-docs-mcp &>/dev/null; then
-        log_success "$(msg "gomcp_already_installed") $(go-docs-mcp --version 2>/dev/null || echo 'present')"
+    # Check both PATH and the default Go bin location
+    if command -v go-docs-mcp &>/dev/null || [ -f "$HOME/go/bin/go-docs-mcp" ]; then
+        log_success "$(msg "gomcp_already_installed")"
         return 0
     fi
 
@@ -1376,11 +1404,12 @@ install_plugins() {
     fi
 
     # Resolve preset plugin list
+    # Use central definitions from components.sh
     local preset_plugins=()
     case "$PRESET" in
         medium) preset_plugins=("${PRESET_MEDIUM_PLUGINS[@]}") ;;
         light)  preset_plugins=("${PRESET_LIGHT_PLUGINS[@]}") ;;
-        *)      preset_plugins=("${PRESET_FULL_PLUGINS[@]}") ;;
+        *)      preset_plugins=("${PRESET_DEVELOPER_PLUGINS[@]}") ;;
     esac
 
     local install_all=true
@@ -1388,9 +1417,14 @@ install_plugins() {
         install_all=false
     fi
 
+    # Track if we've already installed a speed plugin to avoid conflicts
+    local speed_plugin_installed=false
+
     for entry in "${OPENCODE_PLUGINS[@]}"; do
         local plugin_name="${entry%%|*}"
         local plugin_desc="${entry#*|}"
+        local doc_url="https://github.com/nudykw/OpenCodeWizard/blob/main/docs/plugins.md#${plugin_name}"
+        [ "$LANG_CODE" = "uk" ] && doc_url="https://github.com/nudykw/OpenCodeWizard/blob/main/docs/plugins.uk.md#${plugin_name}"
 
         # Skip if not in preset
         if ! is_in_preset "$plugin_name" "${preset_plugins[@]}"; then
@@ -1398,10 +1432,20 @@ install_plugins() {
             continue
         fi
 
+        # Collision check for speed plugins
+        if [[ "$plugin_name" == *"token-speed"* ]]; then
+            if [ "$speed_plugin_installed" = true ]; then
+                log_warning "Skipping $plugin_name: a speed plugin is already selected."
+                continue
+            fi
+            speed_plugin_installed=true
+        fi
+
         local should_install=true
         if [ "$install_all" = false ]; then
             echo -e "\n--> ${BOLD}${plugin_name}${NC}"
-            echo "    $plugin_desc"
+            echo -e "    ${plugin_desc}"
+            echo -e "    ${BLUE}${doc_url}${NC}"
             if ! ask_confirm "$(msg "ask_plugin_install") ${plugin_name}?"; then
                 should_install=false
             fi
@@ -1485,6 +1529,11 @@ configure_opencode() {
         fi
 
         if [ "$should_enable" = true ]; then
+            if [ "$mcp_name" = "docs-mcp" ]; then
+                install_go
+                install_docs_mcp || true
+            fi
+
             local json_arr
             json_arr=$(args_to_json_array "$mcp_cmd")
             if [ "$first_mcp" = false ]; then
@@ -1578,10 +1627,8 @@ EOF
     log_success "$(msg "opencode_config_updated") $config_file"
 
     # Install Go + go-docs-mcp if docs-mcp is in the current preset
-    if is_in_preset "docs-mcp" "${preset_mcps[@]}"; then
-        install_go
-        install_docs_mcp
-    fi
+    # (Deprecated: logic moved to individual MCP installation block)
+    :
 }
 
 # WezTerm Lua configuration
@@ -1607,7 +1654,7 @@ configure_wezterm() {
         create_backup
     fi
 
-    cat << 'EOF' > "$wez_config"
+    cat << EOF > "$wez_config"
 local wezterm = require 'wezterm'
 local config = {}
 
@@ -1638,7 +1685,7 @@ config.keys = {
     action = wezterm.action.SplitPane {
       direction = 'Right',
       size = { Percent = 40 },
-      command = { args = { os.getenv("SHELL") or "bash", "-l", "-i", "-c", "opencode -m opencode/deepseek-v4-flash-free" } },
+      command = { args = { "/usr/bin/opencode", "-m", "opencode/deepseek-v4-flash-free" } },
     },
   },
   -- Standard splits
@@ -1719,6 +1766,45 @@ config.keys = {
 return config
 EOF
     log_success "$(msg "wezterm_config_saved") $wez_config"
+
+    # Check for ~/.wezterm.lua conflict (has higher priority than $wez_config)
+    local legacy="$HOME/.wezterm.lua"
+    if [ -f "$legacy" ] || [ -L "$legacy" ]; then
+        if [ -L "$legacy" ] && [ "$(readlink "$legacy")" = "$wez_config" ]; then
+            : # Already a symlink to our config — all good
+        else
+            log_warning "$(msg "wezterm_legacy_conflict")"
+
+            if is_dry_run; then
+                log_dry "$(msg "dry_wezterm_legacy_resolve")"
+                return 0
+            fi
+
+            if [ "$SILENT" = true ]; then
+                rm -f "$legacy"
+                log_info "$(msg "wezterm_legacy_removed")"
+            else
+                echo ""
+                echo "1) $(msg "wezterm_legacy_remove")"
+                echo "2) $(msg "wezterm_legacy_symlink")"
+                echo "3) $(msg "wezterm_legacy_skip")"
+                read -r choice
+                case $choice in
+                    1|remove)
+                        rm -f "$legacy"
+                        log_success "$(msg "wezterm_legacy_removed")"
+                        ;;
+                    2|symlink)
+                        ln -sf "$wez_config" "$legacy"
+                        log_success "$(msg "wezterm_legacy_symlinked")"
+                        ;;
+                    *)
+                        log_info "$(msg "wezterm_legacy_skipped")"
+                        ;;
+                esac
+            fi
+        fi
+    fi
 }
 
 # Configure default terminal
@@ -1902,12 +1988,3 @@ main() {
 }
 
 main
-msg() {
-  local line=$(grep "^$1=" messages.conf)
-  local text=${line#*=}
-  if [ "$LANG_CODE" == "uk" ]; then
-    echo "${text#*|}"
-  else
-    echo "${text%%|*}"
-  fi
-}

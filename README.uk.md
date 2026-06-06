@@ -237,34 +237,32 @@ OpenCode встановлюється як `opencode.ps1`, що вимагає �
 
 ## Налаштування плагінів, MCP та пресетів
 
-Всі плагіни, MCP-сервери та пресети знаходяться у вигляді простих списків **на початку скрипта**. Додати новий плагін — один рядок:
+Всі плагіни та MCP-сервери тепер визначені у центральних файлах конфігурації, що знаходяться в директорії `config/`:
 
-```bash
-OPENCODE_PLUGINS=(
-    "oh-my-openagent|Session management and advanced CLI commands"
-    # Додайте власний плагін:
-    "my-cool-plugin|What this plugin does"
-)
+- **Плагіни:** `config/plugins.conf`
+- **MCP-сервери:** `config/mcp.conf`
+
+Ці файли використовують простий формат з роздільниками `|` і є спільними як для Bash-версії (`OpenCodeWizard.sh`), так і для PowerShell-версії (`OpenCodeWizard.ps1`).
+
+**Щоб додати або вимкнути плагін чи MCP-сервер:**
+
+1.  Відкрийте відповідний файл конфігурації.
+2.  **Щоб вимкнути:** Додайте `#` на початку рядка, щоб закоментувати його.
+3.  **Щоб увімкнути/додати:** Розкоментуйте рядок або додайте новий, дотримуючись формату.
+
+### Формат плагінів (`plugins.conf`):
+```text
+# name|Description
+my-cool-plugin|Опис плагіна
 ```
 
-Потім додайте його до потрібного пресету:
-
-```bash
-PRESET_FULL_PLUGINS=("oh-my-openagent" "@different-ai/opencode-browser" "@tarquinen/opencode-smart-title" "opencode-token-speed-plugin" "my-cool-plugin")
-PRESET_MEDIUM_PLUGINS=("oh-my-openagent" "opencode-token-speed-plugin")
-PRESET_LIGHT_PLUGINS=("oh-my-openagent")
+### Формат MCP (`mcp.conf`):
+```text
+# name|Description|Command
+my-mcp|Опис локального інструменту|npx -y package-name [args]
 ```
 
-Щоб вимкнути MCP-сервер — закоментуйте рядок через `#` або виключіть з пресету:
-
-```bash
-OPENCODE_MCP_SERVERS=(
-    "fetch|...|npx -y mcp-server-fetch-typescript"
-    # "postgres|...|..."   <- вимкнено
-)
-```
-
-На Windows знайдіть `$OpencodePlugins`, `$OpencodeMcpServers` та `$Preset*` масиви на початку `OpenCodeWizard.ps1`.
+*Примітка: Зміни в цих файлах автоматично підхоплюються інтерактивним майстром під час наступного запуску.*
 
 ---
 
