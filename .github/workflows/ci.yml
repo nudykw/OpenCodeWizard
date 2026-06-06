@@ -24,7 +24,7 @@ jobs:
           find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck --severity=warning
 
       - name: Run markdownlint-cli2
-        run: markdownlint-cli2 "**/*.md" "#node_modules"
+        run: markdownlint-cli2 "**/*.md" "#**/node_modules/**"
 
       - name: Run PSScriptAnalyzer via Docker
         run: |

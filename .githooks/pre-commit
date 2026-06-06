@@ -33,18 +33,19 @@ if [ -n "$SH_FILES" ]; then
 fi
 
 # Run markdownlint on all .md files (catches regressions early)
-if command -v markdownlint-cli2 &>/dev/null; then
-    echo ">>> Running markdownlint on all markdown files <<<"
-    cd "$SCRIPT_DIR"
-    if ! markdownlint-cli2 "*.md" "**/*.md" "#node_modules"; then
+echo ">>> Running markdownlint on all markdown files <<<"
+cd "$SCRIPT_DIR"
+if [ ! -f "node_modules/.bin/markdownlint-cli2" ]; then
+    echo "[WARN] markdownlint-cli2 not installed — run 'npm install'"
+    echo "       Skipping markdownlint check."
+else
+    if ! node_modules/.bin/markdownlint-cli2 "*.md" "**/*.md" "#**/node_modules/**"; then
         echo ""
         echo "[FAIL] Markdownlint reported errors. Fix before commit."
         echo "To skip (not recommended): git commit --no-verify"
         exit 1
     fi
     echo "Markdownlint: no issues found"
-else
-    echo "[WARN] markdownlint-cli2 not installed — skipping lint"
 fi
 
 exit 0

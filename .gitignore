@@ -9,3 +9,4 @@ Thumbs.db
 # OpenCode session continuation data
 .omo/
 .opencode/
+node_modules/
