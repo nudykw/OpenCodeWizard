@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Pre-push hook: run full CI (Docker tests) before pushing to main/master
-# Only triggers when *.sh or *.ps1 files change.
+# Pre-push hook: run markdownlint, shellcheck on changed scripts,
+# and full CI (Docker tests) before pushing to main/master.
 # ==============================================================================
 set -euo pipefail
 
@@ -43,45 +43,35 @@ while read _ local_oid remote_ref remote_oid; do
                 echo "Markdownlint: no issues found"
             fi
 
-            # Check if any script files changed
-            if echo "$CHANGED" | grep -qE '\.(sh|ps1)$'; then
-                echo ""
-                echo "=== Pre-push: script changes detected — running full CI suite ==="
-                
+            # Run shellcheck on changed .sh files (if any)
+            SH_FILES=$(echo "$CHANGED" | grep -E '\.sh$' | tr '\n' ' ' || true)
+            if [ -n "$SH_FILES" ]; then
+                echo "  Changed scripts: $SH_FILES"
+
                 # Check for sed -i compatibility (must be sed -i '')
                 if grep -r "sed -i " . --include=*.sh | grep -v "sed -i ''"; then
                     echo "[ERROR] Invalid sed -i usage found. macOS/BSD requires sed -i ''."
                     exit 1
                 fi
-                
-                echo "  Target: $remote_ref"
-                echo "  Changed scripts:"
-                echo "$CHANGED" | grep -E '\.(sh|ps1)$' | sed 's/^/    - /'
-                echo ""
 
-                # Run shellcheck on changed .sh files
-                SH_FILES=$(echo "$CHANGED" | grep -E '\.sh$' | tr '\n' ' ')
-                if [ -n "$SH_FILES" ]; then
-                    if command -v shellcheck &>/dev/null; then
-                        echo ">>> Running shellcheck on changed scripts <<<"
-                        if ! shellcheck --severity=warning $SH_FILES; then
-                            echo ""
-                            echo "[FAIL] Shellcheck reported warnings. Push aborted."
-                            echo "Fix the issues above or run: shellcheck $SH_FILES"
-                            echo "To skip (not recommended): git push --no-verify"
-                            exit 1
-                        fi
-                        echo "Shellcheck: no issues found"
-                    else
-                        echo "[WARN] shellcheck not installed — skipping lint"
+                if command -v shellcheck &>/dev/null; then
+                    echo ">>> Running shellcheck on changed scripts <<<"
+                    if ! shellcheck --severity=warning $SH_FILES; then
+                        echo ""
+                        echo "[FAIL] Shellcheck reported warnings. Push aborted."
+                        echo "Fix the issues above or run: shellcheck $SH_FILES"
+                        echo "To skip (not recommended): git push --no-verify"
+                        exit 1
                     fi
+                    echo "Shellcheck: no issues found"
+                else
+                    echo "[WARN] shellcheck not installed — skipping lint"
                 fi
-            else
-                echo "=== Pre-push: no script changes (*.sh, *.ps1) — CI skipped ==="
-                echo "  Target: $remote_ref"
-                echo ""
-                exit 0
             fi
+
+            echo ""
+            echo "=== Pre-push: running full CI suite ==="
+            echo "  Target: $remote_ref"
 
             if [ ! -f "tests/run_tests.sh" ]; then
                 echo "[ERROR] tests/run_tests.sh not found — cannot run CI."
