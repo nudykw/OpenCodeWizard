@@ -52,7 +52,8 @@ OPENCODE_MCP_SERVERS=(
 # ==============================================================================
 
 # Full preset — everything (default)
-PRESET_FULL_PLUGINS=(
+# Presets
+PRESET_DEVELOPER_PLUGINS=(
     "oh-my-openagent"
     "opencode-mem"
     "@different-ai/opencode-browser"
@@ -60,27 +61,27 @@ PRESET_FULL_PLUGINS=(
     "opencode-token-speed-plugin"
     "opencode-codebase-index"
 )
-PRESET_FULL_MCPS=(
+PRESET_DEVELOPER_MCPS=(
     "fetch" "puppeteer" "postgres" "context7"
     "codegraph" "docs-mcp" "lsp-mcp"
 )
 
-# Medium preset — essential plugins, core MCPs
-PRESET_MEDIUM_PLUGINS=(
+# Standard preset — essential plugins, core MCPs
+PRESET_STANDARD_PLUGINS=(
     "oh-my-openagent"
     "opencode-token-speed-plugin"
     "opencode-codebase-index"
 )
-PRESET_MEDIUM_MCPS=(
-    "fetch" "context7" "codegraph" "docs-mcp"
+PRESET_STANDARD_MCPS=(
+    "fetch" "docs-mcp"
 )
 
-# Light preset — minimal setup
-PRESET_LIGHT_PLUGINS=(
+# Minimal preset — minimal setup
+PRESET_MINIMAL_PLUGINS=(
     "oh-my-openagent"
 )
-PRESET_LIGHT_MCPS=(
-    "fetch" "context7"
+PRESET_MINIMAL_MCPS=(
+    "fetch"
 )
 
 # ==============================================================================
@@ -89,7 +90,8 @@ PRESET_LIGHT_MCPS=(
 LANG_CODE="en"
 SILENT=false
 DRY_RUN=false
-PRESET="full"   # full | medium | light
+PRESET="developer"   # developer | standard | minimal
+COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
 COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
 OS=""
 DISTRO=""

@@ -227,13 +227,13 @@ On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and us
 
 ## Presets
 
-The wizard includes three presets that control how many plugins and MCP servers are installed. You'll be prompted to choose during setup, or the **Full** preset is selected by default (including with `--silent`).
+The wizard includes three presets that control how many plugins and MCP servers are installed. You'll be prompted to choose during setup, or the **Standard** preset is selected by default.
 
 | Preset | Plugins | MCP Servers | Best For |
 | :--- | :--- | :--- | :--- |
-| **🍔 Full** (default) | All 6 plugins | All 7 MCPs | Full-featured AI coding environment |
-| **🥪 Medium** | oh-my-openagent, token-speed-plugin, codebase-index | fetch, context7, codegraph, docs-mcp | Balanced — essential tools only |
-| **🥗 Light** | oh-my-openagent only | fetch, context7 | Minimal — just the basics |
+| **🍔 Developer** | All 6 plugins | All 7 MCPs | Full-featured AI coding environment |
+| **🥪 Standard** | Essential plugins | Core MCPs | Balanced — general use & writing |
+| **🥗 Minimal** | Minimal setup | Basic MCPs | Quickest — essential tools only |
 
 ---
 
