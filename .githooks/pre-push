@@ -90,21 +90,40 @@ while read _ local_oid remote_ref remote_oid; do
 
             chmod +x tests/run_tests.sh
 
-            # Run all Docker-based tests
+            # Run all Docker-based tests in parallel
+            echo ""
+            echo ">>> Running all Docker tests in parallel <<<"
+            rm -f /tmp/ocw-test-results
+            pids=""
             for TARGET in ubuntu fedora arch powershell; do
-                echo ""
-                echo ">>> Running test: $TARGET <<<"
-                if ! ./tests/run_tests.sh "$TARGET"; then
-                    echo ""
-                    echo "[FAIL] Test '$TARGET' failed."
-                    echo "Push aborted. Fix the issue and try again."
-                    echo "To skip (not recommended): git push --no-verify"
-                    exit 1
-                fi
+                (
+                    echo "  Starting test: $TARGET"
+                    if ./tests/run_tests.sh "$TARGET"; then
+                        echo "PASS:$TARGET" >> /tmp/ocw-test-results
+                        echo "  [PASS] Test '$TARGET' succeeded."
+                    else
+                        echo "FAIL:$TARGET" >> /tmp/ocw-test-results
+                        echo "  [FAIL] Test '$TARGET' failed."
+                    fi
+                ) &
+                pids="$pids $!"
             done
 
+            wait $pids 2>/dev/null || true
+
+            if [ -f /tmp/ocw-test-results ] && grep -q "^FAIL:" /tmp/ocw-test-results; then
+                FAILED=$(grep "^FAIL:" /tmp/ocw-test-results | sed 's/^FAIL://' | tr '\n' ' ')
+                rm -f /tmp/ocw-test-results
+                echo ""
+                echo "[FAIL] Tests failed: $FAILED"
+                echo "Push aborted. Fix the issue and try again."
+                echo "To skip (not recommended): git push --no-verify"
+                exit 1
+            fi
+            rm -f /tmp/ocw-test-results
+
             echo ""
-            echo "=== All CI tests passed. Push OK. ==="
+            echo "=== All CI tests passed (parallel). Push OK. ==="
             echo ""
             ;;
     esac
