@@ -88,6 +88,7 @@ show_help() {
     echo -e ""
     echo -e "${BOLD}OPTIONS:${NC}"
     echo -e "  -y, --silent, --non-interactive  Run setup automatically with default options"
+    echo -e "                                   [preset] = developer|standard|minimal (default: developer)"
     echo -e "                                   Запустити встановлення автоматично"
     echo -e "  --dry-run                        Simulate without making changes (safe on any OS)"
     echo -e "                                   Симуляція без змін (безпечно на будь-якій ОС)"
@@ -96,7 +97,10 @@ show_help() {
     echo -e ""
     echo -e "${BOLD}EXAMPLES:${NC}"
     echo -e "  $0                               # interactive wizard"
-    echo -e "  $0 --silent                      # auto setup"
+    echo -e "  $0 --silent                      # auto setup with default preset (developer)"
+    echo -e "  $0 --silent developer            # auto setup with developer preset"
+    echo -e "  $0 --silent standard             # auto setup with standard preset"
+    echo -e "  $0 --silent minimal              # auto setup with minimal preset"
     echo -e "  $0 --dry-run                     # simulate setup (no changes)"
     echo -e "  $0 --silent --dry-run            # simulate non-interactively"
     echo -e "  $0 --create-backup               # snapshot configs now"
@@ -357,9 +361,9 @@ msg() {
                 "list_backups_label") echo "бекапів" ;;
                 "list_size") echo "Розмір:" ;;
                 "select_preset_title") echo "Оберіть пресет конфігурації:" ;;
-                "preset_developer") echo "1)🍔 Developer — все включено (рекомендовано)" ;;
-                "preset_standard") echo "2)🥪 Standard — основні плагіни + базові MCP (fetch, docs-mcp)" ;;
-                "preset_minimal") echo "3)🥗 Minimal — мінімальне налаштування" ;;
+                "preset_developer") echo "1)🔥 Developer — все включено (рекомендовано)" ;;
+                "preset_standard") echo "2)✨ Standard — основні плагіни + базові MCP (fetch, docs-mcp)" ;;
+                "preset_minimal") echo "3)❄️ Minimal — мінімальне налаштування" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_tools_label") echo "Інструменти:" ;;
@@ -576,9 +580,9 @@ msg() {
                 "list_backups_label") echo "backup(s)" ;;
                 "list_size") echo "Size:" ;;
                 "select_preset_title") echo "Select configuration preset:" ;;
-                "preset_developer") echo "1)🍔 Developer — everything included (recommended)" ;;
-                "preset_standard") echo "2)🥪 Standard — essential plugins + core MCPs (fetch, docs-mcp)" ;;
-                "preset_minimal") echo "3)🥗 Minimal — minimal setup" ;;
+                "preset_developer") echo "1)🔥 Developer — everything included (recommended)" ;;
+                "preset_standard") echo "2)✨ Standard — essential plugins + core MCPs (fetch, docs-mcp)" ;;
+                "preset_minimal") echo "3)❄️ Minimal — minimal setup" ;;
                 "preset_mcps_label") echo "MCPs:" ;;
                 "preset_plugins_label") echo "Plugins:" ;;
                 "preset_tools_label") echo "Tools:" ;;

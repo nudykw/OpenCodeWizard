@@ -8,6 +8,11 @@
 .PARAMETER Silent
     Runs the installation automatically using default settings without prompting.
     Запускає встановлення автоматично з типовими налаштуваннями без додаткових запитів.
+.PARAMETER Preset
+    Optional preset name to use with -Silent: developer|standard|minimal.
+    If omitted with -Silent, defaults to "developer".
+    Опціональна назва пресету для використання з -Silent: developer|standard|minimal.
+    Якщо не вказано з -Silent, використовується "developer" за замовчуванням.
 .PARAMETER Lang
     Sets the default interface language (e.g. "en" or "uk").
     Встановлює типову мову інтерфейсу (наприклад, "en" або "uk").
@@ -19,6 +24,8 @@
     Показати всі збережені резервні копії без входу в режим відновлення.
 .EXAMPLE
     .\OpenCodeWizard.ps1 -Silent
+.EXAMPLE
+    .\OpenCodeWizard.ps1 -Silent -Preset developer
 .EXAMPLE
     .\OpenCodeWizard.ps1 -Lang "uk"
 #>
@@ -224,9 +231,9 @@ $Translations = @{
         "select_lang_uk" = "2) Українська (uk)"
         "select_lang_choice" = "Вибір / Choice [1-2]"
         "select_preset_title" = "Оберіть пресет конфігурації:"
-        "preset_developer" = "1) 🍔 Developer — все включено (рекомендовано)"
-        "preset_standard" = "2) 🥪 Standard — основні плагіни + базові MCP (fetch, docs-mcp)"
-        "preset_minimal" = "3) 🥗 Minimal — мінімальне налаштування"
+        "preset_developer" = "1) 🔥 Developer — все включено (рекомендовано)"
+        "preset_standard" = "2) ✨ Standard — основні плагіни + базові MCP (fetch, docs-mcp)"
+        "preset_minimal" = "3) ❄️ Minimal — мінімальне налаштування"
         "preset_mcps_label" = "MCPs:"
         "preset_plugins_label" = "Plugins:"
         "preset_choice" = "Вибір [1-3] (за замовчуванням: 1)"
@@ -388,9 +395,9 @@ $Translations = @{
         "select_lang_uk" = "2) Українська (uk)"
         "select_lang_choice" = "Вибір / Choice [1-2]"
         "select_preset_title" = "Select configuration preset:"
-        "preset_developer" = "1) 🍔 Developer — everything included (recommended)"
-        "preset_standard" = "2) 🥪 Standard — essential plugins + core MCPs (fetch, docs-mcp)"
-        "preset_minimal" = "3) 🥗 Minimal — minimal setup"
+        "preset_developer" = "1) 🔥 Developer — everything included (recommended)"
+        "preset_standard" = "2) ✨ Standard — essential plugins + core MCPs (fetch, docs-mcp)"
+        "preset_minimal" = "3) ❄️ Minimal — minimal setup"
         "preset_mcps_label" = "MCPs:"
         "preset_plugins_label" = "Plugins:"
         "preset_choice" = "Choice [1-3] (default: 1)"

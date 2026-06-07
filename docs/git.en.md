@@ -1,5 +1,7 @@
 # What is Git and why do you need it?
 
+*Read this in other languages: [Українська (git.uk.md)](git.uk.md)*
+
 Imagine you are working on an important document, book, or project. Usually, we save versions like "report_final," "report_final_v2," and so on. This gets confusing, and if something breaks or gets deleted by mistake, restoring your work is difficult.
 
 **Git** is your personal "time machine" and "archivist" for any files.

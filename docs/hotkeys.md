@@ -1,5 +1,7 @@
 # WezTerm Hotkeys Reference
 
+*Read this in other languages: [Українська (hotkeys.uk.md)](hotkeys.uk.md)*
+
 ## Standard Splits
 
 | Hotkey | Action |

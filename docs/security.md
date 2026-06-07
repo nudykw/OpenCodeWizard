@@ -637,7 +637,7 @@ npm install -g opencode-ai@latest
 opencode plugin oh-my-openagent --global
 ```
 
-> **Note:** Using `--silent` (non-interactive mode) defaults to the **Full** preset with all plugins and MCPs. For maximum security, always run interactively and select "🥗 Light".
+> **Note:** Using `--silent` (non-interactive mode) defaults to the **🔥 Developer** preset with all plugins and MCPs. For maximum security, always run interactively and select "**❄️ Minimal**".
 
 #### Step 5 — Manual Configuration
 

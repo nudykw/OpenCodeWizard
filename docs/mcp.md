@@ -1,5 +1,7 @@
 # Model Context Protocol (MCP) Servers
 
+*Read this in other languages: [Українська (mcp.uk.md)](mcp.uk.md)*
+
 MCP servers extend the AI's capabilities to interact with local APIs and tools. They allow the AI to "see" and "do" more within your system.
 
 ## Available MCP Servers

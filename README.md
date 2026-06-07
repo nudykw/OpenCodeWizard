@@ -244,9 +244,9 @@ The wizard includes three presets that control how many plugins and MCP servers 
 
 | Preset | Plugins | MCP Servers | Best For |
 | :--- | :--- | :--- | :--- |
-| **🍔 Developer** | All 6 plugins + [dev tools](docs/developer-tools.md) | All 7 MCPs | Full-featured AI coding environment |
-| **🥪 Standard** | Essential plugins | Core MCPs | Balanced — general use & writing |
-| **🥗 Minimal** | Minimal setup | Basic MCPs | Quickest — essential tools only |
+| **🔥 Developer** | All 6 plugins + [dev tools](docs/developer-tools.md) | All 7 MCPs | Full-featured AI coding environment |
+| **✨ Standard** | Essential plugins | Core MCPs | Balanced — general use & writing |
+| **❄️ Minimal** | Minimal setup | Basic MCPs | Quickest — essential tools only |
 
 ---
 

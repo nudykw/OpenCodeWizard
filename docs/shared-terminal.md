@@ -1,5 +1,7 @@
 # Shared Terminal and 3-Pane Layout
 
+*Read this in other languages: [Українська (shared-terminal.uk.md)](shared-terminal.uk.md)*
+
 OpenCodeWizard configures WezTerm with a specialized 3-pane layout to create a productive AI-assisted environment. This setup ensures you have full visibility and control over your project while working with the AI.
 
 ## The 3-Pane Layout

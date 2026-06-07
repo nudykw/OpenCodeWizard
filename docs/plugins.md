@@ -1,5 +1,7 @@
 # OpenCode Plugins Documentation
 
+*Read this in other languages: [Українська (plugins.uk.md)](plugins.uk.md)*
+
 This guide provides details on the available OpenCode plugins, their purpose, and their use cases.
 
 ## Plugins Overview

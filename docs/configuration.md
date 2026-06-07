@@ -2,6 +2,8 @@
 
 > **How to configure OpenCode agents, plugins, MCP servers, and environment settings.**
 
+*Read this in other languages: [Українська (configuration.uk.md)](configuration.uk.md)*
+
 ---
 
 ## Table of Contents
