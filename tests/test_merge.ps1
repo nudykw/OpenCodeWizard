@@ -8,6 +8,11 @@
 
 $ErrorActionPreference = 'Continue'
 
+# Stubs for functions referenced by Create-Backup (not relevant to regression test).
+function Get-Msg { param([string]$Key, [object[]]$FormatArgs) return $Key }
+function Log-Success { param([string]$Msg) Write-Host "  [stub-success] $Msg" }
+function Log-Dry { param([string]$Msg) }
+
 $TestsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectDir = Split-Path -Parent $TestsDir
 $Script = Join-Path $ProjectDir 'OpenCodeWizard.ps1'
@@ -62,7 +67,11 @@ $mergeFunctions = Extract-FunctionBlocks -Path $Script -Names @(
     'Merge-LuaConfigs',
     'Merge-MarkdownConfigs',
     'Merge-ShellConfigs',
-    'Smart-Merge'
+    'Smart-Merge',
+    'Create-Backup',
+    'Generate-BackupId',
+    'Get-ContentHash',
+    'Remove-OldBackups'
 )
 
 # Source the extracted functions in the current scope.
@@ -230,7 +239,214 @@ $env:TERMINAL = "wezterm"
         Test-Passed 'test_merge_flag_in_help'
     }
 
-    # --- Test 7: End-to-end - run wizard with -MergeBackup pointing at fixture ---
+    # --- Test 7: Create-Backup is idempotent within a session (regression) ---
+    # Regression: a second Create-Backup call in the same session was
+    # overwriting the opencode.jsonc backup with the wizard's just-written
+    # default, so Smart-Merge then saw backup == target and wrongly
+    # reported "no changes (skipping)".
+    Write-Host ''
+    Write-Host 'Test: test_create_backup_idempotent'
+    $targetHome7 = Join-Path $SBox 'home7'
+    $xdgData7 = Join-Path $SBox 'data7'
+    $opencodeDir7 = Join-Path $targetHome7 '.config\opencode'
+    $opencodeCfg7 = Join-Path $opencodeDir7 'opencode.jsonc'
+    $sysinfo7 = Join-Path $opencodeDir7 'system_info.md'
+    New-Item -ItemType Directory -Force -Path $opencodeDir7 | Out-Null
+    @'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": "llamaserver",
+  "user_custom_field": "user-preserved-data"
+}
+'@ | Set-Content $opencodeCfg7
+    '# System Info (original user version)' | Set-Content $sysinfo7
+
+    $global:BackupDir = Join-Path $xdgData7 'opencodeWizard\backups'
+    $global:BackupId = $null
+    # Stage 1: configure_opencode calls Create-Backup BEFORE writing default.
+    $oldHome = $HOME
+    Set-Variable -Name HOME -Value $targetHome7 -Scope Global -Force
+    try {
+        Create-Backup
+    } finally {
+        Set-Variable -Name HOME -Value $oldHome -Scope Global -Force
+    }
+    $destDirs = @(Get-ChildItem -Directory -Path $global:BackupDir -ErrorAction SilentlyContinue)
+    if ($destDirs.Count -eq 0) {
+        Test-Failed 'test_create_backup_idempotent' 'Backup directory was not created'
+    } else {
+        $backupPath = $destDirs[0].FullName
+        $backupOpencode = Join-Path $backupPath 'opencode.jsonc'
+        $backupSysinfo = Join-Path $backupPath 'system_info.md'
+        $ok = $true
+        if (-not (Test-Path $backupOpencode)) {
+            Test-Failed 'test_create_backup_idempotent' 'First backup did not capture opencode.jsonc'
+            $ok = $false
+        } elseif (-not (Select-String -Path $backupOpencode -Pattern 'user-preserved-data' -Quiet)) {
+            Test-Failed 'test_create_backup_idempotent' 'First backup must contain user data'
+            $ok = $false
+        }
+
+        if ($ok) {
+            # Stage 2: configure_opencode overwrites user's file with wizard default.
+            @'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "system",
+  "mcp": {}
+}
+'@ | Set-Content $opencodeCfg7
+            '# System Info (wizard-default version)' | Set-Content $sysinfo7
+
+            # Stage 3: configure_wezterm calls Create-Backup again — must NOT overwrite.
+            Set-Variable -Name HOME -Value $targetHome7 -Scope Global -Force
+            try {
+                Create-Backup
+            } finally {
+                Set-Variable -Name HOME -Value $oldHome -Scope Global -Force
+            }
+
+            if (-not (Select-String -Path $backupOpencode -Pattern 'user-preserved-data' -Quiet)) {
+                Test-Failed 'test_create_backup_idempotent' 'REGRESSION: backup was overwritten by 2nd Create-Backup call (bug)'
+                $ok = $false
+            }
+            if (Select-String -Path $backupOpencode -Pattern '"theme": "system"' -Quiet) {
+                Test-Failed 'test_create_backup_idempotent' 'REGRESSION: backup contains wizard default instead of user original'
+                $ok = $false
+            }
+            if (-not (Select-String -Path $backupSysinfo -Pattern 'original user version' -Quiet)) {
+                Test-Failed 'test_create_backup_idempotent' 'REGRESSION: system_info.md backup was overwritten'
+                $ok = $false
+            }
+        }
+        if ($ok) { Test-Passed 'test_create_backup_idempotent' }
+    }
+
+    # --- Test 8: MAX_BACKUPS=15 auto-prunes oldest ---
+    Write-Host ''
+    Write-Host 'Test: test_max_backups_prunes_oldest'
+    $targetHome8 = Join-Path $SBox 'home8'
+    $xdgData8 = Join-Path $SBox 'data8'
+    $opencodeDir8 = Join-Path $targetHome8 '.config\opencode'
+    $backupRoot8 = Join-Path $xdgData8 'opencodeWizard\backups'
+    New-Item -ItemType Directory -Force -Path $opencodeDir8 | Out-Null
+    '{"user": "max-backups-test"}' | Set-Content (Join-Path $opencodeDir8 'opencode.jsonc')
+    for ($i = 1; $i -le 16; $i++) {
+        $padded = '{0:D2}' -f $i
+        New-Item -ItemType Directory -Force -Path (Join-Path $backupRoot8 "ocw-test-20200101-0000$padded") | Out-Null
+    }
+    $global:BackupDir = $backupRoot8
+    $global:BackupId = $null
+    $global:MaxBackups = 15
+    Set-Variable -Name HOME -Value $targetHome8 -Scope Global -Force
+    try { Create-Backup } finally { Set-Variable -Name HOME -Value $oldHome -Scope Global -Force }
+    $count8 = @(Get-ChildItem -Directory -Path $backupRoot8 -ErrorAction SilentlyContinue).Count
+    if ($count8 -ne 15) {
+        Test-Failed 'test_max_backups_prunes_oldest' "Expected 15 dirs after prune, got $count8"
+    } elseif (Test-Path (Join-Path $backupRoot8 'ocw-test-20200101-000001')) {
+        Test-Failed 'test_max_backups_prunes_oldest' 'Oldest backup was NOT pruned'
+    } elseif (-not (Test-Path (Join-Path $backupRoot8 'ocw-test-20200101-000003'))) {
+        Test-Failed 'test_max_backups_prunes_oldest' 'A backup that should have been kept was pruned'
+    } else {
+        Test-Passed 'test_max_backups_prunes_oldest'
+    }
+
+    # --- Test 9: content-hash dedup skips redundant backups ---
+    Write-Host ''
+    Write-Host 'Test: test_content_hash_dedup'
+    $targetHome9 = Join-Path $SBox 'home9'
+    $xdgData9 = Join-Path $SBox 'data9'
+    $opencodeDir9 = Join-Path $targetHome9 '.config\opencode'
+    $backupRoot9 = Join-Path $xdgData9 'opencodeWizard\backups'
+    New-Item -ItemType Directory -Force -Path $opencodeDir9 | Out-Null
+    '{"state": "initial"}' | Set-Content (Join-Path $opencodeDir9 'opencode.jsonc')
+    $global:BackupDir = $backupRoot9
+    $global:MaxBackups = 15
+    Set-Variable -Name HOME -Value $targetHome9 -Scope Global -Force
+    $global:BackupId = $null
+    try { Create-Backup } finally { Set-Variable -Name HOME -Value $oldHome -Scope Global -Force }
+    $count9a = @(Get-ChildItem -Directory -Path $backupRoot9 -ErrorAction SilentlyContinue).Count
+    Write-Host "    [debug] after 1st: count=$count9a, dirs=$((Get-ChildItem -Directory $backupRoot9 -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }) -join ',')"
+    Start-Sleep -Seconds 2.5
+    $global:BackupId = $null
+    Set-Variable -Name HOME -Value $targetHome9 -Scope Global -Force
+    try { Create-Backup } finally { Set-Variable -Name HOME -Value $oldHome -Scope Global -Force }
+    $count9b = @(Get-ChildItem -Directory -Path $backupRoot9 -ErrorAction SilentlyContinue).Count
+    Write-Host "    [debug] after 2nd: count=$count9b, dirs=$((Get-ChildItem -Directory $backupRoot9 -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }) -join ',')"
+    '{"state": "modified"}' | Set-Content (Join-Path $opencodeDir9 'opencode.jsonc')
+    Start-Sleep -Seconds 2.5
+    $global:BackupId = $null
+    Set-Variable -Name HOME -Value $targetHome9 -Scope Global -Force
+    try { Create-Backup } finally { Set-Variable -Name HOME -Value $oldHome -Scope Global -Force }
+    $count9c = @(Get-ChildItem -Directory -Path $backupRoot9 -ErrorAction SilentlyContinue).Count
+    $ok9 = $true
+    if ($count9a -ne 1) { Test-Failed 'test_content_hash_dedup' "Expected 1 after 1st create, got $count9a"; $ok9 = $false }
+    if ($count9b -ne 1) { Test-Failed 'test_content_hash_dedup' "DEDUP REGRESSION: expected 1 (unchanged), got $count9b"; $ok9 = $false }
+    if ($count9c -ne 2) { Test-Failed 'test_content_hash_dedup' "Expected 2 after content change, got $count9c"; $ok9 = $false }
+    if ($ok9) {
+        $newest9 = Get-ChildItem -Directory -Path $backupRoot9 | Sort-Object Name | Select-Object -Last 1
+        $manifestPath9 = Join-Path $newest9.FullName 'manifest.txt'
+        $manifestContent9 = Get-Content $manifestPath9
+        if (-not ($manifestContent9 | Where-Object { $_ -match '^CONTENT_HASH=' })) {
+            Test-Failed 'test_content_hash_dedup' "Manifest missing CONTENT_HASH: $manifestPath9"
+            $ok9 = $false
+        }
+    }
+    if ($ok9) { Test-Passed 'test_content_hash_dedup' }
+
+    # --- Test 10: BACKUP_ID collision gets _2 suffix, never overwrites ---
+    Write-Host ''
+    Write-Host 'Test: test_collision_suffix'
+    $targetHome10 = Join-Path $SBox 'home10'
+    $xdgData10 = Join-Path $SBox 'data10'
+    $opencodeDir10 = Join-Path $targetHome10 '.config\opencode'
+    $backupRoot10 = Join-Path $xdgData10 'opencodeWizard\backups'
+    New-Item -ItemType Directory -Force -Path $opencodeDir10 | Out-Null
+    '{"user": "collision-test"}' | Set-Content (Join-Path $opencodeDir10 'opencode.jsonc')
+    $scriptHash10 = 'local'
+    try {
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $gh = git -C (Split-Path -Parent $Script) rev-parse --short HEAD 2>$null
+            if ($gh) { $scriptHash10 = $gh }
+        }
+    } catch {}
+    $frozenId10 = "ocw-${scriptHash10}-20200101-000000"
+    $frozenDir10 = Join-Path $backupRoot10 $frozenId10
+    New-Item -ItemType Directory -Force -Path $frozenDir10 | Out-Null
+    'PRE-EXISTING - must not be touched' | Set-Content (Join-Path $frozenDir10 'marker.txt')
+
+    # Override Get-Date so Generate-BackupId always returns the same timestamp.
+    $originalGetDate = Get-Item function:Get-Date -ErrorAction SilentlyContinue
+    function Global:Get-Date {
+        param([string]$Format)
+        if ($Format -eq 'yyyyMMdd-HHmmss') { return '20200101-000000' }
+        if ([string]::IsNullOrEmpty($Format)) { Microsoft.PowerShell.Utility\Get-Date }
+        else { Microsoft.PowerShell.Utility\Get-Date -Format $Format }
+    }
+
+    $global:BackupDir = $backupRoot10
+    $global:BackupId = $null
+    $global:MaxBackups = 15
+    Set-Variable -Name HOME -Value $targetHome10 -Scope Global -Force
+    try { Create-Backup } finally { Set-Variable -Name HOME -Value $oldHome -Scope Global -Force }
+
+    if ($originalGetDate) { Set-Item function:Get-Date -Value $originalGetDate.ScriptBlock }
+    else { Remove-Item function:Get-Date -ErrorAction SilentlyContinue }
+
+    $marker10 = Get-Content (Join-Path $frozenDir10 'marker.txt') -ErrorAction SilentlyContinue
+    $suffixDir10 = Join-Path $backupRoot10 "${frozenId10}_2"
+    $ok10 = $true
+    if ($marker10 -notmatch 'PRE-EXISTING') {
+        Test-Failed 'test_collision_suffix' "COLLISION REGRESSION: pre-existing backup was overwritten (marker=$marker10)"
+        $ok10 = $false
+    }
+    if (-not (Test-Path $suffixDir10)) {
+        Test-Failed 'test_collision_suffix' "COLLISION REGRESSION: expected ${frozenId10}_2, not found"
+        $ok10 = $false
+    }
+    if ($ok10) { Test-Passed 'test_collision_suffix' }
+
+    # --- Test 11: End-to-end - run wizard with -MergeBackup pointing at fixture ---
     Write-Host ''
     Write-Host 'Test: test_merge_flag_end_to_end'
     $targetHome = Join-Path $SBox 'home'

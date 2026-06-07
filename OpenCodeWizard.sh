@@ -59,6 +59,7 @@ MERGE_BACKUP_PATH=""
 # Backup system
 BACKUP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/opencodeWizard/backups"
 BACKUP_ID=""  # generated once per session by generate_backup_id()
+MAX_BACKUPS="${MAX_BACKUPS:-15}"  # keep at most N most-recent backups; older auto-pruned
 
 # Show Help Message
 show_help() {
@@ -750,7 +751,59 @@ detect_os() {
 generate_backup_id() {
     local script_hash
     script_hash=$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo "local")
-    BACKUP_ID="ocw-${script_hash}-$(date +%Y%m%d-%H%M%S)"
+    local base_id
+    base_id="ocw-${script_hash}-$(date +%Y%m%d-%H%M%S)"
+    BACKUP_ID="$base_id"
+    local suffix=2
+    while [ -d "$BACKUP_DIR/$BACKUP_ID" ]; do
+        BACKUP_ID="${base_id}_${suffix}"
+        suffix=$((suffix + 1))
+    done
+}
+
+# Stable content hash of all managed source files. Empty if none exist.
+# Lexicographic sort = chronological sort, since ID format YYYYMMDD-HHMMSS is sortable.
+compute_content_hash() {
+    local input=""
+    local f
+    for f in \
+        "$HOME/.config/opencode/opencode.jsonc" \
+        "$HOME/.config/opencode/system_info.md" \
+        "$HOME/.config/wezterm/wezterm.lua" \
+        "$HOME/.bashrc" \
+        "$HOME/.zshrc"; do
+        if [ -f "$f" ]; then
+            input="${input}$(sha256sum "$f" 2>/dev/null || true)"
+        fi
+    done
+    if [ -z "$input" ]; then
+        echo ""
+        return 0
+    fi
+    printf '%s' "$input" | sha256sum | cut -d' ' -f1
+}
+
+prune_old_backups() {
+    local max="${1:-$MAX_BACKUPS}"
+    [ -z "$max" ] || [ "$max" -lt 1 ] && return 0
+    [ ! -d "$BACKUP_DIR" ] && return 0
+
+    local dirs=()
+    while IFS= read -r -d '' d; do
+        dirs+=("$d")
+    done < <(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -z)
+
+    local count="${#dirs[@]}"
+    [ "$count" -le "$max" ] && return 0
+
+    local to_delete=$((count - max))
+    local i=0
+    while [ "$i" -lt "$to_delete" ]; do
+        local victim="${dirs[$i]}"
+        log_info "Pruning old backup: $(basename "$victim")"
+        rm -rf "$victim"
+        i=$((i + 1))
+    done
 }
 
 # Back up all currently-existing managed config files into $BACKUP_DIR/$BACKUP_ID/
@@ -763,6 +816,21 @@ create_backup() {
         return 0
     fi
 
+    local current_hash
+    current_hash=$(compute_content_hash)
+
+    if [ -n "$current_hash" ] && [ -d "$BACKUP_DIR" ]; then
+        local existing
+        existing=$(grep -l "^CONTENT_HASH=$current_hash$" "$BACKUP_DIR"/*/manifest.txt 2>/dev/null | head -1 || true)
+        if [ -n "$existing" ]; then
+            local dup_id
+            dup_id=$(basename "$(dirname "$existing")")
+            log_info "No changes since backup $dup_id (content-hash match); skipping"
+            BACKUP_ID="$dup_id"
+            return 0
+        fi
+    fi
+
     local dest="$BACKUP_DIR/$BACKUP_ID"
     mkdir -p "$dest"
 
@@ -773,22 +841,24 @@ create_backup() {
     local bashrc="$HOME/.bashrc"
     local zshrc="$HOME/.zshrc"
 
-    [ -f "$opencode_cfg" ] && cp "$opencode_cfg" "$dest/opencode.jsonc"  && backed_up+=("opencode.jsonc")
-    [ -f "$sysinfo" ]      && cp "$sysinfo"      "$dest/system_info.md"  && backed_up+=("system_info.md")
-    [ -f "$wez_cfg" ]      && cp "$wez_cfg"       "$dest/wezterm.lua"     && backed_up+=("wezterm.lua")
-    [ -f "$bashrc" ]       && cp "$bashrc"        "$dest/bashrc"          && backed_up+=("bashrc")
-    [ -f "$zshrc" ]        && cp "$zshrc"         "$dest/zshrc"           && backed_up+=("zshrc")
+    [ -f "$opencode_cfg" ] && [ ! -f "$dest/opencode.jsonc" ] && cp "$opencode_cfg" "$dest/opencode.jsonc"  && backed_up+=("opencode.jsonc")
+    [ -f "$sysinfo" ]      && [ ! -f "$dest/system_info.md" ]  && cp "$sysinfo"      "$dest/system_info.md"  && backed_up+=("system_info.md")
+    [ -f "$wez_cfg" ]      && [ ! -f "$dest/wezterm.lua" ]     && cp "$wez_cfg"       "$dest/wezterm.lua"     && backed_up+=("wezterm.lua")
+    [ -f "$bashrc" ]       && [ ! -f "$dest/bashrc" ]          && cp "$bashrc"        "$dest/bashrc"          && backed_up+=("bashrc")
+    [ -f "$zshrc" ]        && [ ! -f "$dest/zshrc" ]           && cp "$zshrc"         "$dest/zshrc"           && backed_up+=("zshrc")
 
-    # Write manifest
     {
         echo "BACKUP_ID=$BACKUP_ID"
         echo "CREATED=$(date -Iseconds)"
         echo "FILES=${backed_up[*]}"
+        [ -n "$current_hash" ] && echo "CONTENT_HASH=$current_hash"
     } > "$dest/manifest.txt"
 
     log_success "$(msg "backup_created")"
     log_info "$(msg "backup_id_label") $BACKUP_ID"
     log_info "$(msg "backup_location") $dest"
+
+    prune_old_backups
 }
 
 # List backups and return array via global BACKUPS_LIST / BACKUPS_COUNT

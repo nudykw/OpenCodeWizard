@@ -228,7 +228,229 @@ test_merge_flag_in_help() {
     fi
 }
 
-# --- Test 7: --merge-backup flag actually triggers merge on a fixture path ---
+# --- Test 7: create_backup is idempotent within a session (regression) ---
+# Regression: a second create_backup call in the same session (e.g. from
+# configure_wezterm after configure_opencode) was overwriting the
+# opencode.jsonc backup with the wizard's just-written default, so
+# smart_merge then saw backup == target and wrongly reported "no changes".
+test_create_backup_idempotent() {
+    local target_home="$SBOX/home7"
+    local xdg_data="$SBOX/data7"
+    local opencode_cfg_dir="$target_home/.config/opencode"
+    local opencode_cfg="$opencode_cfg_dir/opencode.jsonc"
+    local sysinfo="$opencode_cfg_dir/system_info.md"
+
+    mkdir -p "$opencode_cfg_dir"
+
+    cat > "$opencode_cfg" <<'JSON'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": "llamaserver",
+  "user_custom_field": "user-preserved-data"
+}
+JSON
+    cat > "$sysinfo" <<'MD'
+# System Info (original user version)
+MD
+
+    # Stage 1: configure_opencode calls create_backup (BEFORE writing default).
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        BACKUP_ID="" BACKUP_DIR="$xdg_data/opencodeWizard/backups" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    local backup_id
+    backup_id=$(ls -1 "$xdg_data/opencodeWizard/backups" 2>/dev/null | head -1)
+    if [ -z "$backup_id" ]; then
+        echo "  Backup directory was not created"
+        return 1
+    fi
+    local backup_path="$xdg_data/opencodeWizard/backups/$backup_id"
+
+    if [ ! -f "$backup_path/opencode.jsonc" ]; then
+        echo "  First backup did not capture opencode.jsonc"
+        return 1
+    fi
+    assert_grep "$backup_path/opencode.jsonc" 'user-preserved-data' \
+        "First backup must contain user's original (LLAMA) data" || return 1
+
+    # Stage 2: configure_opencode overwrites user's file with wizard default.
+    cat > "$opencode_cfg" <<'JSON'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "system",
+  "mcp": {}
+}
+JSON
+    cat > "$sysinfo" <<'MD'
+# System Info (wizard-default version)
+MD
+
+    # Stage 3: configure_wezterm calls create_backup again — must NOT overwrite.
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        BACKUP_ID="$backup_id" BACKUP_DIR="$xdg_data/opencodeWizard/backups" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    assert_grep "$backup_path/opencode.jsonc" 'user-preserved-data' \
+        "REGRESSION: backup was overwritten by 2nd create_backup call (bug)" \
+        || return 1
+    assert_not_grep "$backup_path/opencode.jsonc" '"theme": "system"' \
+        "REGRESSION: backup contains wizard's default instead of user's original" \
+        || return 1
+    assert_grep "$backup_path/system_info.md" 'original user version' \
+        "REGRESSION: system_info.md backup was overwritten" || return 1
+}
+
+# --- Test 8: MAX_BACKUPS=15 auto-prunes oldest ---
+test_max_backups_prunes_oldest() {
+    local target_home="$SBOX/home8"
+    local xdg_data="$SBOX/data8"
+    local opencode_cfg_dir="$target_home/.config/opencode"
+    local opencode_cfg="$opencode_cfg_dir/opencode.jsonc"
+    local backup_root="$xdg_data/opencodeWizard/backups"
+
+    mkdir -p "$opencode_cfg_dir"
+    cat > "$opencode_cfg" <<'JSON'
+{"user": "max-backups-test"}
+JSON
+
+    # Pre-create 16 fake "old" backup dirs with sortable, monotonically increasing names.
+    for i in $(seq -w 1 16); do
+        mkdir -p "$backup_root/ocw-test-20200101-0000${i}"
+    done
+
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        MAX_BACKUPS=15 \
+        BACKUP_ID="" BACKUP_DIR="$backup_root" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    local count
+    count=$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "$count" -ne 15 ]; then
+        echo "  Expected 15 backup dirs after prune, got $count"
+        return 1
+    fi
+    if [ -d "$backup_root/ocw-test-20200101-000001" ]; then
+        echo "  Oldest backup was NOT pruned"
+        return 1
+    fi
+    if [ ! -d "$backup_root/ocw-test-20200101-000003" ]; then
+        echo "  A backup that should have been kept was pruned"
+        return 1
+    fi
+}
+
+# --- Test 9: content-hash dedup skips redundant backups ---
+test_content_hash_dedup() {
+    local target_home="$SBOX/home9"
+    local xdg_data="$SBOX/data9"
+    local opencode_cfg_dir="$target_home/.config/opencode"
+    local opencode_cfg="$opencode_cfg_dir/opencode.jsonc"
+    local backup_root="$xdg_data/opencodeWizard/backups"
+
+    mkdir -p "$opencode_cfg_dir"
+    cat > "$opencode_cfg" <<'JSON'
+{"state": "initial"}
+JSON
+
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        MAX_BACKUPS=15 BACKUP_ID="" BACKUP_DIR="$backup_root" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    local count1
+    count1=$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "$count1" -ne 1 ]; then
+        echo "  Expected 1 backup after first create, got $count1"
+        return 1
+    fi
+
+    sleep 2.5
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        MAX_BACKUPS=15 BACKUP_ID="" BACKUP_DIR="$backup_root" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    local count2
+    count2=$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "$count2" -ne 1 ]; then
+        echo "  DEDUP REGRESSION: expected 1 backup (unchanged content), got $count2"
+        return 1
+    fi
+
+    # Modify content → next backup should be created.
+    cat > "$opencode_cfg" <<'JSON'
+{"state": "modified"}
+JSON
+    sleep 2.5
+    HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        MAX_BACKUPS=15 BACKUP_ID="" BACKUP_DIR="$backup_root" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    local count3
+    count3=$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "$count3" -ne 2 ]; then
+        echo "  Expected 2 backups after content change, got $count3"
+        return 1
+    fi
+
+    # The most-recent backup's manifest must contain a CONTENT_HASH line.
+    local newest_manifest
+    newest_manifest=$(find "$backup_root" -mindepth 2 -maxdepth 2 -name manifest.txt 2>/dev/null | sort | tail -1)
+    if ! grep -q "^CONTENT_HASH=" "$newest_manifest"; then
+        echo "  Manifest missing CONTENT_HASH: $newest_manifest"
+        return 1
+    fi
+}
+
+# --- Test 10: BACKUP_ID collision gets _2/_3 suffix, never overwrites ---
+test_collision_suffix() {
+    local target_home="$SBOX/home10"
+    local xdg_data="$SBOX/data10"
+    local opencode_cfg_dir="$target_home/.config/opencode"
+    local opencode_cfg="$opencode_cfg_dir/opencode.jsonc"
+    local backup_root="$xdg_data/opencodeWizard/backups"
+    local bin_dir="$SBOX/bin10"
+
+    mkdir -p "$opencode_cfg_dir" "$bin_dir"
+    cat > "$opencode_cfg" <<'JSON'
+{"user": "collision-test"}
+JSON
+
+    # Fake `date` so generate_backup_id always returns the same timestamp.
+    cat > "$bin_dir/date" <<EOF
+#!/bin/bash
+if [ "\$1" = "+%Y%m%d-%H%M%S" ]; then
+    echo "20200101-000000"
+fi
+EOF
+    chmod +x "$bin_dir/date"
+
+    # Pre-create the dir that the FIRST call would create.
+    local script_hash
+    script_hash=$(git -C "$(dirname "$SCRIPT")" rev-parse --short HEAD 2>/dev/null || echo "local")
+    local frozen_id="ocw-${script_hash}-20200101-000000"
+    mkdir -p "$backup_root/$frozen_id"
+    echo "PRE-EXISTING - must not be touched" > "$backup_root/$frozen_id/marker.txt"
+
+    PATH="$bin_dir:$PATH" \
+        HOME="$target_home" XDG_DATA_HOME="$xdg_data" \
+        MAX_BACKUPS=15 BACKUP_ID="" BACKUP_DIR="$backup_root" \
+        "$SCRIPT" --silent --create-backup >/dev/null 2>&1 || true
+
+    # The pre-existing dir must be untouched.
+    if [ ! -f "$backup_root/$frozen_id/marker.txt" ] \
+       || ! grep -q "PRE-EXISTING" "$backup_root/$frozen_id/marker.txt"; then
+        echo "  COLLISION REGRESSION: pre-existing backup was overwritten"
+        return 1
+    fi
+
+    # The new backup must be at <frozen_id>_2.
+    if [ ! -d "$backup_root/${frozen_id}_2" ]; then
+        echo "  COLLISION REGRESSION: expected ${frozen_id}_2, not found"
+        ls -la "$backup_root" >&2
+        return 1
+    fi
+}
+
+# --- Test 11: --merge-backup flag actually triggers merge on a fixture path ---
 # This is the end-to-end test: run the wizard with the flag and a real fixture.
 test_merge_flag_end_to_end() {
     local target_home="$SBOX/home"
@@ -268,6 +490,10 @@ run_test test_shell_merge_function_exists
 run_test test_shell_merge
 run_test test_shell_idempotency
 run_test test_merge_flag_in_help
+run_test test_create_backup_idempotent
+run_test test_max_backups_prunes_oldest
+run_test test_content_hash_dedup
+run_test test_collision_suffix
 run_test test_merge_flag_end_to_end
 
 echo ""

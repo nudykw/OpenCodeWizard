@@ -65,6 +65,7 @@ if ($Silent -and $Preset -in @($PresetDeveloper, $PresetStandard, $PresetMinimal
 
 # Backup State
 $global:BackupDir = "$HOME\.local\share\opencodeWizard\backups"
+$global:MaxBackups = 15
 $global:BackupId = ""
 
 # Load central configuration
@@ -555,7 +556,47 @@ function Generate-BackupId {
         }
     } catch {}
     $dateStr = Get-Date -Format "yyyyMMdd-HHmmss"
-    $global:BackupId = "ocw-$hash-$dateStr"
+    $baseId = "ocw-$hash-$dateStr"
+    $global:BackupId = $baseId
+    $suffix = 2
+    while (Test-Path (Join-Path $global:BackupDir $global:BackupId)) {
+        $global:BackupId = "${baseId}_$suffix"
+        $suffix++
+    }
+}
+
+function Get-ContentHash {
+    $input = ""
+    $files = @(
+        "$HOME\.config\opencode\opencode.jsonc",
+        "$HOME\.config\opencode\system_info.md",
+        "$HOME\.config\wezterm\wezterm.lua",
+        "$HOME\.bashrc",
+        "$HOME\.zshrc"
+    )
+    foreach ($f in $files) {
+        if (Test-Path $f) {
+            $hash = (Get-FileHash -Path $f -Algorithm SHA256 -ErrorAction SilentlyContinue).Hash
+            if ($hash) { $input += $hash }
+        }
+    }
+    if ([string]::IsNullOrEmpty($input)) { return "" }
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($input)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    return ([BitConverter]::ToString($sha.ComputeHash($bytes)) -replace '-', '').ToLower()
+}
+
+function Remove-OldBackups {
+    param([int]$Max = $global:MaxBackups)
+    if ($Max -lt 1) { return }
+    if (-not (Test-Path $global:BackupDir)) { return }
+    $dirs = Get-ChildItem -Directory -Path $global:BackupDir | Sort-Object Name
+    if ($dirs.Count -le $Max) { return }
+    $toDelete = $dirs.Count - $Max
+    for ($i = 0; $i -lt $toDelete; $i++) {
+        Write-Host "  [info] Pruning old backup: $($dirs[$i].Name)"
+        Remove-Item -Recurse -Force $dirs[$i].FullName
+    }
 }
 
 function Create-Backup {
@@ -566,29 +607,49 @@ function Create-Backup {
         return
     }
 
-    $dest = Join-Path $global:BackupDir $global:BackupId
-    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+    $currentHash = Get-ContentHash
+    $skipCreate = $false
+    if (-not [string]::IsNullOrEmpty($currentHash) -and (Test-Path $global:BackupDir)) {
+        $escapedHash = [regex]::Escape($currentHash)
+        $existing = Get-ChildItem -Directory -Path $global:BackupDir |
+            Where-Object { Test-Path (Join-Path $_.FullName 'manifest.txt') } |
+            Where-Object { Select-String -Path (Join-Path $_.FullName 'manifest.txt') -Pattern "^CONTENT_HASH=$escapedHash$" -Quiet } |
+            Select-Object -First 1
+        if ($existing) {
+            Write-Host "  [info] No changes since backup $($existing.Name) (content-hash match); skipping"
+            $global:BackupId = $existing.Name
+            $skipCreate = $true
+        }
+    }
 
-    $backedUp = @()
-    $opencodeCfg = "$HOME\.config\opencode\opencode.jsonc"
-    $sysinfo = "$HOME\.config\opencode\system_info.md"
-    $wezCfg = "$HOME\.config\wezterm\wezterm.lua"
+    if (-not $skipCreate) {
+        $dest = Join-Path $global:BackupDir $global:BackupId
+        if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
 
-    if (Test-Path $opencodeCfg) { Copy-Item $opencodeCfg -Destination "$dest\opencode.jsonc" -Force; $backedUp += "opencode.jsonc" }
-    if (Test-Path $sysinfo) { Copy-Item $sysinfo -Destination "$dest\system_info.md" -Force; $backedUp += "system_info.md" }
-    if (Test-Path $wezCfg) { Copy-Item $wezCfg -Destination "$dest\wezterm.lua" -Force; $backedUp += "wezterm.lua" }
-    
-    $profilePath = $PROFILE
-    if (Test-Path $profilePath) { Copy-Item $profilePath -Destination "$dest\Microsoft.PowerShell_profile.ps1" -Force; $backedUp += "profile.ps1" }
+        $backedUp = @()
+        $opencodeCfg = "$HOME\.config\opencode\opencode.jsonc"
+        $sysinfo = "$HOME\.config\opencode\system_info.md"
+        $wezCfg = "$HOME\.config\wezterm\wezterm.lua"
 
-    $manifest = @(
-        "BACKUP_ID=$global:BackupId",
-        "CREATED=$((Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz'))",
-        "FILES=$($backedUp -join ' ')"
-    )
-    Set-Content -Path "$dest\manifest.txt" -Value $manifest -Encoding UTF8
+        if (Test-Path $opencodeCfg) { if (-not (Test-Path "$dest\opencode.jsonc")) { Copy-Item $opencodeCfg -Destination "$dest\opencode.jsonc"; $backedUp += "opencode.jsonc" } }
+        if (Test-Path $sysinfo) { if (-not (Test-Path "$dest\system_info.md")) { Copy-Item $sysinfo -Destination "$dest\system_info.md"; $backedUp += "system_info.md" } }
+        if (Test-Path $wezCfg) { if (-not (Test-Path "$dest\wezterm.lua")) { Copy-Item $wezCfg -Destination "$dest\wezterm.lua"; $backedUp += "wezterm.lua" } }
 
-    Log-Success "$(Get-Msg 'backup_created') $dest"
+        $profilePath = $PROFILE
+        if (Test-Path $profilePath) { if (-not (Test-Path "$dest\Microsoft.PowerShell_profile.ps1")) { Copy-Item $profilePath -Destination "$dest\Microsoft.PowerShell_profile.ps1"; $backedUp += "profile.ps1" } }
+
+        $manifest = @(
+            "BACKUP_ID=$global:BackupId",
+            "CREATED=$((Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz'))",
+            "FILES=$($backedUp -join ' ')"
+        )
+        if (-not [string]::IsNullOrEmpty($currentHash)) { $manifest += "CONTENT_HASH=$currentHash" }
+        Set-Content -Path "$dest\manifest.txt" -Value $manifest -Encoding UTF8
+
+        Log-Success "$(Get-Msg 'backup_created') $dest"
+
+        Remove-OldBackups
+    }
 }
 
 function List-Backups {
