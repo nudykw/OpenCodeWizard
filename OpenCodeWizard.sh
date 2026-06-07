@@ -9,6 +9,9 @@
 
 set -euo pipefail
 
+# Resolve script directory once at start (CWD may change later, e.g. nerd font install)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Colors for TUI
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -1748,8 +1751,7 @@ install_wezterm_splitter() {
             ;;
     esac
 
-    local src
-    src="$(dirname "$0")/config/splitter/wezterm-splitter.sh"
+    local src="$SCRIPT_DIR/config/splitter/wezterm-splitter.sh"
     local dest_dir="$HOME/.local/bin"
     local dest="$dest_dir/wezterm-splitter.sh"
     local zshrc="$HOME/.zshrc"
