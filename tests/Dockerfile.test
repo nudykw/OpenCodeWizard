@@ -1,0 +1,16 @@
+# Universal Dockerfile for OpenCodeWizard pre-built test images
+# Build with: docker build --build-arg DISTRO=<base> -t ocw-test:<name> -f tests/Dockerfile.test .
+# Supports: ubuntu, fedora, archlinux (via package manager detection)
+ARG DISTRO=ubuntu:24.04
+FROM $DISTRO
+
+# Install dependencies based on detected package manager
+RUN if command -v apt-get &>/dev/null; then \
+        apt-get update && apt-get install -y sudo git nodejs npm curl unzip gpg; \
+    elif command -v dnf &>/dev/null; then \
+        dnf install -y sudo git nodejs npm curl unzip gpg; \
+    elif command -v pacman &>/dev/null; then \
+        pacman -Sy --noconfirm sudo git nodejs npm curl unzip gnupg; \
+    fi
+
+WORKDIR /app
