@@ -1269,6 +1269,8 @@ show_dev_tool_info() {
 }
 
 # Install Gitui (terminal TUI for Git)
+# Strategy: native package manager first (fast path); fall back to GitHub Releases binary
+# (works on every distro/version, incl. Ubuntu 22.04+ where the apt repo doesn't ship gitui).
 install_gitui() {
     if command -v gitui &>/dev/null; then
         log_success "$(msg "gitui_exists") $(gitui --version 2>/dev/null || true)"
@@ -1283,43 +1285,125 @@ install_gitui() {
     show_dev_tool_info "gitui"
 
     if is_dry_run; then
-        log_dry "$(msg "dry_install_gitui") $OS/$DISTRO"
+        log_dry "$(msg "dry_install_gitui") $OS/$DISTRO (pkg or GitHub binary fallback)"
         return 0
     fi
 
     log_info "$(msg "installing_gitui")"
+
+    # ----- Fast path: native package manager (Arch, Fedora, macOS brew) -----
+    local native_ok=0
     case "$OS" in
         macos)
-            brew install gitui
+            if command -v brew &>/dev/null; then
+                brew install gitui && native_ok=1
+            fi
             ;;
         linux)
             case "$DISTRO" in
-                ubuntu)
-                    sudo apt install -y gitui
+                arch)
+                    if command -v pacman &>/dev/null; then
+                        sudo pacman -S --noconfirm gitui && native_ok=1
+                    fi
                     ;;
                 redhat)
-                    sudo dnf install -y gitui
-                    ;;
-                arch)
-                    sudo pacman -S --noconfirm gitui
-                    ;;
-                *)
-                    log_warning "$(msg "gitui_manual")"
-                    return 1
+                    if command -v dnf &>/dev/null; then
+                        sudo dnf install -y gitui && native_ok=1
+                    fi
                     ;;
             esac
             ;;
+    esac
+
+    if [ "$native_ok" = "1" ] && command -v gitui &>/dev/null; then
+        log_success "$(msg "gitui_success")"
+        return 0
+    fi
+
+    # ----- Universal fallback: download musl-linked static binary from GitHub Releases -----
+    # Works on Ubuntu 22.04+ (apt doesn't have gitui), Debian, RHEL, and any other distro.
+    if [ "$OS" != "linux" ] && [ "$OS" != "macos" ]; then
+        log_warning "$(msg "gitui_manual")"
+        return 1
+    fi
+
+    if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
+        log_warning "$(msg "gitui_manual")"
+        return 1
+    fi
+    if ! command -v tar &>/dev/null; then
+        log_warning "$(msg "gitui_manual")"
+        return 1
+    fi
+
+    local arch
+    arch=$(uname -m)
+    local asset
+    case "$arch" in
+        x86_64|amd64)   asset="gitui-linux-x86_64.tar.gz" ;;
+        aarch64|arm64)  asset="gitui-linux-aarch64.tar.gz" ;;
+        armv7l|armv7)   asset="gitui-linux-armv7.tar.gz" ;;
+        armv6l|arm)     asset="gitui-linux-arm.tar.gz" ;;
         *)
             log_warning "$(msg "gitui_manual")"
             return 1
             ;;
     esac
 
-    if command -v gitui &>/dev/null; then
-        log_success "$(msg "gitui_success")"
+    # Resolve latest release tag via GitHub API (silent fail -> "latest")
+    local tag
+    tag=$(curl -fsSL "https://api.github.com/repos/gitui-org/gitui/releases/latest" 2>/dev/null \
+        | grep -Po '"tag_name":\s*"\K[^"]+' | head -n1)
+    [ -z "$tag" ] && tag="latest"
+
+    local url="https://github.com/gitui-org/gitui/releases/download/${tag}/${asset}"
+    local tmpdir
+    tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t gitui)
+    local tarball="$tmpdir/$asset"
+
+    log_info "Downloading gitui $tag ($asset)..."
+    if command -v curl &>/dev/null; then
+        curl -fsSL --retry 3 -o "$tarball" "$url" || { rm -rf "$tmpdir"; log_warning "$(msg "gitui_manual")"; return 1; }
     else
-        log_warning "$(msg "gitui_manual")"
+        wget -q -O "$tarball" "$url" || { rm -rf "$tmpdir"; log_warning "$(msg "gitui_manual")"; return 1; }
     fi
+
+    if ! tar -xzf "$tarball" -C "$tmpdir" gitui 2>/dev/null; then
+        # Some tarballs may extract a subdir; fall back to glob
+        tar -xzf "$tarball" -C "$tmpdir" 2>/dev/null || { rm -rf "$tmpdir"; log_warning "$(msg "gitui_manual")"; return 1; }
+    fi
+    if [ ! -x "$tmpdir/gitui" ] && [ ! -x "$tmpdir/gitui.exe" ]; then
+        # Hunt for the binary in any extracted subdir
+        local found
+        found=$(find "$tmpdir" -maxdepth 3 -type f \( -name 'gitui' -o -name 'gitui.exe' \) -print -quit 2>/dev/null)
+        if [ -z "$found" ]; then
+            rm -rf "$tmpdir"
+            log_warning "$(msg "gitui_manual")"
+            return 1
+        fi
+        mv "$found" "$tmpdir/gitui"
+    fi
+    chmod +x "$tmpdir/gitui" 2>/dev/null || true
+
+    # Install to ~/.local/bin (no sudo needed, idempotent on PATH for dev preset)
+    local bindir="$HOME/.local/bin"
+    mkdir -p "$bindir"
+    if mv "$tmpdir/gitui" "$bindir/gitui"; then
+        rm -rf "$tmpdir"
+        log_success "$(msg "gitui_success") (installed to $bindir — add to PATH if needed)"
+        return 0
+    fi
+
+    # If user install failed (read-only fs), try sudo to /usr/local/bin
+    if command -v sudo &>/dev/null && sudo mv "$tmpdir/gitui" "/usr/local/bin/gitui" 2>/dev/null; then
+        rm -rf "$tmpdir"
+        log_success "$(msg "gitui_success") (installed to /usr/local/bin)"
+        return 0
+    fi
+
+    rm -rf "$tmpdir"
+    log_warning "$(msg "gitui_manual")"
+    return 1
 }
 
 # Node.js / npm installation (with user consent)

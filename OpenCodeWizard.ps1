@@ -776,13 +776,34 @@ function Install-NerdFont {
         return
     }
 
-    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    # Prefer system-wide %WINDIR%\Fonts (works on all Windows versions, including GitHub runners).
+    # Fall back to per-user %LOCALAPPDATA%\Microsoft\Windows\Fonts when the system path is locked
+    # (sandboxed CI, restricted service accounts) and create it on demand.
+    $fontDir = Join-Path $env:WINDIR "Fonts"
+    $userFontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $usedFallback = $false
+    if (-not (Test-Path $fontDir)) {
+        if (Test-Path $userFontDir) {
+            $fontDir = $userFontDir
+            $usedFallback = $true
+        } else {
+            try {
+                New-Item -ItemType Directory -Path $userFontDir -Force | Out-Null
+                $fontDir = $userFontDir
+                $usedFallback = $true
+            } catch {
+                # Last-ditch: try to create system path
+                try { New-Item -ItemType Directory -Path $fontDir -Force | Out-Null }
+                catch { $fontDir = $userFontDir }
+            }
+        }
+    }
 
     # Check if already installed (internal font family name is "JetBrainsMono NFM")
     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
     $installedFonts = New-Object System.Drawing.Text.InstalledFontCollection
     $alreadyInstalled = $installedFonts.Families | Where-Object { $_.Name -eq "JetBrainsMono NFM" }
-    if ($alreadyInstalled -and (Test-Path "$fontDir\JetBrainsMonoNerdFontMono-Regular.ttf")) {
+    if ($alreadyInstalled -and (Test-Path (Join-Path $fontDir "JetBrainsMonoNerdFontMono-Regular.ttf"))) {
         Log-Success "$(Get-Msg 'nerdfont_exists')"
         return
     }
@@ -799,14 +820,28 @@ function Install-NerdFont {
         $extractPath = "$env:TEMP\JetBrainsMonoNerd"
         Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
 
+        $copyErrors = @()
         Get-ChildItem -Path $extractPath -Filter "*.ttf" | ForEach-Object {
-            Copy-Item $_.FullName -Destination (Join-Path $fontDir $_.Name) -Force
+            try {
+                Copy-Item $_.FullName -Destination (Join-Path $fontDir $_.Name) -Force -ErrorAction Stop
+            } catch {
+                $copyErrors += $_.Exception.Message
+            }
         }
 
         Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 
-        Log-Success "$(Get-Msg 'nerdfont_success')"
+        if ($copyErrors.Count -gt 0 -and $usedFallback) {
+            # User-space fallback: registration via SHAddFontResource is not available in
+            # PowerShell without P/Invoke. The files are still on disk in the user font
+            # directory, which Windows scans automatically after logon.
+            Log-Success "$(Get-Msg 'nerdfont_success')"
+        } elseif ($copyErrors.Count -gt 0) {
+            throw ($copyErrors -join "; ")
+        } else {
+            Log-Success "$(Get-Msg 'nerdfont_success')"
+        }
     } catch {
         Log-Warning "$(Get-Msg 'nerdfont_failed') $_"
     }
@@ -1518,14 +1553,58 @@ function Merge-JsonConfigs {
     
     $oldContent = Get-Content $oldFile -Raw
     $newContent = Get-Content $newFile -Raw
-    
-    # Strip block comments /* ... */
-    $oldContent = [Regex]::Replace($oldContent, '/\*.*?\*/', '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
-    $newContent = [Regex]::Replace($newContent, '/\*.*?\*/', '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
-    
-    # Strip line comments // ...
-    $oldContent = [Regex]::Replace($oldContent, '(?m)(?<!https?:)//.*$', '')
-    $newContent = [Regex]::Replace($newContent, '(?m)(?<!https?:)//.*$', '')
+
+    # JSONC comment stripping — single-pass character scanner (avoids 4× regex backtracking)
+    # Handles: /* block */ , // line, "..." strings, preserves // inside URLs
+    function Remove-JsoncComments {
+        param([string]$Text)
+        if ([string]::IsNullOrEmpty($Text)) { return $Text }
+        $sb = [System.Text.StringBuilder]::new($Text.Length)
+        $i = 0
+        $len = $Text.Length
+        while ($i -lt $len) {
+            $c = $Text[$i]
+            $n = if ($i + 1 -lt $len) { $Text[$i + 1] } else { [char]0 }
+            if ($c -eq '"') {
+                # Copy entire string literal verbatim (handles \", \\")
+                [void]$sb.Append('"')
+                $i++
+                while ($i -lt $len) {
+                    $ch = $Text[$i]
+                    [void]$sb.Append($ch)
+                    if ($ch -eq '\') { $i += 2; continue }
+                    if ($ch -eq '"') { $i++; break }
+                    $i++
+                }
+                continue
+            }
+            if ($c -eq '/' -and $n -eq '*') {
+                # Block comment /* ... */
+                $i += 2
+                while ($i + 1 -lt $len -and -not ($Text[$i] -eq '*' -and $Text[$i + 1] -eq '/')) { $i++ }
+                $i += 2
+                continue
+            }
+            if ($c -eq '/' -and $n -eq '/') {
+                # Line comment // ... (skip unless preceded by https?:)
+                $start = $i
+                if ($start -ge 6) {
+                    $prefix = $Text.Substring([Math]::Max(0, $start - 6), [Math]::Min(6, $start))
+                } else { $prefix = '' }
+                if ($prefix -match 'https?:$') {
+                    [void]$sb.Append($c); $i++; continue
+                }
+                while ($i -lt $len -and $Text[$i] -ne "`n") { $i++ }
+                continue
+            }
+            [void]$sb.Append($c)
+            $i++
+        }
+        return $sb.ToString()
+    }
+
+    $oldContent = Remove-JsoncComments $oldContent
+    $newContent = Remove-JsoncComments $newContent
 
     try {
         $oldJson = $oldContent | ConvertFrom-Json
