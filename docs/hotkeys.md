@@ -30,7 +30,8 @@ shared terminal (bottom-left, 40% × 30%), and OpenCode (right, 60% width).
   script path will be sent as text into the OpenCode chat instead of executing.
   In that case use `CTRL+SHIFT+G` instead.
 - **Layout**:
-  ```
+
+  ```text
   ┌───────────────────┬───────────────────┐
   │ gitui / shell      │                   │
   │ (top-left, 70%)    │  OpenCode (60%)   │
@@ -38,7 +39,7 @@ shared terminal (bottom-left, 40% × 30%), and OpenCode (right, 60% width).
   │ shared terminal   │                   │
   │ (bottom-left, 30%)│                   │
   └───────────────────┴───────────────────┘
-  ```
+  ```text
 
 #### `CTRL+SHIFT+G` — Split in New Tab
 
@@ -70,6 +71,7 @@ The **shared terminal** (bottom-left) is a regular shell that the AI bot can sen
 This allows you to ask the AI to execute commands without leaving the chat.
 
 **Usage:**
+
 1. Press one of the hotkeys above (from a shell, not from within OpenCode)
 2. gitui opens in the top-left (only if the folder is a git repository)
 3. OpenCode starts in the right pane
