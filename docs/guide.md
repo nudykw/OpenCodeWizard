@@ -20,7 +20,7 @@ Welcome! If you are new to the command line or using local AI assistants, this g
   - [Using Plugins](#using-plugins)
   - [Working with MCP Servers](mcp.md)
 - [Shared Terminal](shared-terminal.md)
-- [6. Customizing Plugins & MCP Servers](#6-customizing-plugins--mcp-servers)
+- [6. Customizing Plugins, MCP Servers & the AI System Prompt](#6-customizing-plugins-mcp-servers--the-ai-system-prompt)
 - [7. Backups and Restore](#7-backups-and-restore)
 
 ---
@@ -238,26 +238,36 @@ OpenCode has integrated browser support through the `puppeteer` MCP server or `@
 
 ---
 
-## 6. Customizing Plugins & MCP Servers
+## 6. Customizing Plugins, MCP Servers & the AI System Prompt
 
-You can easily modify which plugins and MCP servers are installed by the wizard without any programming knowledge.
+All plugins, MCP servers, and the AI system prompt template are stored in the `config/` directory as simple text files. No need to edit the scripts themselves.
 
-Open `OpenCodeWizard.sh` (or `OpenCodeWizard.ps1` on Windows) in a text editor and look for the arrays at the very top of the script:
+| File | What to configure |
+|---|---|
+| `config/plugins.conf` | Add or disable plugins (name + description per line) |
+| `config/mcp.conf` | Add or disable MCP servers (name + description + command per line) |
+| `config/system_info.md.tpl` | **Customize the AI system prompt** template |
+| `config/variables.conf` | Define which plugins/MCPs belong to each preset (developer / standard / minimal) |
 
-```bash
-OPENCODE_PLUGINS=(
-    "oh-my-openagent|Session management and advanced CLI commands"
-    "opencode-mem|Vector and long-term memory for the assistant"
-)
+**To customize the AI system prompt** (the instructions the AI receives at startup):
 
-OPENCODE_MCP_SERVERS=(
-    "fetch|Fast web page text retrieval|npx -y mcp-server-fetch-typescript"
-)
-```
+1. Open `config/system_info.md.tpl` in any text editor
+2. Edit the markdown content. Use `{{PLACEHOLDER}}` variables for dynamic system info (OS, CPU, RAM)
+3. Save the file and re-run: `./OpenCodeWizard.sh --silent`
 
-- **To add a plugin:** Add a new line with `"plugin-name|Description"`.
-- **To disable an MCP server:** Add a `#` at the beginning of its line to comment it out.
-- Run the setup script again (`./OpenCodeWizard.sh --silent`) to apply your changes.
+**To add a plugin:**
+
+1. Open `config/plugins.conf`
+2. Add a new line: `plugin-name|Description of the plugin`
+3. Save and re-run the wizard
+
+**To disable an MCP server:**
+
+1. Open `config/mcp.conf`
+2. Add a `#` at the beginning of the line: `# fetch|Web fetch MCP|npx -y ...`
+3. Save and re-run the wizard
+
+> **Changes take effect immediately** the next time you run the setup script.
 
 ---
 

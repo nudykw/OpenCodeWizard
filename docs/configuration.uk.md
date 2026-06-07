@@ -25,6 +25,7 @@
 | `config/variables.conf` | Визначення preset-ів (плагіни, MCP на preset) | Редагування вручну |
 | `config/plugins.conf` | Список доступних плагінів | Редагування вручну |
 | `config/mcp.conf` | Список доступних MCP-серверів | Редагування вручну |
+| `config/system_info.md.tpl` | Шаблон системного промпту AI (інструкції + інформація про систему) | Редагування вручну |
 
 ---
 
@@ -92,21 +93,16 @@ docs-mcp|Читання документів (PDF, DOCX, тощо)|docling
 3. Записує `system_info.md` з інформацією про систему та критичними правилами
 4. Встановлює `opencode.jsonc` посилання на `system_info.md` через `"instructions"`
 
-### 2.5 Файл system_info.md
+### 2.5 Шаблон системного промпту (system_info.md.tpl)
 
-Генерується `configure_opencode()` у `OpenCodeWizard.sh` (рядок ~1668):
+Замість жорстко закодованого тексту, OpenCodeWizard використовує шаблон `config/system_info.md.tpl`. Цей файл містить інструкції для AI англійською мовою (оскільки це промпт для моделі, а не для користувача) та змінні-плейсхолдери на кшталт `{{OS}}` або `{{SHELL}}`.
 
-```markdown
-# GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
+Обидва скрипти (`.sh` та `.ps1`) використовують цей спільний шаблон для генерації фінального файлу `~/.config/opencode/system_info.md`.
 
-**ABSOLUTE PROHIBITION: Never commit or push to git without explicit user confirmation.**
-...
-# System Environment Details
-- **Operating System:** ...
-- **User Shell:** ...
-```
+**Щоб налаштувати промпт AI:**
 
-Критичні правила розташовані **першими**, перед деталями системи, для максимальної видимості.
+1. Відредагуйте `config/system_info.md.tpl` у репозиторії.
+2. Запустіть візард знову — він оновить встановлений файл інструкцій, зберігши актуальні дані про вашу систему.
 
 ---
 
@@ -216,8 +212,8 @@ export OPENCODE_AGENTS_SWITCH_SINGLE_MODEL=true
 
 ### Де воно визначено
 
-1. **Глобально:** `~/.config/opencode/system_info.md` (додано вручну)
-2. **Згенеровано:** Скрипт створює його автоматично в тому ж файлі через `configure_opencode()`
+1. **Згенеровано з шаблону:** `config/system_info.md.tpl` (шаблон у репозиторії)
+2. **Встановлено:** `~/.config/opencode/system_info.md` (згенерований файл)
 
 ### Правило
 

@@ -253,8 +253,9 @@ All plugins and MCP servers are defined in central configuration files located i
 
 - **Plugins:** `config/plugins.conf`
 - **MCP Servers:** `config/mcp.conf`
+- **AI System Prompt:** `config/system_info.md.tpl`
 
-These files use a simple pipe-separated format (`|`) and are shared by both the Bash (`OpenCodeWizard.sh`) and PowerShell (`OpenCodeWizard.ps1`) versions of the wizard.
+The plugin and MCP files use a simple pipe-separated format (`|`) and are shared by both the Bash (`OpenCodeWizard.sh`) and PowerShell (`OpenCodeWizard.ps1`) versions of the wizard.
 
 **To add or disable a plugin or MCP server:**
 

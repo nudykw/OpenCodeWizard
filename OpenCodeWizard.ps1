@@ -1179,64 +1179,24 @@ function Configure-OpenCode {
     }
     $ramInfo = "${ramGB} GB RAM"
     $systemInfoFile = Join-Path $configDir "system_info.md"
-    $systemInfoContent = @"
-# GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
+    $templatePath = Join-Path $PSScriptRoot "config\system_info.md.tpl"
+    if (-not (Test-Path $templatePath)) {
+        Write-Error "Template not found: $templatePath"
+        return
+    }
+    $templateContent = [System.IO.File]::ReadAllText($templatePath, [System.Text.UTF8Encoding]::new($false))
 
-**ALGORITHMIC ENFORCEMENT: You MUST use the `question` tool before any git commit or push.**
-
-1. **Trigger:** Before executing `git commit` or `git push` in bash.
-2. **Action:** Call the `question` tool with the following parameters:
-   - `text`: "Confirm [commit/push] of [brief description of changes]?"
-   - `options`: ["Yes", "No"]
-3. **Constraint:** You are strictly forbidden from running the git command until the `question` tool returns "Yes".
-4. **Scope:** This applies to all repositories, branches, and sessions. No exceptions.
-
----
-
-# System Environment Details
-
-This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
-
-- **Operating System:** $osName ($osVersion)
-- **Processor (CPU):** $cpuInfo
-- **System Memory (RAM):** $ramInfo
-- **User Shell:** PowerShell
-
-## OpenCode Ecosystem
-
-You are running within the OpenCode environment, a specialized ecosystem for AI-driven development. This environment grants you access to:
-- **Integrated Tools:** A suite of specialized tools for file operations, codebase analysis, and system interaction.
-- **Plugins & Skills:** Extended capabilities defined in your configuration that provide domain-specific workflows.
-- **MCP Servers:** Model Context Protocol servers that bridge external data and services directly into your context.
-
-Your behavior is governed by the configurations found in `.opencode/` and `~/.config/opencode/`.
-
-## Shared Terminal (WezTerm)
-
-You can execute commands in a shared terminal via `wezterm cli send-text`.
-The shared terminal only exists when opencode is running inside WezTerm.
-
-### Usage
-
-```powershell
-# Check if shared terminal is available (Windows)
-if (-not `$env:WEZTERM_PANE) {
-  Write-Host "Shared terminal not available — run opencode in WezTerm."
-  exit
-}
-
-# Send a command to the shared terminal
-`$SHARED = Get-Content "`$env:TEMP\wezterm-shared-pane-for-`$env:WEZTERM_PANE"
-"your_command" | wezterm cli send-text --no-paste --pane-id `$SHARED
-```
-
-**Note:** Output is NOT returned automatically. Ask the user to check the result
-in the shared terminal (bottom-left pane).
-"@
+    # Substitute template variables
+    $templateContent = $templateContent.Replace('{{OS_NAME}}', $osName)
+    $templateContent = $templateContent.Replace('{{KERNEL_VER}}', $osVersion)
+    $templateContent = $templateContent.Replace('{{CPU_INFO}}', $cpuInfo)
+    $templateContent = $templateContent.Replace('{{RAM_INFO}}', $ramInfo)
+    $templateContent = $templateContent.Replace('{{SHELL_PATH}}', 'PowerShell')
+    $templateContent = $templateContent.Replace('{{SHELL_NAME}}', 'pwsh')
     if ($DryRun) {
-        Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
+        Log-Dry "$(Get-Msg 'dry_write_system_info') $templatePath → $systemInfoFile"
     } else {
-        [System.IO.File]::WriteAllText($systemInfoFile, $systemInfoContent, [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($systemInfoFile, $templateContent, [System.Text.UTF8Encoding]::new($false))
     }
 
     if (-not (Ask-Confirm "$(Get-Msg 'ask_mcp')")) {

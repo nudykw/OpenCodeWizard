@@ -1676,8 +1676,11 @@ configure_opencode() {
     local shell_name
     shell_name=$(basename "$shell_path" 2>/dev/null || echo "$shell_path")
 
+    local template_file
+    template_file="$(dirname "$(realpath "$0")")/config/system_info.md.tpl"
+
     if is_dry_run; then
-        log_dry "$(msg "dry_write_system_info") $config_dir/system_info.md"
+        log_dry "$(msg "dry_write_system_info") $template_file → $config_dir/system_info.md"
         log_dry "$(msg "dry_write_opencode_config") $config_file"
         log_dry "  $(msg "dry_plugins_list") ${OPENCODE_PLUGINS[*]}"
         log_dry "  $(msg "dry_mcp_configured")"
@@ -1685,77 +1688,28 @@ configure_opencode() {
         return 0
     fi
 
-    # Write system_info.md
-    cat << EOF > "$config_dir/system_info.md"
-# GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
+    if [ ! -f "$template_file" ]; then
+        log_error "Template not found: $template_file"
+        return 1
+    fi
+    local template_content
+    template_content=$(<"$template_file")
+    local os_name_value kernel_ver_value cpu_info_value ram_info_value shell_path_value shell_name_value
+    os_name_value="${os_name:-Unknown OS}"
+    kernel_ver_value="${kernel_ver:-Unknown}"
+    cpu_info_value="${cpu_info:-Unknown CPU}"
+    ram_info_value="${ram_info:-Unknown RAM}"
+    shell_path_value="$shell_path"
+    shell_name_value="$shell_name"
 
-**ALGORITHMIC ENFORCEMENT: You MUST use the \`question\` tool before any git commit or push.**
+    template_content="${template_content//\{\{OS_NAME\}\}/$os_name_value}"
+    template_content="${template_content//\{\{KERNEL_VER\}\}/$kernel_ver_value}"
+    template_content="${template_content//\{\{CPU_INFO\}\}/$cpu_info_value}"
+    template_content="${template_content//\{\{RAM_INFO\}\}/$ram_info_value}"
+    template_content="${template_content//\{\{SHELL_PATH\}\}/$shell_path_value}"
+    template_content="${template_content//\{\{SHELL_NAME\}\}/$shell_name_value}"
 
-1. **Trigger:** Before executing \`git commit\` or \`git push\` in bash.
-2. **Action:** Call the \`question\` tool with the following parameters:
-   - \`text\`: "Confirm [commit/push] of [brief description of changes]?"
-   - \`options\`: ["Yes", "No"]
-3. **Constraint:** You are strictly forbidden from running the git command until the \`question\` tool returns "Yes".
-4. **Scope:** This applies to all repositories, branches, and sessions. No exceptions.
-
----
-
-# System Environment Details
-
-This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
-
-- **Operating System:** ${os_name:-Unknown OS}
-- **Kernel Version:** ${kernel_ver:-Unknown}
-- **Processor (CPU):** ${cpu_info:-Unknown CPU}
-- **System Memory (RAM):** ${ram_info:-Unknown RAM}
-- **User Shell:** ${shell_path} (${shell_name})
-
-## OpenCode Ecosystem
-
-You are running within the OpenCode environment, a specialized ecosystem for AI-driven development. This environment grants you access to:
-- **Integrated Tools:** A suite of specialized tools for file operations, codebase analysis, and system interaction.
-- **Plugins & Skills:** Extended capabilities defined in your configuration that provide domain-specific workflows.
-- **MCP Servers:** Model Context Protocol servers that bridge external data and services directly into your context.
-
-Your behavior is governed by the configurations found in \`.opencode/\` and \`~/.config/opencode/\`.
-EOF
-
-    cat << 'EOF' >> "$config_dir/system_info.md"
-
-## Shared Terminal (WezTerm)
-
-You can execute commands in a shared terminal via `wezterm cli send-text`.
-The shared terminal only exists when opencode is running inside WezTerm.
-
-### Usage
-
-```bash
-# Check if shared terminal is available (only works in WezTerm)
-if [ -z "$WEZTERM_PANE" ]; then
-  echo "Shared terminal not available — run opencode in WezTerm."
-  exit 0
-fi
-
-# Send a command to the shared terminal
-SHARED=$(cat "/tmp/wezterm-shared-pane-for-$WEZTERM_PANE")
-echo "your_command" | wezterm cli send-text --no-paste --pane-id "$SHARED"
-```
-
-```powershell
-# Check if shared terminal is available (Windows)
-if (-not $env:WEZTERM_PANE) {
-  Write-Host "Shared terminal not available — run opencode in WezTerm."
-  exit
-}
-
-# Send a command to the shared terminal
-$SHARED = Get-Content "$env:TEMP\wezterm-shared-pane-for-$env:WEZTERM_PANE"
-"your_command" | wezterm cli send-text --no-paste --pane-id $SHARED
-```
-
-**Note:** Output is NOT returned automatically. Ask the user to check the result
-in the shared terminal (bottom-left pane).
-EOF
+    echo "$template_content" > "$config_dir/system_info.md"
 
     # Write opencode.jsonc
     cat << EOF > "$config_file"
