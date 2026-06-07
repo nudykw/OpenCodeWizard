@@ -165,6 +165,9 @@ Thanks to the **docs-mcp** server configured by OpenCodeWizard, you can work wit
    .\OpenCodeWizard.ps1
    ```
 
+> [!TIP]
+> **Don't want to open PowerShell manually?** Just double-click `OpenCodeWizard.cmd` from File Explorer (or run it from any terminal). The wrapper auto-elevates via UAC, sets the working directory, and forwards all arguments (`-Silent`, `-DryRun`, `-Lang uk`, etc.) to `OpenCodeWizard.ps1` — no manual `Set-ExecutionPolicy` needed.
+
 ---
 
 ## 💡 Windows-Specific Features
@@ -231,7 +234,7 @@ OpenCode is installed as `opencode.ps1`, which requires PowerShell's execution p
 | `./OpenCodeWizard.sh --remove-backups` | Delete ALL saved backups |
 | `./OpenCodeWizard.sh --help` | Show full help with all commands |
 
-On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and use the equivalent parameters: `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`.
+On **Windows**, replace `./OpenCodeWizard.sh` with `.\OpenCodeWizard.ps1` and use the equivalent parameters: `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`. As a shortcut, you can also run `OpenCodeWizard.cmd` — it self-elevates to Administrator and forwards the same arguments.
 
 ---
 

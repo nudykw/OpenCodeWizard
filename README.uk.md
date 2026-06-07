@@ -163,6 +163,9 @@ MCP-сервери розширюють можливості ШІ, надаюч�
    .\OpenCodeWizard.ps1
    ```
 
+> [!TIP]
+> **Не хочете відкривати PowerShell вручну?** Просто двічі клацніть `OpenCodeWizard.cmd` у Провіднику (або запустіть із будь-якого терміналу). Обгортка сама підніме права через UAC, виставить робочу директорію та передасть усі аргументи (`-Silent`, `-DryRun`, `-Lang uk` тощо) до `OpenCodeWizard.ps1` — без ручного `Set-ExecutionPolicy`.
+
 ---
 
 ## 💡 Особливості для Windows
@@ -229,7 +232,7 @@ OpenCode встановлюється як `opencode.ps1`, що вимагає �
 | `./OpenCodeWizard.sh --remove-backups` | Видалити всі резервні копії |
 | `./OpenCodeWizard.sh --help` | Показати довідку |
 
-На **Windows** використовуйте `.\OpenCodeWizard.ps1` з параметрами `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`.
+На **Windows** використовуйте `.\OpenCodeWizard.ps1` з параметрами `-CreateBackup`, `-RestoreBackup`, `-ListBackups`, `-Reset`, `-RemoveBackups`, `-DryRun`. Як ярлик можна запускати `OpenCodeWizard.cmd` — він сам підніме права Адміністратора та передасть ті самі аргументи.
 
 ---
 
