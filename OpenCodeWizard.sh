@@ -788,7 +788,7 @@ compute_content_hash() {
 }
 
 prune_old_backups() {
-    local max="${1:-$MAX_BACKUPS}"
+    local max="$MAX_BACKUPS"
     [ -z "$max" ] || [ "$max" -lt 1 ] && return 0
     [ ! -d "$BACKUP_DIR" ] && return 0
 
