@@ -1,0 +1,11 @@
+# User's custom bashrc (from backup)
+export PATH="$HOME/.local/bin:$PATH"
+export EDITOR="vim"
+export MY_CUSTOM_VAR="from-backup-bashrc"
+
+# Aliases
+alias ll='ls -la'
+alias gs='git status'
+
+# Welcome message
+echo "Welcome back, user!"

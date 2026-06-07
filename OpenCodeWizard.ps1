@@ -31,7 +31,8 @@ param (
     [switch]$RestoreBackup,
     [switch]$RemoveBackups,
     [switch]$ListBackups,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$MergeBackup = ""
 )
 
 $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -1618,64 +1619,107 @@ function Merge-MarkdownConfigs {
     $result -join "`n" | Set-Content $newFile
 }
 
+function Merge-ShellConfigs {
+    param([string]$oldFile, [string]$newFile)
+
+    if (-not (Test-Path $oldFile) -or -not (Test-Path $newFile)) { return }
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $result.AddRange([string[]](Get-Content $newFile))
+
+    $oldLines = Get-Content $oldFile
+    foreach ($line in $oldLines) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        if ($line -match '^\s*#') { continue }
+
+        if ($line -match '^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=') {
+            $varName = $matches[1]
+            $existing = $result | Where-Object { $_ -match "^\s*(?:`$env:|export\s+)?${varName}\s*=" } | Select-Object -First 1
+            if ($existing) {
+                $index = $result.IndexOf($existing)
+                $result[$index] = $line
+            } else {
+                $result.Add($line)
+            }
+        } else {
+            if ($result -notcontains $line) {
+                $result.Add($line)
+            }
+        }
+    }
+
+    $result -join "`n" | Set-Content $newFile
+}
+
 function Smart-Merge {
-    if ($DryRun -or $Silent) { return }
-    
-    $backupPath = Join-Path $env:USERPROFILE ".local\share\opencodeWizard\backups"
-    if (-not $global:BackupId) { return }
-    $backupDir = Join-Path $backupPath $global:BackupId
-    
-    if (-not (Test-Path $backupDir)) { return }
-    
+    param(
+        [string]$BackupPath = "",
+        [bool]$Auto = $false
+    )
+
+    if (-not $BackupPath) {
+        $backupRoot = Join-Path $env:USERPROFILE ".local\share\opencodeWizard\backups"
+        if (-not $global:BackupId) { return }
+        $BackupPath = Join-Path $backupRoot $global:BackupId
+    }
+
+    if (-not (Test-Path $BackupPath)) { return }
+
+    if (-not $Auto -and ($DryRun -or $Silent)) { return }
+
     $hasConfigs = $false
-    @('opencode.jsonc', 'wezterm.lua', 'system_info.md') | ForEach-Object {
-        if (Test-Path (Join-Path $backupDir $_)) { $hasConfigs = $true }
+    @('opencode.jsonc', 'wezterm.lua', 'Microsoft.PowerShell_profile.ps1') | ForEach-Object {
+        if (Test-Path (Join-Path $BackupPath $_)) { $hasConfigs = $true }
     }
     if (-not $hasConfigs) { return }
-    
-    Write-Host "`n$Magenta$(Get-Msg 'merge_title')$ResetColorColor`n"
-    Log-Info "$(Get-Msg 'merge_explain')`n"
-    
+
+    if (-not $Auto) {
+        Write-Host "`n$Magenta$(Get-Msg 'merge_title')$ResetColorColor`n"
+        Log-Info "$(Get-Msg 'merge_explain')`n"
+    }
+
     $mergedCount = 0
-    
-    # Merge opencode.jsonc
+
     $opencodeCfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"
-    if ((Test-Path (Join-Path $backupDir 'opencode.jsonc')) -and (Test-Path $opencodeCfg)) {
-        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'opencode.jsonc')") {
-            Merge-JsonConfigs (Join-Path $backupDir 'opencode.jsonc') $opencodeCfg
+    if ((Test-Path (Join-Path $BackupPath 'opencode.jsonc')) -and (Test-Path $opencodeCfg)) {
+        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'opencode.jsonc')")) {
+            Merge-JsonConfigs (Join-Path $BackupPath 'opencode.jsonc') $opencodeCfg
             Log-Success "$(Get-Msg 'merge_merged' 'opencode.jsonc')"
             $mergedCount++
         } else {
             Log-Info "$(Get-Msg 'merge_skipped' 'opencode.jsonc')"
         }
     }
-    
-    # Merge wezterm.lua
+
     $wezCfg = Join-Path $env:USERPROFILE ".config\wezterm\wezterm.lua"
-    if ((Test-Path (Join-Path $backupDir 'wezterm.lua')) -and (Test-Path $wezCfg)) {
-        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'wezterm.lua')") {
-            Merge-LuaConfigs (Join-Path $backupDir 'wezterm.lua') $wezCfg
+    if ((Test-Path (Join-Path $BackupPath 'wezterm.lua')) -and (Test-Path $wezCfg)) {
+        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'wezterm.lua')")) {
+            Merge-LuaConfigs (Join-Path $BackupPath 'wezterm.lua') $wezCfg
             Log-Success "$(Get-Msg 'merge_merged' 'wezterm.lua')"
             $mergedCount++
         } else {
             Log-Info "$(Get-Msg 'merge_skipped' 'wezterm.lua')"
         }
     }
-    
-    # Merge system_info.md
-    $sysinfo = Join-Path $env:USERPROFILE ".config\opencode\system_info.md"
-    if ((Test-Path (Join-Path $backupDir 'system_info.md')) -and (Test-Path $sysinfo)) {
-        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'system_info.md')") {
-            Merge-MarkdownConfigs (Join-Path $backupDir 'system_info.md') $sysinfo
-            Log-Success "$(Get-Msg 'merge_merged' 'system_info.md')"
+
+    $psProfile = Join-Path $env:USERPROFILE "Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
+    if (-not (Test-Path $psProfile)) {
+        $psProfile = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+    }
+    if ((Test-Path (Join-Path $BackupPath 'Microsoft.PowerShell_profile.ps1')) -and (Test-Path $psProfile)) {
+        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'Microsoft.PowerShell_profile.ps1')")) {
+            Merge-ShellConfigs (Join-Path $BackupPath 'Microsoft.PowerShell_profile.ps1') $psProfile
+            Log-Success "$(Get-Msg 'merge_merged' 'Microsoft.PowerShell_profile.ps1')"
             $mergedCount++
         } else {
-            Log-Info "$(Get-Msg 'merge_skipped' 'system_info.md')"
+            Log-Info "$(Get-Msg 'merge_skipped' 'Microsoft.PowerShell_profile.ps1')"
         }
     }
-    
+
     if ($mergedCount -gt 0) {
-        Write-Host "`n$(Get-Msg 'merge_result')`n"
+        if (-not $Auto) {
+            Write-Host "`n$(Get-Msg 'merge_result')`n"
+        }
         Log-Success "$(Get-Msg 'merge_done')"
     } else {
         Log-Info "$(Get-Msg 'merge_none')"
@@ -1845,6 +1889,13 @@ try {
         Restore-Backup
     } elseif ($RemoveBackups) {
         Remove-Backups
+    } elseif ($MergeBackup) {
+        if (-not (Test-Path $MergeBackup)) {
+            Log-Error "Backup path does not exist: $MergeBackup"
+            exit 1
+        }
+        Log-Info "Merging configs from: $MergeBackup"
+        Smart-Merge -BackupPath $MergeBackup -Auto $true
     } else {
         # Generate developer docs upfront if configs exist
         & "$PSScriptRoot\scripts\generate-dev-docs.sh" 2>$null

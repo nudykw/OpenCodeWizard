@@ -50,10 +50,11 @@ DRY_RUN=false
 # Load shared preset definitions
 source "$(dirname "$0")/config/variables.conf"
 PRESET="$PRESET_DEVELOPER"
-COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
-COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups
+COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups | merge-backup
+COMMAND="setup"   # setup | reset | create-backup | restore-backup | remove-backups | list-backups | merge-backup
 OS=""
 DISTRO=""
+MERGE_BACKUP_PATH=""
 
 # Backup system
 BACKUP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/opencodeWizard/backups"
@@ -80,6 +81,9 @@ show_help() {
     echo -e "                                   Показати всі резервні копії"
     echo -e "  --remove-backups                 Delete ALL saved backups (with confirmation)."
     echo -e "                                   Видалити всі резервні копії"
+    echo -e "  --merge-backup <path>            Merge current configs with files from a backup folder"
+    echo -e "                                   (differential, backup-wins). Skips if not specified."
+    echo -e "                                   Диференціально об'єднати конфіги з вказаною папкою бекапу"
     echo -e ""
     echo -e "${BOLD}OPTIONS:${NC}"
     echo -e "  -y, --silent, --non-interactive  Run setup automatically with default options"
@@ -99,6 +103,7 @@ show_help() {
     echo -e "  $0 --reset                       # wipe wizard-managed configs"
     echo -e "  $0 --remove-backups              # delete all backups"
     echo -e "  $0 --list-backups                # show all backups"
+    echo -e "  $0 --merge-backup ./backups/ocw-...   # merge configs from a specific backup"
     echo -e ""
     echo -e "${BOLD}CUSTOMIZING PLUGINS & MCP:${NC}"
     echo -e "  Edit OPENCODE_PLUGINS and OPENCODE_MCP_SERVERS arrays at the top of this script."
@@ -114,6 +119,15 @@ while [[ $# -gt 0 ]]; do
         --restore-backup)  COMMAND="restore-backup" ;;
         --remove-backups)  COMMAND="remove-backups" ;;
         --list-backups)   COMMAND="list-backups" ;;
+        --merge-backup)
+            if [ -z "${2:-}" ]; then
+                echo "Error: --merge-backup requires a path argument" >&2
+                exit 1
+            fi
+            MERGE_BACKUP_PATH="$2"
+            COMMAND="merge-backup"
+            shift
+            ;;
         -y|--silent|--non-interactive)
             SILENT=true
             # Check if next argument is a valid preset
@@ -2110,21 +2124,27 @@ EOF
 # Smart Merge: merge new wizard configs with existing user configs (from backup)
 # ==============================================================================
 
-smart_merge() {
-    local backup_path="$BACKUP_DIR/$BACKUP_ID"
+_merge_confirm() {
+    local file="$1"
+    echo -e "${YELLOW}$(msg "merge_confirm" "$file")${NC} [y/N] "
+    read -r merge_choice
+    [[ "$merge_choice" =~ ^[Yy]$ ]]
+}
 
-    # Skip in dry-run or silent mode
-    if is_dry_run || [ "$SILENT" = true ]; then
+smart_merge() {
+    local backup_path="${1:-$BACKUP_DIR/$BACKUP_ID}"
+    local auto="${2:-false}"
+
+    if [ -z "$backup_path" ] || [ ! -d "$backup_path" ]; then
         return 0
     fi
 
-    # Check if backup exists with config files
-    if [ ! -d "$backup_path" ]; then
+    if [ "$auto" != "true" ] && (is_dry_run || [ "$SILENT" = true ]); then
         return 0
     fi
 
     local has_configs=false
-    for file in opencode.jsonc wezterm.lua system_info.md; do
+    for file in opencode.jsonc wezterm.lua bashrc zshrc; do
         if [ -f "$backup_path/$file" ]; then
             has_configs=true
             break
@@ -2135,19 +2155,19 @@ smart_merge() {
         return 0
     fi
 
-    echo ""
-    log_info "$(msg "merge_title")"
-    msg "merge_explain"
-    echo ""
+    if [ "$auto" != "true" ]; then
+        echo ""
+        log_info "$(msg "merge_title")"
+        msg "merge_explain"
+        echo ""
+    fi
 
     local merged_count=0
 
     # Merge opencode.jsonc
     local opencode_cfg="$HOME/.config/opencode/opencode.jsonc"
     if [ -f "$backup_path/opencode.jsonc" ] && [ -f "$opencode_cfg" ]; then
-        echo -e "${YELLOW}$(msg "merge_confirm" "opencode.jsonc")${NC} [y/N] "
-        read -r merge_choice
-        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
+        if [ "$auto" = "true" ] || _merge_confirm "opencode.jsonc"; then
             merge_json_configs "$backup_path/opencode.jsonc" "$opencode_cfg"
             log_success "$(msg "merge_merged" "opencode.jsonc")"
             ((merged_count++))
@@ -2159,9 +2179,7 @@ smart_merge() {
     # Merge wezterm.lua
     local wez_cfg="$HOME/.config/wezterm/wezterm.lua"
     if [ -f "$backup_path/wezterm.lua" ] && [ -f "$wez_cfg" ]; then
-        echo -e "${YELLOW}$(msg "merge_confirm" "wezterm.lua")${NC} [y/N] "
-        read -r merge_choice
-        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
+        if [ "$auto" = "true" ] || _merge_confirm "wezterm.lua"; then
             merge_lua_configs "$backup_path/wezterm.lua" "$wez_cfg"
             log_success "$(msg "merge_merged" "wezterm.lua")"
             ((merged_count++))
@@ -2170,23 +2188,24 @@ smart_merge() {
         fi
     fi
 
-    # Merge system_info.md
-    local sysinfo="$HOME/.config/opencode/system_info.md"
-    if [ -f "$backup_path/system_info.md" ] && [ -f "$sysinfo" ]; then
-        echo -e "${YELLOW}$(msg "merge_confirm" "system_info.md")${NC} [y/N] "
-        read -r merge_choice
-        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
-            merge_markdown_configs "$backup_path/system_info.md" "$sysinfo"
-            log_success "$(msg "merge_merged" "system_info.md")"
-            ((merged_count++))
-        else
-            log_info "$(msg "merge_skipped" "system_info.md")"
+    for shell_cfg in bashrc zshrc; do
+        local target_shell="$HOME/.$shell_cfg"
+        if [ -f "$backup_path/$shell_cfg" ] && [ -f "$target_shell" ]; then
+            if [ "$auto" = "true" ] || _merge_confirm "$shell_cfg"; then
+                merge_shell_configs "$backup_path/$shell_cfg" "$target_shell"
+                log_success "$(msg "merge_merged" "$shell_cfg")"
+                ((merged_count++))
+            else
+                log_info "$(msg "merge_skipped" "$shell_cfg")"
+            fi
         fi
-    fi
+    done
 
     if [ $merged_count -gt 0 ]; then
-        echo ""
-        log_info "$(msg "merge_result")"
+        if [ "$auto" != "true" ]; then
+            echo ""
+            log_info "$(msg "merge_result")"
+        fi
         log_success "$(msg "merge_done")"
     else
         log_info "$(msg "merge_none")"
@@ -2197,9 +2216,17 @@ merge_json_configs() {
     local old_file="$1"
     local new_file="$2"
 
-    # Use python3 for proper JSONC parsing (comments in JSONC)
-    if command -v python3 &>/dev/null; then
-        python3 << 'PYEOF' "$old_file" "$new_file"
+    # Use python3 for proper JSONC parsing (comments in JSONC).
+    # The python script is written to a temp file to avoid heredoc issues
+    # when this function is sourced/eval'd from test harnesses.
+    if ! command -v python3 &>/dev/null; then
+        log_warning "python3 not available for JSON merge, keeping new config"
+        return 0
+    fi
+
+    local py_script
+    py_script=$(mktemp /tmp/ocw-merge-json.XXXXXX.py)
+    cat > "$py_script" <<'PYEOF'
 import json, sys, re
 
 def parse_jsonc(path):
@@ -2208,12 +2235,10 @@ def parse_jsonc(path):
         content = f.read()
     # Strip block comments /* ... */
     content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
-    # Strip line comments // ... (but not inside strings)
-    # Simple approach: remove // comments not inside quotes
+    # Strip line comments // ... but NOT inside strings.
     lines = content.split('\n')
     cleaned = []
     for line in lines:
-        # Remove // comments (naive but works for most config files)
         in_string = False
         escape_next = False
         result = []
@@ -2236,61 +2261,73 @@ def parse_jsonc(path):
                 i += 1
                 continue
             if not in_string and ch == '/' and i + 1 < len(line) and line[i+1] == '/':
-                break  # rest is comment
+                break
             result.append(ch)
             i += 1
         cleaned.append(''.join(result))
-    content = '\n'.join(cleaned)
-    return json.loads(content)
+    return json.loads('\n'.join(cleaned))
+
+def deep_merge(old, new):
+    """Differential merge: start with old, overlay new, backup-wins on conflicts.
+
+    - Keys only in new are added.
+    - Keys only in old are kept as-is.
+    - Keys in both:
+        - If both are dicts, recurse (backup-wins per leaf).
+        - If both are lists, concatenate unique-by-name items (backup-wins ordering).
+        - Otherwise, KEEP old's value (backup-wins policy).
+    """
+    if isinstance(old, dict) and isinstance(new, dict):
+        for k, v in new.items():
+            if k in old:
+                old[k] = deep_merge(old[k], v)
+            else:
+                old[k] = v
+        return old
+    if isinstance(old, list) and isinstance(new, list):
+        # Treat list-of-dicts with 'name' as named list, else concat unique scalars.
+        if old and all(isinstance(x, dict) and 'name' in x for x in old) \
+           and new and all(isinstance(x, dict) and 'name' in x for x in new):
+            seen = {x.get('name'): i for i, x in enumerate(old)}
+            for item in new:
+                name = item.get('name')
+                if name in seen:
+                    old[seen[name]] = deep_merge(old[seen[name]], item)
+                else:
+                    old.append(item)
+            return old
+        # Generic: dedupe scalars, append new scalars.
+        for v in new:
+            if v not in old:
+                old.append(v)
+        return old
+    # Scalar conflict or type mismatch: backup-wins.
+    return old
 
 old_path, new_path = sys.argv[1], sys.argv[2]
 try:
     old = parse_jsonc(old_path)
     new = parse_jsonc(new_path)
 except Exception as e:
-    print(f"Warning: JSON parse error: {e}", file=sys.stderr)
-    sys.exit(0)
+    print(f"JSON parse error: {e}", file=sys.stderr)
+    sys.exit(1)
 
-# Merge mcpServers: keep old entries, add new ones not in old
-if 'mcpServers' in new:
-    if 'mcpServers' in old and isinstance(old['mcpServers'], dict):
-        old_keys = set(old['mcpServers'].keys())
-        for key, val in new['mcpServers'].items():
-            if key not in old_keys:
-                old['mcpServers'][key] = val
-    else:
-        old['mcpServers'] = new['mcpServers']
+merged = deep_merge(old, new)
 
-# Merge plugins: keep old entries, add new ones not already present
-if 'plugins' in new:
-    if 'plugins' in old and isinstance(old['plugins'], list):
-        old_names = set()
-        for p in old['plugins']:
-            if isinstance(p, dict):
-                old_names.add(p.get('name', ''))
-            elif isinstance(p, str):
-                old_names.add(p)
-        for p in new['plugins']:
-            if isinstance(p, dict):
-                name = p.get('name', '')
-            else:
-                name = str(p)
-            if name not in old_names:
-                old['plugins'].append(p)
-    else:
-        old['plugins'] = new['plugins']
-
-# Write merged result back
-with open(new_path, 'w') as f:
-    json.dump(old, f, indent=2)
-    f.write('\n')
+try:
+    with open(new_path, 'w') as f:
+        json.dump(merged, f, indent=2)
+        f.write('\n')
+except Exception as e:
+    print(f"JSON write error: {e}", file=sys.stderr)
+    sys.exit(1)
 PYEOF
-        return $?
-    fi
 
-    # Fallback: no python3, just keep new config as-is (already has wizard settings)
-    log_warning "python3 not available for JSON merge, keeping new config"
-    return 0
+    local rc
+    python3 "$py_script" "$old_file" "$new_file"
+    rc=$?
+    rm -f "$py_script"
+    return $rc
 }
 
 merge_lua_configs() {
@@ -2368,6 +2405,51 @@ merge_markdown_configs() {
     return 0
 }
 
+_merge_shell_apply_export() {
+    local merged="$1" line="$2" var_name="$3"
+    if grep -qE "^[[:space:]]*(export[[:space:]]+)?${var_name}=" "$merged"; then
+        sed -i.bak -E "s|^[[:space:]]*(export[[:space:]]+)?${var_name}=.*$|${line}|" "$merged"
+        rm -f "$merged.bak"
+    else
+        printf '%s\n' "$line" >> "$merged"
+    fi
+}
+
+_merge_shell_append_line() {
+    local merged="$1" line="$2"
+    if ! grep -qxF "$line" "$merged"; then
+        printf '%s\n' "$line" >> "$merged"
+    fi
+}
+
+merge_shell_configs() {
+    local old_file="$1"
+    local new_file="$2"
+
+    if [ ! -f "$old_file" ] || [ ! -f "$new_file" ]; then
+        return 0
+    fi
+
+    local merged
+    merged=$(mktemp)
+    cp "$new_file" "$merged"
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ -z "$line" ]] || [[ "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+
+        if [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            _merge_shell_apply_export "$merged" "$line" "${BASH_REMATCH[2]}"
+        else
+            _merge_shell_append_line "$merged" "$line"
+        fi
+    done < "$old_file"
+
+    mv "$merged" "$new_file"
+    return 0
+}
+
 # Verify setup
 verify_setup() {
     # Enable pre-push hook (full Docker tests before push to main)
@@ -2436,10 +2518,22 @@ main() {
                 echo -e "\n${BOLD}$(msg "list_total")${NC} $BACKUPS_COUNT $(msg "list_backups_label")"
                 local total_size
                 total_size=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1 || echo "?")
-                echo -e "${BOLD}$(msg "list_size")${NC} ~${total_size}"
+                echo -e "\n${BOLD}$(msg "list_size")${NC} ~${total_size}"
             else
                 log_warning "$(msg "no_backups_found")"
             fi
+            ;;
+        merge-backup)
+            if [ -z "$MERGE_BACKUP_PATH" ]; then
+                log_error "--merge-backup requires a path argument"
+                exit 1
+            fi
+            if [ ! -d "$MERGE_BACKUP_PATH" ]; then
+                log_error "Backup path does not exist: $MERGE_BACKUP_PATH"
+                exit 1
+            fi
+            log_info "Merging configs from: $MERGE_BACKUP_PATH"
+            smart_merge "$MERGE_BACKUP_PATH" "true"
             ;;
         setup)
             bash "$(dirname "$0")/scripts/generate-dev-docs.sh" 2>/dev/null || true

@@ -1,0 +1,10 @@
+# User's custom zshrc (from backup)
+export PATH="$HOME/.local/bin:$PATH"
+export ZSH_THEME="robbyrussell"
+export MY_CUSTOM_VAR="from-backup-zshrc"
+
+# Plugins
+plugins=(git docker kubectl)
+
+# Aliases
+alias ll='ls -la'
