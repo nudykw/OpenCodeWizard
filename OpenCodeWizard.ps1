@@ -1180,6 +1180,19 @@ function Configure-OpenCode {
     $ramInfo = "${ramGB} GB RAM"
     $systemInfoFile = Join-Path $configDir "system_info.md"
     $systemInfoContent = @"
+# GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
+
+**ALGORITHMIC ENFORCEMENT: You MUST use the `question` tool before any git commit or push.**
+
+1. **Trigger:** Before executing `git commit` or `git push` in bash.
+2. **Action:** Call the `question` tool with the following parameters:
+   - `text`: "Confirm [commit/push] of [brief description of changes]?"
+   - `options`: ["Yes", "No"]
+3. **Constraint:** You are strictly forbidden from running the git command until the `question` tool returns "Yes".
+4. **Scope:** This applies to all repositories, branches, and sessions. No exceptions.
+
+---
+
 # System Environment Details
 
 This file provides the OpenCode AI assistant with details about the current operating system and hardware environment.
@@ -1189,9 +1202,36 @@ This file provides the OpenCode AI assistant with details about the current oper
 - **System Memory (RAM):** $ramInfo
 - **User Shell:** PowerShell
 
-## ⚠️ STRICT RULES
+## OpenCode Ecosystem
 
-- **NEVER** commit or push changes without explicit user permission. This is a hard rule — violation is not allowed.
+You are running within the OpenCode environment, a specialized ecosystem for AI-driven development. This environment grants you access to:
+- **Integrated Tools:** A suite of specialized tools for file operations, codebase analysis, and system interaction.
+- **Plugins & Skills:** Extended capabilities defined in your configuration that provide domain-specific workflows.
+- **MCP Servers:** Model Context Protocol servers that bridge external data and services directly into your context.
+
+Your behavior is governed by the configurations found in `.opencode/` and `~/.config/opencode/`.
+
+## Shared Terminal (WezTerm)
+
+You can execute commands in a shared terminal via `wezterm cli send-text`.
+The shared terminal only exists when opencode is running inside WezTerm.
+
+### Usage
+
+```powershell
+# Check if shared terminal is available (Windows)
+if (-not `$env:WEZTERM_PANE) {
+  Write-Host "Shared terminal not available — run opencode in WezTerm."
+  exit
+}
+
+# Send a command to the shared terminal
+`$SHARED = Get-Content "`$env:TEMP\wezterm-shared-pane-for-`$env:WEZTERM_PANE"
+"your_command" | wezterm cli send-text --no-paste --pane-id `$SHARED
+```
+
+**Note:** Output is NOT returned automatically. Ask the user to check the result
+in the shared terminal (bottom-left pane).
 "@
     if ($DryRun) {
         Log-Dry "$(Get-Msg 'dry_write_system_info') $systemInfoFile"
@@ -1330,12 +1370,20 @@ function Configure-WezTerm {
     if ($DryRun) {
         Log-Dry "$(Get-Msg 'dry_wezterm_dir') $wezDir"
         Log-Dry "$(Get-Msg 'dry_wezterm_config') $wezConfig (Catppuccin Mocha, JetBrainsMono NFM, custom hotkeys)"
+        Log-Dry "Would copy wezterm-splitter.ps1 to $(Join-Path $env:LOCALAPPDATA 'wezterm-splitter.ps1')"
         return
     }
 
     if (Test-Path $wezConfig) {
         Create-Backup
     }
+
+    $splitterSource = Join-Path $PSScriptRoot "config\splitter\wezterm-splitter.ps1"
+    $splitterDest = Join-Path $env:LOCALAPPDATA "wezterm-splitter.ps1"
+    if (-not (Test-Path $splitterSource)) {
+        throw "wezterm-splitter.ps1 not found at $splitterSource"
+    }
+    Copy-Item $splitterSource -Destination $splitterDest -Force
 
     $luaContent = @'
 local wezterm = require 'wezterm'
@@ -1378,48 +1426,43 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = wezterm.action.SendKey { key = 'c', mods = 'CTRL|SHIFT' },
   },
-  -- Gitui + OpenCode split in new tab (left: gitui 40%, right: opencode)
-  {
-    key = 'G',
-    mods = 'CTRL|SHIFT',
-    action = wezterm.action.SpawnCommandInNewTab {
-      args = { "sh", "-c",
-        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
-        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
-        .. "bash -l -c 'gitui' "
-        .. "&& opencode -m opencode/deepseek-v4-flash-free"
-      },
-    },
-  },
-  -- Gitui + OpenCode split (left: gitui 40%, right: opencode)
+  -- Gitui + Shared terminal + OpenCode split in current pane
   {
     key = 'O',
     mods = 'CTRL|SHIFT',
     action = wezterm.action_callback(function(window, pane)
+      local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+      pane:send_text("powershell -ExecutionPolicy Bypass -File \"" .. script_path .. "\"\n")
+    end),
+  },
+  -- Gitui + Shared terminal + OpenCode split in new tab
+  {
+    key = 'G',
+    mods = 'CTRL|SHIFT',
+    action = wezterm.action_callback(function(window, pane)
+      local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
       window:perform_action(
-        wezterm.action.SplitPane {
-          direction = 'Left',
-          size = { Percent = 40 },
-          command = { args = { "sh", "-c", "root=$(git rev-parse --show-toplevel 2>/dev/null) && cd \"$root\" && gitui || echo 'Not in a git repository here - cd to a repo first'; sleep 3" } },
+        wezterm.action.SpawnCommandInNewTab {
+          args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path },
         },
         pane
       )
-      pane:send_text("opencode -m opencode/deepseek-v4-flash-free\n")
     end),
   },
-  -- Gitui + OpenCode split in new workspace (left: gitui 40%, right: opencode)
+  -- Gitui + Shared terminal + OpenCode split in new workspace
   {
     key = 'G',
     mods = 'CTRL|SHIFT|ALT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'git',
-      spawn = { args = { "sh", "-c",
-        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
-        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
-        .. "bash -l -c 'gitui' "
-        .. "&& opencode -m opencode/deepseek-v4-flash-free"
-      } },
-    },
+    action = wezterm.action_callback(function(window, pane)
+      local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+      window:perform_action(
+        wezterm.action.SwitchToWorkspace {
+          name = 'git',
+          spawn = { args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path } },
+        },
+        pane
+      )
+    end),
   },
   -- Standard splits
   {
@@ -1508,7 +1551,178 @@ function Configure-DefaultTerminal {
     Write-Host "`n$(Get-Msg 'default_terminal_explain')"
 }
 
-# 8. Verify setup
+# 8. Smart Merge
+function Merge-JsonConfigs {
+    param([string]$oldFile, [string]$newFile)
+    
+    $oldContent = Get-Content $oldFile -Raw
+    $newContent = Get-Content $newFile -Raw
+    
+    # Strip block comments /* ... */
+    $oldContent = [Regex]::Replace($oldContent, '/\*.*?\*/', '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    $newContent = [Regex]::Replace($newContent, '/\*.*?\*/', '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    
+    # Strip line comments // ...
+    $oldContent = [Regex]::Replace($oldContent, '(?m)(?<!https?:)//.*$', '')
+    $newContent = [Regex]::Replace($newContent, '(?m)(?<!https?:)//.*$', '')
+
+    try {
+        $oldJson = $oldContent | ConvertFrom-Json
+        $newJson = $newContent | ConvertFrom-Json
+    } catch {
+        Log-Warning "JSON parse error: $_"
+        return
+    }
+
+    # Merge mcpServers
+    if ($newJson.PSObject.Properties['mcpServers']) {
+        if ($oldJson.PSObject.Properties['mcpServers']) {
+            $newMcpServers = $newJson.mcpServers
+            $oldMcpServers = $oldJson.mcpServers
+            foreach ($prop in $newMcpServers.PSObject.Properties) {
+                if (-not $oldMcpServers.PSObject.Properties[$prop.Name]) {
+                    $oldMcpServers | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value
+                }
+            }
+        } else {
+            $oldJson | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value $newJson.mcpServers
+        }
+    }
+
+    # Merge plugins
+    if ($newJson.PSObject.Properties['plugins']) {
+        if ($oldJson.PSObject.Properties['plugins']) {
+            $oldPlugins = @($oldJson.plugins)
+            $newPlugins = @($newJson.plugins)
+            
+            $oldNames = @()
+            foreach ($p in $oldPlugins) {
+                if ($p -is [string]) { $oldNames += $p }
+                elseif ($p.PSObject.Properties['name']) { $oldNames += $p.name }
+            }
+            
+            foreach ($p in $newPlugins) {
+                $name = ""
+                if ($p -is [string]) { $name = $p }
+                elseif ($p.PSObject.Properties['name']) { $name = $p.name }
+                
+                if ($name -and $oldNames -notcontains $name) {
+                    $oldPlugins += $p
+                }
+            }
+            $oldJson.plugins = $oldPlugins
+        } else {
+            $oldJson | Add-Member -MemberType NoteProperty -Name 'plugins' -Value $newJson.plugins
+        }
+    }
+
+    $oldJson | ConvertTo-Json -Depth 10 | Set-Content $newFile
+}
+
+function Merge-LuaConfigs {
+    param([string]$oldFile, [string]$newFile)
+    $marker = '-- === OpenCode Wizard ==='
+    $oldContent = Get-Content $oldFile -Raw
+    $lines = Get-Content $newFile
+    $result = [System.Collections.Generic.List[string]]::new()
+    $markerFound = $false
+    foreach ($line in $lines) {
+        if ($line -like "*$marker*") {
+            if (-not $markerFound) {
+                $markerFound = $true
+                $result.Add('')
+                $result.Add($oldContent.TrimEnd())
+                $result.Add('')
+            }
+        }
+        $result.Add($line)
+    }
+    if (-not $markerFound) {
+        $result.Insert(0, '')
+        $result.Insert(0, $oldContent.TrimEnd())
+    }
+    $result -join "`n" | Set-Content $newFile
+}
+
+function Merge-MarkdownConfigs {
+    param([string]$oldFile, [string]$newFile)
+    $oldContent = Get-Content $oldFile
+    $result = [System.Collections.Generic.List[string]]::new()
+    $inWizard = $false
+    foreach ($line in $oldContent) {
+        if ($line -match '^#\s+.*OpenCode.*Wizard') { $inWizard = $true }
+        if (-not $inWizard) { $result.Add($line) }
+    }
+    if ($result.Count -gt 0) { $result.Add('') }
+    $result.AddRange([string[]](Get-Content $newFile))
+    $result -join "`n" | Set-Content $newFile
+}
+
+function Smart-Merge {
+    if ($DryRun -or $Silent) { return }
+    
+    $backupPath = Join-Path $env:USERPROFILE ".local\share\opencodeWizard\backups"
+    if (-not $global:BackupId) { return }
+    $backupDir = Join-Path $backupPath $global:BackupId
+    
+    if (-not (Test-Path $backupDir)) { return }
+    
+    $hasConfigs = $false
+    @('opencode.jsonc', 'wezterm.lua', 'system_info.md') | ForEach-Object {
+        if (Test-Path (Join-Path $backupDir $_)) { $hasConfigs = $true }
+    }
+    if (-not $hasConfigs) { return }
+    
+    Write-Host "`n$Magenta$(Get-Msg 'merge_title')$ResetColorColor`n"
+    Log-Info "$(Get-Msg 'merge_explain')`n"
+    
+    $mergedCount = 0
+    
+    # Merge opencode.jsonc
+    $opencodeCfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"
+    if ((Test-Path (Join-Path $backupDir 'opencode.jsonc')) -and (Test-Path $opencodeCfg)) {
+        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'opencode.jsonc')") {
+            Merge-JsonConfigs (Join-Path $backupDir 'opencode.jsonc') $opencodeCfg
+            Log-Success "$(Get-Msg 'merge_merged' 'opencode.jsonc')"
+            $mergedCount++
+        } else {
+            Log-Info "$(Get-Msg 'merge_skipped' 'opencode.jsonc')"
+        }
+    }
+    
+    # Merge wezterm.lua
+    $wezCfg = Join-Path $env:USERPROFILE ".config\wezterm\wezterm.lua"
+    if ((Test-Path (Join-Path $backupDir 'wezterm.lua')) -and (Test-Path $wezCfg)) {
+        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'wezterm.lua')") {
+            Merge-LuaConfigs (Join-Path $backupDir 'wezterm.lua') $wezCfg
+            Log-Success "$(Get-Msg 'merge_merged' 'wezterm.lua')"
+            $mergedCount++
+        } else {
+            Log-Info "$(Get-Msg 'merge_skipped' 'wezterm.lua')"
+        }
+    }
+    
+    # Merge system_info.md
+    $sysinfo = Join-Path $env:USERPROFILE ".config\opencode\system_info.md"
+    if ((Test-Path (Join-Path $backupDir 'system_info.md')) -and (Test-Path $sysinfo)) {
+        if (Ask-Confirm "$(Get-Msg 'merge_confirm' 'system_info.md')") {
+            Merge-MarkdownConfigs (Join-Path $backupDir 'system_info.md') $sysinfo
+            Log-Success "$(Get-Msg 'merge_merged' 'system_info.md')"
+            $mergedCount++
+        } else {
+            Log-Info "$(Get-Msg 'merge_skipped' 'system_info.md')"
+        }
+    }
+    
+    if ($mergedCount -gt 0) {
+        Write-Host "`n$(Get-Msg 'merge_result')`n"
+        Log-Success "$(Get-Msg 'merge_done')"
+    } else {
+        Log-Info "$(Get-Msg 'merge_none')"
+    }
+}
+
+# 9. Verify setup
 function Verify-Setup {
     Write-Host "`n$Magenta================================================================$ResetColorColor"
     Log-Info "$(Get-Msg 'verifying')"
@@ -1547,7 +1761,7 @@ function Verify-Setup {
     Write-Host "$Magenta================================================================$ResetColorColor"
 }
 
-# 9. Create Desktop Shortcut (Windows 11)
+# 10. Create Desktop Shortcut (Windows 11)
 function Create-DesktopShortcut {
     $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) "OpenCode AI.lnk"
 
@@ -1601,7 +1815,7 @@ start "" "$wezGui" start -- "$opencodePath" -m opencode/deepseek-v4-flash-free
 }
 
 
-# 10. Add Windows Explorer context menu (right-click folder → Open in OpenCode)
+# 11. Add Windows Explorer context menu (right-click folder → Open in OpenCode)
 function Install-ContextMenu {
     if (-not (Ask-Confirm "$(Get-Msg 'ask_context_menu')")) { return }
 
@@ -1692,6 +1906,7 @@ try {
         Create-DesktopShortcut
         Install-ContextMenu
         Verify-Setup
+        Smart-Merge
     }
 } catch {
     Log-Error "$(Get-Msg 'unexpected_error') $_"

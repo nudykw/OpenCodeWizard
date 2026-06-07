@@ -70,6 +70,7 @@ Command-line environments can be intimidating. However, they are incredibly powe
 - **Cross-Platform:** Out-of-the-box support for **Ubuntu/Debian**, **Fedora/RHEL**, **Arch/CachyOS**, **macOS**, and **Windows 11**.
 - **Session Management:** Learn how to use OpenCode sessions effectively — [read the guide](docs/sessions.md). ⚠️ **Important:** Without understanding how sessions and context work, you cannot work effectively with *any* AI assistant. This is a fundamental skill for getting actual results.
 - **Developer Preset:** Automatic gitui setup, dedicated WezTerm workspaces, and specialized hotkeys for git-aware AI coding. [See docs](docs/developer-tools.md).
+- **Shared Terminal:** Execute commands in a shared terminal pane directly from OpenCode. [Read more](docs/shared-terminal.md).
 
 ---
 
@@ -308,13 +309,8 @@ The script sets up a premium terminal layout using the `wezterm.lua` file:
 - **Font:** JetBrainsMono Nerd Font Mono (full Unicode/Nerd Font icon coverage for terminals, no mojibake).
 - **Hotkeys:**
   - `CTRL + SHIFT + O`: Split pane: gitui (left 40%), OpenCode starts automatically in the right pane.
-  - `CTRL + SHIFT + D`: Split screen horizontally.
-  - `CTRL + SHIFT + E`: Split screen vertically.
-  - `CTRL + SHIFT + W`: Close the active split pane.
+    [Full hotkey reference →](docs/hotkeys.md)
   - `CTRL + SHIFT + I`: **Unconventional clipboard** — paste clipboard images as `@filepath` references. Works on all platforms. See [Windows-Specific Features](#-windows-specific-features) for details.
-  - `CTRL + Insert`: Copy selected text to clipboard (standard Windows).
-  - `SHIFT + Insert`: Paste text from clipboard (standard Windows).
-  - `CTRL + SHIFT + C`: Passthrough — sends the shortcut to the running app (useful inside OpenCode). Previously intercepted by WezTerm for Copy.
 
 > 🛠️ **Developer preset** adds `CTRL+SHIFT+G` (gitui + OpenCode split in new tab), `CTRL+SHIFT+O` (gitui + OpenCode split in current pane), and `CTRL+SHIFT+ALT+G` (gitui + OpenCode split in new workspace). [Full reference →](docs/developer-tools.md)
 

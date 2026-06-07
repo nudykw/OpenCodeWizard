@@ -16,6 +16,13 @@ This document describes the additional tools, keybindings, and components that a
   | `CTRL+SHIFT+O` | Split pane: gitui (left, 40%) + OpenCode (right) |
   | `CTRL+SHIFT+ALT+G` | Open gitui + OpenCode split in a new workspace |
 
+### Shared Terminal
+
+- **Description:** Execute commands in a shared terminal pane directly from OpenCode.
+- **Documentation:** [Shared Terminal Reference](shared-terminal.md)
+- **WezTerm Hotkeys:**
+  - Commands are sent to the shared pane (bottom-left in the default developer layout).
+
 ## Plugins (Developer Preset)
 
 All 6 plugins are installed with the Developer preset. See the main [Plugins reference](plugins.md) for full details.

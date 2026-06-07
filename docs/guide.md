@@ -19,6 +19,7 @@ Welcome! If you are new to the command line or using local AI assistants, this g
   - [Interacting with files](#interacting-with-files)
   - [Using Plugins](#using-plugins)
   - [Working with MCP Servers](mcp.md)
+- [Shared Terminal](shared-terminal.md)
 - [6. Customizing Plugins & MCP Servers](#6-customizing-plugins--mcp-servers)
 - [7. Backups and Restore](#7-backups-and-restore)
 
@@ -216,6 +217,10 @@ OpenCode automatically has access to **all files in the folder where you launche
 ### Working with MCP Servers
 
 [Read the detailed guide about available MCP servers](mcp.md) to understand which tools are available and why you should use them selectively to maintain context quality.
+
+### Shared Terminal
+
+OpenCode can execute commands in a shared terminal pane. This is useful for running tests, build scripts, or any other terminal commands while keeping the AI chat visible. [Learn more about the Shared Terminal](shared-terminal.md).
 
 ### Working with Screenshots
 

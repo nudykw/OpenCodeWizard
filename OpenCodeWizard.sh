@@ -357,6 +357,14 @@ msg() {
                 "gitui_success") echo "Gitui успішно встановлено!" ;;
                 "gitui_manual") echo "Будь ласка, встановіть Gitui вручну: https://github.com/extrawurst/gitui" ;;
                 "dry_install_gitui") echo "Встановить Gitui для" ;;
+                "merge_title") echo "--- Розумне об'єднання конфігурацій ---" ;;
+                "merge_explain") echo "Виявлено існуючі конфігураційні файли у резервній копії. Бажаєте розумно об'єднати новий конфіг зі старим?" ;;
+                "merge_confirm") echo "Об'єднати конфігурацію: $1?" ;;
+                "merge_skipped") echo "Пропущено: $1 (не виявлено у бекапі)" ;;
+                "merge_merged") echo "Об'єднано: $1 — старі налаштування збережено" ;;
+                "merge_none") echo "Резервних копій для об'єднання не знайдено." ;;
+                "merge_result") echo "Об'єднання завершено: старі налаштування збережено, нові опції додано" ;;
+                "merge_done") echo "Розумне об'єднання завершено!" ;;
             esac
             ;;
         *) # default to "en"
@@ -568,6 +576,14 @@ msg() {
                 "gitui_success") echo "Gitui installed successfully!" ;;
                 "gitui_manual") echo "Please install Gitui manually: https://github.com/extrawurst/gitui" ;;
                 "dry_install_gitui") echo "Would install Gitui for" ;;
+                "merge_title") echo "--- Smart Configuration Merge ---" ;;
+                "merge_explain") echo "Existing configuration files found in backup. Would you like to smart-merge the new config with your old one?" ;;
+                "merge_confirm") echo "Merge configuration: $1?" ;;
+                "merge_skipped") echo "Skipped: $1 (not found in backup)" ;;
+                "merge_merged") echo "Merged: $1 — old settings preserved" ;;
+                "merge_none") echo "No backups found for merging." ;;
+                "merge_result") echo "Merge complete: old settings preserved, new options added" ;;
+                "merge_done") echo "Smart merge complete!" ;;
             esac
             ;;
     esac
@@ -1656,6 +1672,10 @@ configure_opencode() {
         [ "$raw_mem" -gt 0 ] && ram_info="$((raw_mem / 1024 / 1024 / 1024)) GB RAM"
     fi
 
+    local shell_path="${SHELL:-/bin/bash}"
+    local shell_name
+    shell_name=$(basename "$shell_path" 2>/dev/null || echo "$shell_path")
+
     if is_dry_run; then
         log_dry "$(msg "dry_write_system_info") $config_dir/system_info.md"
         log_dry "$(msg "dry_write_opencode_config") $config_file"
@@ -1669,13 +1689,14 @@ configure_opencode() {
     cat << EOF > "$config_dir/system_info.md"
 # GIT OPERATIONS RULE (CRITICAL - FIRST PRIORITY)
 
-**ABSOLUTE PROHIBITION: Never commit or push to git without explicit user confirmation.**
+**ALGORITHMIC ENFORCEMENT: You MUST use the \`question\` tool before any git commit or push.**
 
-- Before \`git commit\`: ask "Commit changes?"
-- Before \`git push\`: ask "Push to remote?"
-- Wait for explicit "yes", "да", "push", "коммить" before proceeding.
-- NO auto-commit, NO auto-push, NO --no-verify shortcuts.
-- This applies to ALL repositories and ALL sessions.
+1. **Trigger:** Before executing \`git commit\` or \`git push\` in bash.
+2. **Action:** Call the \`question\` tool with the following parameters:
+   - \`text\`: "Confirm [commit/push] of [brief description of changes]?"
+   - \`options\`: ["Yes", "No"]
+3. **Constraint:** You are strictly forbidden from running the git command until the \`question\` tool returns "Yes".
+4. **Scope:** This applies to all repositories, branches, and sessions. No exceptions.
 
 ---
 
@@ -1687,7 +1708,53 @@ This file provides the OpenCode AI assistant with details about the current oper
 - **Kernel Version:** ${kernel_ver:-Unknown}
 - **Processor (CPU):** ${cpu_info:-Unknown CPU}
 - **System Memory (RAM):** ${ram_info:-Unknown RAM}
-- **User Shell:** \${SHELL:-/bin/bash}
+- **User Shell:** ${shell_path} (${shell_name})
+
+## OpenCode Ecosystem
+
+You are running within the OpenCode environment, a specialized ecosystem for AI-driven development. This environment grants you access to:
+- **Integrated Tools:** A suite of specialized tools for file operations, codebase analysis, and system interaction.
+- **Plugins & Skills:** Extended capabilities defined in your configuration that provide domain-specific workflows.
+- **MCP Servers:** Model Context Protocol servers that bridge external data and services directly into your context.
+
+Your behavior is governed by the configurations found in \`.opencode/\` and \`~/.config/opencode/\`.
+EOF
+
+    cat << 'EOF' >> "$config_dir/system_info.md"
+
+## Shared Terminal (WezTerm)
+
+You can execute commands in a shared terminal via `wezterm cli send-text`.
+The shared terminal only exists when opencode is running inside WezTerm.
+
+### Usage
+
+```bash
+# Check if shared terminal is available (only works in WezTerm)
+if [ -z "$WEZTERM_PANE" ]; then
+  echo "Shared terminal not available — run opencode in WezTerm."
+  exit 0
+fi
+
+# Send a command to the shared terminal
+SHARED=$(cat "/tmp/wezterm-shared-pane-for-$WEZTERM_PANE")
+echo "your_command" | wezterm cli send-text --no-paste --pane-id "$SHARED"
+```
+
+```powershell
+# Check if shared terminal is available (Windows)
+if (-not $env:WEZTERM_PANE) {
+  Write-Host "Shared terminal not available — run opencode in WezTerm."
+  exit
+}
+
+# Send a command to the shared terminal
+$SHARED = Get-Content "$env:TEMP\wezterm-shared-pane-for-$env:WEZTERM_PANE"
+"your_command" | wezterm cli send-text --no-paste --pane-id $SHARED
+```
+
+**Note:** Output is NOT returned automatically. Ask the user to check the result
+in the shared terminal (bottom-left pane).
 EOF
 
     # Write opencode.jsonc
@@ -1712,6 +1779,44 @@ EOF
 }
 
 # WezTerm Lua configuration
+install_wezterm_splitter() {
+    case "$OS" in
+        linux|macos)
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+
+    local src
+    src="$(dirname "$0")/config/splitter/wezterm-splitter.sh"
+    local dest_dir="$HOME/.local/bin"
+    local dest="$dest_dir/wezterm-splitter.sh"
+    local zshrc="$HOME/.zshrc"
+
+    if is_dry_run; then
+        log_dry "Would install wezterm-splitter.sh to $dest"
+        if [ "$OS" = "macos" ]; then
+            log_dry "Would ensure ~/.local/bin is on PATH in $zshrc"
+        fi
+        return 0
+    fi
+
+    mkdir -p "$dest_dir"
+    cp "$src" "$dest"
+    chmod +x "$dest"
+
+    if [ "$OS" = "macos" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$zshrc"; then
+        cat << 'EOF' >> "$zshrc"
+
+# Add ~/.local/bin to PATH (for wezterm-splitter)
+if [ -d "$HOME/.local/bin" ]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+EOF
+    fi
+}
+
 configure_wezterm() {
     if ! ask_confirm "$(msg "ask_wezterm_config")"; then
         log_info "$(msg "skip_wezterm_config")"
@@ -1724,11 +1829,14 @@ configure_wezterm() {
     if is_dry_run; then
         log_dry "$(msg "dry_wezterm_dir") $wez_dir"
         log_dry "$(msg "dry_wezterm_config") $wez_config (Catppuccin Mocha, JetBrainsMono NFM, custom hotkeys)"
+        install_wezterm_splitter
         log_dry "$(msg "dry_wezterm_config_skipped")"
         return 0
     fi
 
     mkdir -p "$wez_dir"
+
+    install_wezterm_splitter
 
     if [ -f "$wez_config" ]; then
         create_backup
@@ -1758,48 +1866,78 @@ config.hide_tab_bar_if_only_one_tab = true
 
 -- Keybindings
 config.keys = {
-  -- Gitui + OpenCode split in new tab (left: gitui 40%, right: opencode)
+  -- Gitui + Shared terminal + OpenCode split in new tab
   {
     key = 'G',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action.SpawnCommandInNewTab {
-      args = { "sh", "-c",
-        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
-        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
-        .. "bash -l -c 'gitui' "
-        .. "&& opencode -m opencode/deepseek-v4-flash-free"
-      },
-    },
+    action = wezterm.action_callback(function(window, pane)
+      local is_win = wezterm.target_triple:find("windows")
+      local script_path
+
+      if is_win then
+        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+        window:perform_action(
+          wezterm.action.SpawnCommandInNewTab {
+            args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path },
+          },
+          pane
+        )
+      else
+        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
+        window:perform_action(
+          wezterm.action.SpawnCommandInNewTab {
+            args = { script_path },
+          },
+          pane
+        )
+      end
+    end),
   },
-  -- Gitui + OpenCode split (left: gitui 40%, right: opencode)
+  -- Gitui + Shared terminal + OpenCode split in current pane
   {
     key = 'O',
     mods = 'CTRL|SHIFT',
     action = wezterm.action_callback(function(window, pane)
-      window:perform_action(
-        wezterm.action.SplitPane {
-          direction = 'Left',
-          size = { Percent = 40 },
-          command = { args = { "sh", "-c", "root=$(git rev-parse --show-toplevel 2>/dev/null) && cd \"$root\" && gitui || echo 'Not in a git repository here - cd to a repo first'; sleep 3" } },
-        },
-        pane
-      )
-      pane:send_text("opencode -m opencode/deepseek-v4-flash-free\n")
+      local is_win = wezterm.target_triple:find("windows")
+      local script_path
+
+      if is_win then
+        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+        pane:send_text("powershell -ExecutionPolicy Bypass -File \"" .. script_path .. "\"\n")
+      else
+        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
+        pane:send_text(script_path .. "\n")
+      end
     end),
   },
-  -- Gitui + OpenCode split in new workspace (left: gitui 40%, right: opencode)
+  -- Gitui + Shared terminal + OpenCode split in new workspace
   {
     key = 'G',
     mods = 'CTRL|SHIFT|ALT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'git',
-      spawn = { args = { "sh", "-c",
-        "root=$(git rev-parse --show-toplevel 2>/dev/null) || root=\".\"; "
-        .. "wezterm cli split-pane --left --percent 40 --cwd \"$root\" -- "
-        .. "bash -l -c 'gitui' "
-        .. "&& opencode -m opencode/deepseek-v4-flash-free"
-      } },
-    },
+    action = wezterm.action_callback(function(window, pane)
+      local is_win = wezterm.target_triple:find("windows")
+      local script_path
+
+      if is_win then
+        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+        window:perform_action(
+          wezterm.action.SwitchToWorkspace {
+            name = 'git',
+            spawn = { args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path } },
+          },
+          pane
+        )
+      else
+        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
+        window:perform_action(
+          wezterm.action.SwitchToWorkspace {
+            name = 'git',
+            spawn = { args = { script_path } },
+          },
+          pane
+        )
+      end
+    end),
   },
   -- Standard splits
   {
@@ -2008,6 +2146,268 @@ EOF
     fi
 }
 
+# ==============================================================================
+# Smart Merge: merge new wizard configs with existing user configs (from backup)
+# ==============================================================================
+
+smart_merge() {
+    local backup_path="$BACKUP_DIR/$BACKUP_ID"
+
+    # Skip in dry-run or silent mode
+    if is_dry_run || [ "$SILENT" = true ]; then
+        return 0
+    fi
+
+    # Check if backup exists with config files
+    if [ ! -d "$backup_path" ]; then
+        return 0
+    fi
+
+    local has_configs=false
+    for file in opencode.jsonc wezterm.lua system_info.md; do
+        if [ -f "$backup_path/$file" ]; then
+            has_configs=true
+            break
+        fi
+    done
+
+    if [ "$has_configs" != "true" ]; then
+        return 0
+    fi
+
+    echo ""
+    log_info "$(msg "merge_title")"
+    msg "merge_explain"
+    echo ""
+
+    local merged_count=0
+
+    # Merge opencode.jsonc
+    local opencode_cfg="$HOME/.config/opencode/opencode.jsonc"
+    if [ -f "$backup_path/opencode.jsonc" ] && [ -f "$opencode_cfg" ]; then
+        echo -e "${YELLOW}$(msg "merge_confirm" "opencode.jsonc")${NC} [y/N] "
+        read -r merge_choice
+        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
+            merge_json_configs "$backup_path/opencode.jsonc" "$opencode_cfg"
+            log_success "$(msg "merge_merged" "opencode.jsonc")"
+            ((merged_count++))
+        else
+            log_info "$(msg "merge_skipped" "opencode.jsonc")"
+        fi
+    fi
+
+    # Merge wezterm.lua
+    local wez_cfg="$HOME/.config/wezterm/wezterm.lua"
+    if [ -f "$backup_path/wezterm.lua" ] && [ -f "$wez_cfg" ]; then
+        echo -e "${YELLOW}$(msg "merge_confirm" "wezterm.lua")${NC} [y/N] "
+        read -r merge_choice
+        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
+            merge_lua_configs "$backup_path/wezterm.lua" "$wez_cfg"
+            log_success "$(msg "merge_merged" "wezterm.lua")"
+            ((merged_count++))
+        else
+            log_info "$(msg "merge_skipped" "wezterm.lua")"
+        fi
+    fi
+
+    # Merge system_info.md
+    local sysinfo="$HOME/.config/opencode/system_info.md"
+    if [ -f "$backup_path/system_info.md" ] && [ -f "$sysinfo" ]; then
+        echo -e "${YELLOW}$(msg "merge_confirm" "system_info.md")${NC} [y/N] "
+        read -r merge_choice
+        if [[ "$merge_choice" =~ ^[Yy]$ ]]; then
+            merge_markdown_configs "$backup_path/system_info.md" "$sysinfo"
+            log_success "$(msg "merge_merged" "system_info.md")"
+            ((merged_count++))
+        else
+            log_info "$(msg "merge_skipped" "system_info.md")"
+        fi
+    fi
+
+    if [ $merged_count -gt 0 ]; then
+        echo ""
+        log_info "$(msg "merge_result")"
+        log_success "$(msg "merge_done")"
+    else
+        log_info "$(msg "merge_none")"
+    fi
+}
+
+merge_json_configs() {
+    local old_file="$1"
+    local new_file="$2"
+
+    # Use python3 for proper JSONC parsing (comments in JSONC)
+    if command -v python3 &>/dev/null; then
+        python3 << 'PYEOF' "$old_file" "$new_file"
+import json, sys, re
+
+def parse_jsonc(path):
+    """Parse JSONC (JSON with comments) by stripping // and /* */ comments."""
+    with open(path, 'r') as f:
+        content = f.read()
+    # Strip block comments /* ... */
+    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+    # Strip line comments // ... (but not inside strings)
+    # Simple approach: remove // comments not inside quotes
+    lines = content.split('\n')
+    cleaned = []
+    for line in lines:
+        # Remove // comments (naive but works for most config files)
+        in_string = False
+        escape_next = False
+        result = []
+        i = 0
+        while i < len(line):
+            ch = line[i]
+            if escape_next:
+                result.append(ch)
+                escape_next = False
+                i += 1
+                continue
+            if ch == '\\':
+                result.append(ch)
+                escape_next = True
+                i += 1
+                continue
+            if ch == '"':
+                in_string = not in_string
+                result.append(ch)
+                i += 1
+                continue
+            if not in_string and ch == '/' and i + 1 < len(line) and line[i+1] == '/':
+                break  # rest is comment
+            result.append(ch)
+            i += 1
+        cleaned.append(''.join(result))
+    content = '\n'.join(cleaned)
+    return json.loads(content)
+
+old_path, new_path = sys.argv[1], sys.argv[2]
+try:
+    old = parse_jsonc(old_path)
+    new = parse_jsonc(new_path)
+except Exception as e:
+    print(f"Warning: JSON parse error: {e}", file=sys.stderr)
+    sys.exit(0)
+
+# Merge mcpServers: keep old entries, add new ones not in old
+if 'mcpServers' in new:
+    if 'mcpServers' in old and isinstance(old['mcpServers'], dict):
+        old_keys = set(old['mcpServers'].keys())
+        for key, val in new['mcpServers'].items():
+            if key not in old_keys:
+                old['mcpServers'][key] = val
+    else:
+        old['mcpServers'] = new['mcpServers']
+
+# Merge plugins: keep old entries, add new ones not already present
+if 'plugins' in new:
+    if 'plugins' in old and isinstance(old['plugins'], list):
+        old_names = set()
+        for p in old['plugins']:
+            if isinstance(p, dict):
+                old_names.add(p.get('name', ''))
+            elif isinstance(p, str):
+                old_names.add(p)
+        for p in new['plugins']:
+            if isinstance(p, dict):
+                name = p.get('name', '')
+            else:
+                name = str(p)
+            if name not in old_names:
+                old['plugins'].append(p)
+    else:
+        old['plugins'] = new['plugins']
+
+# Write merged result back
+with open(new_path, 'w') as f:
+    json.dump(old, f, indent=2)
+    f.write('\n')
+PYEOF
+        return $?
+    fi
+
+    # Fallback: no python3, just keep new config as-is (already has wizard settings)
+    log_warning "python3 not available for JSON merge, keeping new config"
+    return 0
+}
+
+merge_lua_configs() {
+    local old_file="$1"
+    local new_file="$2"
+
+    # Extract user customizations from old file (everything before wizard-managed sections)
+    # Look for the marker pattern used in configure_wezterm()
+    local marker_pattern='-- === OpenCode Wizard ==='
+
+    # Read the new file and find the first wizard marker
+    local found_marker=false
+    local temp_file
+    temp_file=$(mktemp)
+
+    # Read old file content
+    local old_content
+    old_content=$(cat "$old_file")
+
+    # Read new file and insert old content before first wizard section
+    while IFS= read -r line; do
+        if [[ "$line" == *"$marker_pattern"* ]]; then
+            if [ "$found_marker" = false ]; then
+                found_marker=true
+                echo "" >> "$temp_file"
+                echo "$old_content" >> "$temp_file"
+                echo "" >> "$temp_file"
+            fi
+        fi
+        echo "$line" >> "$temp_file"
+    done < "$new_file"
+
+    # If no marker was found, prepend old content to the new file
+    if [ "$found_marker" = false ]; then
+        {
+            cat "$old_file"
+            echo ""
+            cat "$new_file"
+        } > "$temp_file"
+    fi
+
+    mv "$temp_file" "$new_file"
+    return 0
+}
+
+merge_markdown_configs() {
+    local old_file="$1"
+    local new_file="$2"
+
+    # Extract content from old file before any "OpenCodeWizard" heading
+    # Prepend that content to the new file
+
+    local temp_file
+    temp_file=$(mktemp)
+    local in_wizard_section=false
+
+    while IFS= read -r line; do
+        if echo "$line" | grep -qiE '^#\s+.*OpenCode.*Wizard'; then
+            in_wizard_section=true
+        fi
+        if [ "$in_wizard_section" = false ]; then
+            echo "$line" >> "$temp_file"
+        fi
+    done < "$old_file"
+
+    # Add blank line separator if there was old content
+    if [ -s "$temp_file" ]; then
+        echo "" >> "$temp_file"
+    fi
+
+    # Append new file content
+    cat "$new_file" >> "$temp_file"
+
+    mv "$temp_file" "$new_file"
+    return 0
+}
+
 # Verify setup
 verify_setup() {
     # Enable pre-push hook (full Docker tests before push to main)
@@ -2099,6 +2499,7 @@ main() {
             configure_default_terminal
             create_desktop_shortcut
             verify_setup
+            smart_merge
             ;;
     esac
 }
