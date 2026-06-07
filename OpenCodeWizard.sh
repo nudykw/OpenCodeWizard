@@ -2022,10 +2022,6 @@ EOF
 
 # Configure default terminal
 configure_default_terminal() {
-    if ! command -v wezterm &>/dev/null; then
-        return 0
-    fi
-
     echo -e "\n$(msg "default_terminal_title")"
     msg "default_terminal_explain"
     echo ""
@@ -2044,7 +2040,7 @@ configure_default_terminal() {
                 return 0
             fi
 
-            if command -v update-alternatives &>/dev/null; then
+            if command -v wezterm &>/dev/null && command -v update-alternatives &>/dev/null; then
                 local wez_path
                 wez_path=$(command -v wezterm)
                 log_info "$(msg "setting_default_emulator")"
@@ -2055,15 +2051,17 @@ configure_default_terminal() {
                 log_info "$(msg "no_update_alternatives")"
             fi
 
-            # Set XDG terminal configurations
-            local xdg_files=("$HOME/.config/xdg-terminals.list" "$HOME/.config/ubuntu-xdg-terminals.list")
-            for xdg_file in "${xdg_files[@]}"; do
-                mkdir -p "$(dirname "$xdg_file")"
-                echo "org.wezfurlong.wezterm.desktop" > "$xdg_file"
-                log_success "$(msg "updated_xdg_terminals") $xdg_file"
-            done
+            # Set XDG terminal configurations (skip if wezterm binary not present)
+            if command -v wezterm &>/dev/null; then
+                local xdg_files=("$HOME/.config/xdg-terminals.list" "$HOME/.config/ubuntu-xdg-terminals.list")
+                for xdg_file in "${xdg_files[@]}"; do
+                    mkdir -p "$(dirname "$xdg_file")"
+                    echo "org.wezfurlong.wezterm.desktop" > "$xdg_file"
+                    log_success "$(msg "updated_xdg_terminals") $xdg_file"
+                done
+            fi
 
-            # Set TERMINAL env var without duplication
+            # Set TERMINAL env var without duplication (always, even in container)
             local shell_configs=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile")
             for s_conf in "${shell_configs[@]}"; do
                 if [ -f "$s_conf" ]; then
