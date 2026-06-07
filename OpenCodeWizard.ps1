@@ -244,6 +244,14 @@ $Translations = @{
         "gitui_success" = "Gitui успішно встановлено!"
         "gitui_manual" = "Будь ласка, встановіть Gitui вручну: https://github.com/extrawurst/gitui"
         "dry_install_gitui" = "Встановить Gitui за допомогою"
+        "merge_title" = "--- Розумне об'єднання конфігурацій ---"
+        "merge_explain" = "Виявлено існуючі конфігураційні файли у резервній копії. Бажаєте розумно об'єднати новий конфіг зі старим?"
+        "merge_confirm" = "Об'єднати конфігурацію: `$1?"
+        "merge_skipped" = "Пропущено: `$1 (не виявлено у бекапі)"
+        "merge_merged" = "Об'єднано: `$1 — старі налаштування збережено"
+        "merge_result" = "Об'єднання завершено: старі налаштування збережено, нові опції додано"
+        "merge_done" = "Розумне об'єднання завершено!"
+        "merge_none" = "Резервних копій для об'єднання не знайдено."
     }
     "en" = @{
         "title" = "OPENCODE & WEZTERM SETUP WIZARD"
@@ -400,14 +408,31 @@ $Translations = @{
         "gitui_success" = "Gitui installed successfully!"
         "gitui_manual" = "Please install Gitui manually: https://github.com/extrawurst/gitui"
         "dry_install_gitui" = "Would install Gitui via"
+        "merge_title" = "--- Smart Configuration Merge ---"
+        "merge_explain" = "Existing configuration files found in backup. Would you like to smart-merge the new config with your old one?"
+        "merge_confirm" = "Merge configuration: `$1?"
+        "merge_skipped" = "Skipped: `$1 (not found in backup)"
+        "merge_merged" = "Merged: `$1 — old settings preserved"
+        "merge_result" = "Merge complete: old settings preserved, new options added"
+        "merge_done" = "Smart merge complete!"
+        "merge_none" = "No backups found for merging."
     }
 }
 
-function Get-Msg ($key) {
+function Get-Msg ($key, [object[]]$formatArgs) {
+    $template = $null
     if ($Translations[$LangCode].ContainsKey($key)) {
-        return $Translations[$LangCode][$key]
+        $template = $Translations[$LangCode][$key]
+    } elseif ($Translations["en"].ContainsKey($key)) {
+        $template = $Translations["en"][$key]
     }
-    return $Translations["en"][$key]
+    if ($null -eq $template) { return "" }
+    if ($formatArgs -and $formatArgs.Count -gt 0) {
+        for ($i = 0; $i -lt $formatArgs.Count; $i++) {
+            $template = $template -replace [regex]::Escape("`$$($i+1)"), [string]$formatArgs[$i]
+        }
+    }
+    return $template
 }
 
 # 1. Ask for Language Choice
@@ -463,6 +488,41 @@ function Ask-Confirm ($prompt) {
         if ([string]::IsNullOrEmpty($ans)) { $ans = "y" }
         if ($ans -match '^[Yy]$') { return $true }
         if ($ans -match '^[Nn]$') { return $false }
+    }
+}
+
+function Show-MergeDiff ($backupFile, $targetFile, $label) {
+    Write-Host ""
+    Write-Host "$Cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$ResetColorColor"
+    Write-Host "$Cyan Diff: $Bold$label$ResetColorColor"
+    Write-Host "$Cyan   Backup: $backupFile$ResetColorColor"
+    Write-Host "$Cyan   Target: $targetFile$ResetColorColor"
+    Write-Host "$Cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$ResetColorColor"
+    if (Get-Command diff -ErrorAction SilentlyContinue) {
+        $proc = Start-Process -FilePath "diff" -ArgumentList @("-u", $backupFile, $targetFile) -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\ocw-diff.tmp" -Wait
+        Get-Content "$env:TEMP\ocw-diff.tmp" | Out-Host
+        Remove-Item "$env:TEMP\ocw-diff.tmp" -ErrorAction SilentlyContinue
+    } else {
+        $backupLines = Get-Content $backupFile
+        $targetLines = Get-Content $targetFile
+        $cmp = Compare-Object $backupLines $targetLines
+        $cmp | ForEach-Object {
+            $marker = switch ($_.SideIndicator) { "<" { "-" } ">" { "+" } default { " " } }
+            Write-Host "$marker $($_.InputObject)"
+        }
+    }
+    Write-Host ""
+}
+
+function Ask-MergeConfirm ($prompt, $backupFile, $targetFile) {
+    if ($Silent) { return $true }
+    while ($true) {
+        $ans = Read-Host -Prompt "$Cyan$prompt [Y/n/d]$ResetColorColor"
+        if ($ans -match '^[Yy]$') { return $true }
+        if ($ans -eq '' -or $ans -match '^[Nn]$') { return $false }
+        if ($ans -match '^[Dd]$') {
+            Show-MergeDiff $backupFile $targetFile $prompt
+        }
     }
 }
 
@@ -776,34 +836,46 @@ function Install-NerdFont {
         return
     }
 
-    # Prefer system-wide %WINDIR%\Fonts (works on all Windows versions, including GitHub runners).
-    # Fall back to per-user %LOCALAPPDATA%\Microsoft\Windows\Fonts when the system path is locked
-    # (sandboxed CI, restricted service accounts) and create it on demand.
-    $fontDir = Join-Path $env:WINDIR "Fonts"
-    $userFontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    # Fallback chain:
+    # 1) Try the system font directory first.
+    # 2) If it is missing, create it with -Force.
+    # 3) If writing there fails (no admin rights / locked path), fall back to the per-user font
+    #    directory and tell the user to add it to WezTerm's font_dirs if needed.
+    $systemFontDir = Join-Path $env:WINDIR "Fonts"
+    $userFontDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+    $fontDir = $systemFontDir
     $usedFallback = $false
-    if (-not (Test-Path $fontDir)) {
-        if (Test-Path $userFontDir) {
-            $fontDir = $userFontDir
-            $usedFallback = $true
-        } else {
-            try {
-                New-Item -ItemType Directory -Path $userFontDir -Force | Out-Null
-                $fontDir = $userFontDir
+
+    foreach ($candidateDir in @($systemFontDir, $userFontDir)) {
+        try {
+            if (-not (Test-Path $candidateDir)) {
+                New-Item -ItemType Directory -Path $candidateDir -Force | Out-Null
+            }
+            $fontDir = $candidateDir
+            break
+        } catch {
+            if ($candidateDir -eq $systemFontDir) {
                 $usedFallback = $true
-            } catch {
-                # Last-ditch: try to create system path
-                try { New-Item -ItemType Directory -Path $fontDir -Force | Out-Null }
-                catch { $fontDir = $userFontDir }
+                Log-Warning "System fonts directory is unavailable or not writable; falling back to per-user fonts at $userFontDir."
+            } else {
+                throw
             }
         }
+    }
+
+    if (-not (Test-Path $fontDir)) {
+        throw "No writable font directory found. Tried '$systemFontDir' and '$userFontDir'."
     }
 
     # Check if already installed (internal font family name is "JetBrainsMono NFM")
     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
     $installedFonts = New-Object System.Drawing.Text.InstalledFontCollection
     $alreadyInstalled = $installedFonts.Families | Where-Object { $_.Name -eq "JetBrainsMono NFM" }
-    if ($alreadyInstalled -and (Test-Path (Join-Path $fontDir "JetBrainsMonoNerdFontMono-Regular.ttf"))) {
+    $fontFileExists = @(
+        (Join-Path $systemFontDir "JetBrainsMonoNerdFontMono-Regular.ttf"),
+        (Join-Path $userFontDir "JetBrainsMonoNerdFontMono-Regular.ttf")
+    ) | Where-Object { Test-Path $_ }
+    if ($alreadyInstalled -and $fontFileExists.Count -gt 0) {
         Log-Success "$(Get-Msg 'nerdfont_exists')"
         return
     }
@@ -812,12 +884,12 @@ function Install-NerdFont {
 
     $url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip"
     $zipPath = "$env:TEMP\JetBrainsMonoNerd.zip"
+    $extractPath = "$env:TEMP\JetBrainsMonoNerd"
 
     try {
         $wc = New-Object System.Net.WebClient
         $wc.DownloadFile($url, $zipPath)
 
-        $extractPath = "$env:TEMP\JetBrainsMonoNerd"
         Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
 
         $copyErrors = @()
@@ -829,21 +901,46 @@ function Install-NerdFont {
             }
         }
 
-        Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-
-        if ($copyErrors.Count -gt 0 -and $usedFallback) {
-            # User-space fallback: registration via SHAddFontResource is not available in
-            # PowerShell without P/Invoke. The files are still on disk in the user font
-            # directory, which Windows scans automatically after logon.
-            Log-Success "$(Get-Msg 'nerdfont_success')"
-        } elseif ($copyErrors.Count -gt 0) {
-            throw ($copyErrors -join "; ")
-        } else {
-            Log-Success "$(Get-Msg 'nerdfont_success')"
+        if ($copyErrors.Count -gt 0 -and -not $usedFallback) {
+            # If the system font directory looked writable but copy still failed, retry in user space.
+            # This keeps the wizard usable without admin privileges and avoids a hard failure.
+            try {
+                if (-not (Test-Path $userFontDir)) {
+                    New-Item -ItemType Directory -Path $userFontDir -Force | Out-Null
+                }
+                Log-Warning "Writing to the system fonts directory failed; retrying in per-user fonts at $userFontDir. Add this path to WezTerm's font_dirs if the font does not appear immediately."
+                $usedFallback = $true
+                $copyErrors = @()
+                Get-ChildItem -Path $extractPath -Filter "*.ttf" | ForEach-Object {
+                    try {
+                        Copy-Item $_.FullName -Destination (Join-Path $userFontDir $_.Name) -Force -ErrorAction Stop
+                    } catch {
+                        $copyErrors += $_.Exception.Message
+                    }
+                }
+                $fontDir = $userFontDir
+                if ($copyErrors.Count -gt 0) {
+                    throw ($copyErrors -join "; ")
+                }
+            } catch {
+                throw
+            }
         }
+
+        if ($copyErrors.Count -gt 0) {
+            throw ($copyErrors -join "; ")
+        }
+
+        if ($usedFallback) {
+            Log-Warning "JetBrainsMono Nerd Font was installed to the per-user font directory: $userFontDir. Windows may need a sign-out/sign-in, and WezTerm may need that path added to font_dirs."
+        }
+
+        Log-Success "$(Get-Msg 'nerdfont_success')"
     } catch {
         Log-Warning "$(Get-Msg 'nerdfont_failed') $_"
+    } finally {
+        Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -1554,49 +1651,79 @@ function Merge-JsonConfigs {
     $oldContent = Get-Content $oldFile -Raw
     $newContent = Get-Content $newFile -Raw
 
-    # JSONC comment stripping — single-pass character scanner (avoids 4× regex backtracking)
-    # Handles: /* block */ , // line, "..." strings, preserves // inside URLs
+    # JSONC comment stripping — state machine tracks string, escape, and comment state.
+    # Old regex approach: O(n) with backtracking risk; new state machine: O(n) single pass.
     function Remove-JsoncComments {
         param([string]$Text)
         if ([string]::IsNullOrEmpty($Text)) { return $Text }
         $sb = [System.Text.StringBuilder]::new($Text.Length)
         $i = 0
         $len = $Text.Length
+        $inString = $false
+        $escapeNext = $false
+        $inLineComment = $false
+        $inBlockComment = $false
+
         while ($i -lt $len) {
             $c = $Text[$i]
-            $n = if ($i + 1 -lt $len) { $Text[$i + 1] } else { [char]0 }
-            if ($c -eq '"') {
-                # Copy entire string literal verbatim (handles \", \\")
-                [void]$sb.Append('"')
+
+            if ($inLineComment) {
+                if ($c -eq "`r" -or $c -eq "`n") {
+                    [void]$sb.Append($c)
+                    $inLineComment = $false
+                }
                 $i++
-                while ($i -lt $len) {
-                    $ch = $Text[$i]
-                    [void]$sb.Append($ch)
-                    if ($ch -eq '\') { $i += 2; continue }
-                    if ($ch -eq '"') { $i++; break }
-                    $i++
+                continue
+            }
+
+            if ($inBlockComment) {
+                if ($c -eq '*' -and $i + 1 -lt $len -and $Text[$i + 1] -eq '/') {
+                    $inBlockComment = $false
+                    $i += 2
+                    continue
                 }
-                continue
-            }
-            if ($c -eq '/' -and $n -eq '*') {
-                # Block comment /* ... */
-                $i += 2
-                while ($i + 1 -lt $len -and -not ($Text[$i] -eq '*' -and $Text[$i + 1] -eq '/')) { $i++ }
-                $i += 2
-                continue
-            }
-            if ($c -eq '/' -and $n -eq '/') {
-                # Line comment // ... (skip unless preceded by https?:)
-                $start = $i
-                if ($start -ge 6) {
-                    $prefix = $Text.Substring([Math]::Max(0, $start - 6), [Math]::Min(6, $start))
-                } else { $prefix = '' }
-                if ($prefix -match 'https?:$') {
-                    [void]$sb.Append($c); $i++; continue
+                if ($c -eq "`r" -or $c -eq "`n") {
+                    [void]$sb.Append($c)
                 }
-                while ($i -lt $len -and $Text[$i] -ne "`n") { $i++ }
+                $i++
                 continue
             }
+
+            if ($inString) {
+                [void]$sb.Append($c)
+                if ($escapeNext) {
+                    $escapeNext = $false
+                } elseif ($c -eq '\') {
+                    $escapeNext = $true
+                } elseif ($c -eq '"') {
+                    $inString = $false
+                }
+                $i++
+                continue
+            }
+
+            if ($c -eq '"') {
+                [void]$sb.Append($c)
+                $inString = $true
+                $i++
+                continue
+            }
+
+            if ($c -eq '/' -and $i + 1 -lt $len) {
+                $n = $Text[$i + 1]
+                if ($n -eq '/') {
+                    $inLineComment = $true
+                    $i += 2
+                    continue
+                }
+                if ($n -eq '*') {
+                    [void]$sb.Append(' ')
+                    $inBlockComment = $true
+                    $i += 2
+                    continue
+                }
+            }
+
             [void]$sb.Append($c)
             $i++
         }
@@ -1760,9 +1887,15 @@ function Smart-Merge {
     $mergedCount = 0
 
     $opencodeCfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"
-    if ((Test-Path (Join-Path $BackupPath 'opencode.jsonc')) -and (Test-Path $opencodeCfg)) {
-        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'opencode.jsonc')")) {
-            Merge-JsonConfigs (Join-Path $BackupPath 'opencode.jsonc') $opencodeCfg
+    $opencodeBackup = Join-Path $BackupPath 'opencode.jsonc'
+    if ((Test-Path $opencodeBackup) -and (Test-Path $opencodeCfg)) {
+        $backupContent = Get-Content $opencodeBackup -Raw
+        $targetContent = Get-Content $opencodeCfg -Raw
+        if ($backupContent -eq $targetContent) {
+            Log-Info "  · opencode.jsonc: no changes (skipping)"
+        } elseif ($Auto -or (Ask-MergeConfirm (Get-Msg 'merge_confirm' 'opencode.jsonc') $opencodeBackup $opencodeCfg)) {
+            Log-Info "  → opencode.jsonc  [tool: PowerShell hashtable merge, policy: backup-wins]"
+            Merge-JsonConfigs $opencodeBackup $opencodeCfg
             Log-Success "$(Get-Msg 'merge_merged' 'opencode.jsonc')"
             $mergedCount++
         } else {
@@ -1771,9 +1904,15 @@ function Smart-Merge {
     }
 
     $wezCfg = Join-Path $env:USERPROFILE ".config\wezterm\wezterm.lua"
-    if ((Test-Path (Join-Path $BackupPath 'wezterm.lua')) -and (Test-Path $wezCfg)) {
-        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'wezterm.lua')")) {
-            Merge-LuaConfigs (Join-Path $BackupPath 'wezterm.lua') $wezCfg
+    $wezBackup = Join-Path $BackupPath 'wezterm.lua'
+    if ((Test-Path $wezBackup) -and (Test-Path $wezCfg)) {
+        $backupContent = Get-Content $wezBackup -Raw
+        $targetContent = Get-Content $wezCfg -Raw
+        if ($backupContent -eq $targetContent) {
+            Log-Info "  · wezterm.lua: no changes (skipping)"
+        } elseif ($Auto -or (Ask-MergeConfirm (Get-Msg 'merge_confirm' 'wezterm.lua') $wezBackup $wezCfg)) {
+            Log-Info "  → wezterm.lua  [tool: PowerShell string/section merge, policy: prepend user customizations]"
+            Merge-LuaConfigs $wezBackup $wezCfg
             Log-Success "$(Get-Msg 'merge_merged' 'wezterm.lua')"
             $mergedCount++
         } else {
@@ -1785,9 +1924,15 @@ function Smart-Merge {
     if (-not (Test-Path $psProfile)) {
         $psProfile = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
     }
-    if ((Test-Path (Join-Path $BackupPath 'Microsoft.PowerShell_profile.ps1')) -and (Test-Path $psProfile)) {
-        if ($Auto -or (Ask-Confirm "$(Get-Msg 'merge_confirm' 'Microsoft.PowerShell_profile.ps1')")) {
-            Merge-ShellConfigs (Join-Path $BackupPath 'Microsoft.PowerShell_profile.ps1') $psProfile
+    $psBackup = Join-Path $BackupPath 'Microsoft.PowerShell_profile.ps1'
+    if ((Test-Path $psBackup) -and (Test-Path $psProfile)) {
+        $backupContent = Get-Content $psBackup -Raw
+        $targetContent = Get-Content $psProfile -Raw
+        if ($backupContent -eq $targetContent) {
+            Log-Info "  · Microsoft.PowerShell_profile.ps1: no changes (skipping)"
+        } elseif ($Auto -or (Ask-MergeConfirm (Get-Msg 'merge_confirm' 'Microsoft.PowerShell_profile.ps1') $psBackup $psProfile)) {
+            Log-Info "  → Microsoft.PowerShell_profile.ps1  [tool: PowerShell regex (Select-String/-replace), policy: backup-wins per export]"
+            Merge-ShellConfigs $psBackup $psProfile
             Log-Success "$(Get-Msg 'merge_merged' 'Microsoft.PowerShell_profile.ps1')"
             $mergedCount++
         } else {

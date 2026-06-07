@@ -164,6 +164,7 @@ get_opencode_path() {
 # Helper Translation Function
 msg() {
     local key="$1"
+    shift
     case "$LANG_CODE" in
         "uk")
             case "$key" in
@@ -1148,9 +1149,13 @@ install_nerd_font() {
 # ==============================================================================
 install_go() {
     if command -v go &>/dev/null; then
-        local go_ver
-        go_ver=$(go version | awk '{v=substr($3,3); sub(/\.[0-9]+$/,"",v); print v}')
-        if command -v bc &>/dev/null && [ "$(echo "$go_ver >= 1.22" | bc 2>/dev/null)" = "1" ] || [ "${go_ver%%.*}" -ge 1 ] && [ "${go_ver#*.}" -ge 22 ] 2>/dev/null; then
+        local go_ver go_major go_minor
+        go_ver=$(go version | awk '{print $3}' | sed 's/^go//' | cut -d. -f1,2)
+        go_major="${go_ver%%.*}"
+        go_minor="${go_ver#*.}"
+        if [ -n "$go_major" ] && [ -n "$go_minor" ] \
+           && ( [ "$go_major" -eq 1 ] && [ "$go_minor" -ge 22 ] \
+                || [ "$go_major" -gt 1 ] ) 2>/dev/null; then
             log_success "$(msg "go_already_installed") ${go_ver}"
             return 0
         fi
@@ -2208,11 +2213,42 @@ EOF
 # Smart Merge: merge new wizard configs with existing user configs (from backup)
 # ==============================================================================
 
+_merge_show_diff() {
+    local backup_file="$1"
+    local target_file="$2"
+    local label="$3"
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}Diff: ${BOLD}$label${NC}"
+    echo -e "${CYAN}  Backup: $backup_file${NC}"
+    echo -e "${CYAN}  Target: $target_file${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    if ! command -v diff &>/dev/null; then
+        echo "  (diff command not available)"
+        return
+    fi
+    if command -v less &>/dev/null && [ -t 1 ]; then
+        diff -u --color=always "$backup_file" "$target_file" 2>&1 | less -R
+    else
+        diff -u --color=always "$backup_file" "$target_file" 2>&1
+    fi
+    echo ""
+}
+
 _merge_confirm() {
     local file="$1"
-    echo -e "${YELLOW}$(msg "merge_confirm" "$file")${NC} [y/N] "
-    read -r merge_choice
-    [[ "$merge_choice" =~ ^[Yy]$ ]]
+    local backup_file="$2"
+    local target_file="$3"
+    while true; do
+        echo -e "${YELLOW}$(msg "merge_confirm" "$file")${NC} ${BOLD}[y/N/d]${NC} "
+        read -r merge_choice
+        case "$merge_choice" in
+            [Yy]) return 0 ;;
+            [Nn]|"") return 1 ;;
+            [Dd]) _merge_show_diff "$backup_file" "$target_file" "$file" ;;
+            *) echo "  Please answer y, n, or d" ;;
+        esac
+    done
 }
 
 smart_merge() {
@@ -2251,7 +2287,10 @@ smart_merge() {
     # Merge opencode.jsonc
     local opencode_cfg="$HOME/.config/opencode/opencode.jsonc"
     if [ -f "$backup_path/opencode.jsonc" ] && [ -f "$opencode_cfg" ]; then
-        if [ "$auto" = "true" ] || _merge_confirm "opencode.jsonc"; then
+        if diff -q "$backup_path/opencode.jsonc" "$opencode_cfg" &>/dev/null; then
+            log_info "  · opencode.jsonc: no changes (skipping)"
+        elif [ "$auto" = "true" ] || _merge_confirm "opencode.jsonc" "$backup_path/opencode.jsonc" "$opencode_cfg"; then
+            log_info "  → opencode.jsonc  [tool: python3, policy: backup-wins]"
             merge_json_configs "$backup_path/opencode.jsonc" "$opencode_cfg"
             log_success "$(msg "merge_merged" "opencode.jsonc")"
             ((merged_count++))
@@ -2263,7 +2302,10 @@ smart_merge() {
     # Merge wezterm.lua
     local wez_cfg="$HOME/.config/wezterm/wezterm.lua"
     if [ -f "$backup_path/wezterm.lua" ] && [ -f "$wez_cfg" ]; then
-        if [ "$auto" = "true" ] || _merge_confirm "wezterm.lua"; then
+        if diff -q "$backup_path/wezterm.lua" "$wez_cfg" &>/dev/null; then
+            log_info "  · wezterm.lua: no changes (skipping)"
+        elif [ "$auto" = "true" ] || _merge_confirm "wezterm.lua" "$backup_path/wezterm.lua" "$wez_cfg"; then
+            log_info "  → wezterm.lua  [tool: bash (awk/sed), policy: prepend user customizations]"
             merge_lua_configs "$backup_path/wezterm.lua" "$wez_cfg"
             log_success "$(msg "merge_merged" "wezterm.lua")"
             ((merged_count++))
@@ -2275,7 +2317,10 @@ smart_merge() {
     for shell_cfg in bashrc zshrc; do
         local target_shell="$HOME/.$shell_cfg"
         if [ -f "$backup_path/$shell_cfg" ] && [ -f "$target_shell" ]; then
-            if [ "$auto" = "true" ] || _merge_confirm "$shell_cfg"; then
+            if diff -q "$backup_path/$shell_cfg" "$target_shell" &>/dev/null; then
+                log_info "  · $shell_cfg: no changes (skipping)"
+            elif [ "$auto" = "true" ] || _merge_confirm "$shell_cfg" "$backup_path/$shell_cfg" "$target_shell"; then
+                log_info "  → $shell_cfg  [tool: bash (grep/sed), policy: backup-wins per export]"
                 merge_shell_configs "$backup_path/$shell_cfg" "$target_shell"
                 log_success "$(msg "merge_merged" "$shell_cfg")"
                 ((merged_count++))
