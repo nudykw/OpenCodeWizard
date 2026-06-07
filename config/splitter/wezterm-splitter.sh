@@ -10,18 +10,20 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM HUP
 
-GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
 
-# 1. Split left 40% — создаёт левую колонку, возвращает её ID
-LEFT_PANE=$(wezterm cli split-pane --left --percent 40)
+# 2 layout: git → left col gitui+shared, no-git → shared становится full-height left
+if [ -n "$GIT_ROOT" ]; then
+  LEFT_PANE=$(wezterm cli split-pane --left --percent 40)
+  SHARED_PANE=$(wezterm cli split-pane --pane-id "$LEFT_PANE" --bottom --percent 30)
+else
+  SHARED_PANE=$(wezterm cli split-pane --left --percent 40)
+fi
 
-# 2. Split левой колонки снизу 30% — общий терминал
-SHARED_PANE=$(wezterm cli split-pane --pane-id "$LEFT_PANE" --bottom --percent 30)
-
-# 3. Сохранить ID shared терминала (уникален для каждой панели WezTerm)
+# Сохранить ID shared терминала (уникален для каждой панели WezTerm)
 echo "$SHARED_PANE" > "/tmp/wezterm-shared-pane-for-$WEZTERM_PANE"
 
-# 4. Если есть git — запустить gitui в верхней-левой панели
+# Если есть git — запустить gitui в верхней-левой панели
 if [ -n "$GIT_ROOT" ]; then
   printf 'cd %s && gitui\n' "$GIT_ROOT" | wezterm cli send-text --no-paste --pane-id "$LEFT_PANE"
 fi
