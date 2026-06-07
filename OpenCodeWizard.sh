@@ -1989,6 +1989,19 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
+-- Robust HOME detection (os.getenv may return "" in some WezTerm Lua contexts)
+local HOME = os.getenv("HOME")
+if not HOME or HOME == "" then
+  local f = io.popen("echo $HOME")
+  if f then
+    HOME = f:read("*l") or ""
+    f:close()
+  end
+end
+if not HOME or HOME == "" then
+  HOME = "/Users/" .. (os.getenv("USER") or "")
+end
+
 -- Appearance & Styling
 config.color_scheme = 'Catppuccin Mocha'
 config.font = wezterm.font 'JetBrainsMono NFM'
@@ -2004,154 +2017,140 @@ config.window_padding = {
 config.hide_tab_bar_if_only_one_tab = true
 
 -- Keybindings
-config.keys = {
-  -- Gitui + Shared terminal + OpenCode split in new tab
-  {
+config.keys = {}
+local is_win = wezterm.target_triple:find("windows")
+
+-- Gitui + Shared terminal + OpenCode split in new tab
+if is_win then
+  local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+  table.insert(config.keys, {
     key = 'G',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action_callback(function(window, pane)
-      local is_win = wezterm.target_triple:find("windows")
-      local script_path
-
-      if is_win then
-        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
-        window:perform_action(
-          wezterm.action.SpawnCommandInNewTab {
-            args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path },
-          },
-          pane
-        )
-      else
-        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
-        window:perform_action(
-          wezterm.action.SpawnCommandInNewTab {
-            args = { script_path },
-          },
-          pane
-        )
-      end
-    end),
-  },
-  -- Gitui + Shared terminal + OpenCode split in current pane
-  {
-    key = 'O',
+    action = wezterm.action.SpawnCommandInNewTab {
+      args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path },
+    },
+  })
+else
+  local script_path = HOME .. "/.local/bin/wezterm-splitter.sh"
+  table.insert(config.keys, {
+    key = 'G',
     mods = 'CTRL|SHIFT',
-    action = wezterm.action_callback(function(window, pane)
-      local is_win = wezterm.target_triple:find("windows")
-      local script_path
+    action = wezterm.action.SpawnCommandInNewTab {
+      args = { "sh", script_path },
+    },
+  })
+end
 
-      if is_win then
-        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
-        pane:send_text("powershell -ExecutionPolicy Bypass -File \"" .. script_path .. "\"\n")
-      else
-        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
-        pane:send_text(script_path .. "\n")
-      end
-    end),
-  },
-  -- Gitui + Shared terminal + OpenCode split in new workspace
-  {
+-- Gitui + Shared terminal + OpenCode split in current pane
+table.insert(config.keys, {
+  key = 'O',
+  mods = 'CTRL|SHIFT',
+  action = wezterm.action_callback(function(window, pane)
+    if is_win then
+      local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+      pane:send_text("powershell -ExecutionPolicy Bypass -File \"" .. script_path .. "\"\n")
+    else
+      pane:send_text("$HOME/.local/bin/wezterm-splitter.sh\n")
+    end
+  end),
+})
+
+-- Gitui + Shared terminal + OpenCode split in new workspace
+if is_win then
+  local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
+  table.insert(config.keys, {
     key = 'G',
     mods = 'CTRL|SHIFT|ALT',
-    action = wezterm.action_callback(function(window, pane)
-      local is_win = wezterm.target_triple:find("windows")
-      local script_path
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'git',
+      spawn = { args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path } },
+    },
+  })
+else
+  local script_path = HOME .. "/.local/bin/wezterm-splitter.sh"
+  table.insert(config.keys, {
+    key = 'G',
+    mods = 'CTRL|SHIFT|ALT',
+    action = wezterm.action.SwitchToWorkspace {
+      name = 'git',
+      spawn = { args = { "sh", script_path } },
+    },
+  })
+end
 
-      if is_win then
-        script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
-        window:perform_action(
-          wezterm.action.SwitchToWorkspace {
-            name = 'git',
-            spawn = { args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path } },
-          },
-          pane
-        )
-      else
-        script_path = os.getenv("HOME") .. "/.local/bin/wezterm-splitter.sh"
-        window:perform_action(
-          wezterm.action.SwitchToWorkspace {
-            name = 'git',
-            spawn = { args = { script_path } },
-          },
-          pane
-        )
+-- Standard splits
+table.insert(config.keys, {
+  key = 'D',
+  mods = 'CTRL|SHIFT',
+  action = wezterm.action.SplitPane {
+    direction = 'Down',
+    size = { Percent = 50 },
+  },
+})
+table.insert(config.keys, {
+  key = 'E',
+  mods = 'CTRL|SHIFT',
+  action = wezterm.action.SplitPane {
+    direction = 'Right',
+    size = { Percent = 50 },
+  },
+})
+-- Close current pane
+table.insert(config.keys, {
+  key = 'W',
+  mods = 'CTRL|SHIFT',
+  action = wezterm.action.CloseCurrentPane { confirm = true },
+})
+-- Paste screenshot from clipboard
+table.insert(config.keys, {
+  key = 'I',
+  mods = 'CTRL|SHIFT',
+  action = wezterm.action_callback(function(window, pane)
+    local is_windows = wezterm.target_triple:find("windows") ~= nil
+    local success = false
+    local filename = ""
+
+    if is_windows then
+      local home = os.getenv("USERPROFILE")
+      local pictures_dir = home .. "\\Pictures\\opencode_screenshots"
+      os.execute('powershell -Command "New-Item -ItemType Directory -Force -Path \'' .. pictures_dir .. '\'" >nul 2>&1')
+      local timestamp = os.date("%Y%m%d_%H%M%S")
+      filename = pictures_dir .. "\\screenshot_" .. timestamp .. ".png"
+      local ps_cmd = 'powershell -Command "Add-Type -AssemblyName System.Windows.Forms; if ([System.Windows.Forms.Clipboard]::ContainsImage()) { $img = [System.Windows.Forms.Clipboard]::GetImage(); $img.Save(\'' .. filename .. '\', [System.Drawing.Imaging.ImageFormat]::Png); exit 0 } else { exit 1 }"'
+      if os.execute(ps_cmd) == 0 then
+        success = true
+        filename = filename:gsub("\\", "/")
       end
-    end),
-  },
-  -- Standard splits
-  {
-    key = 'D',
-    mods = 'CTRL|SHIFT',
-    action = wezterm.action.SplitPane {
-      direction = 'Down',
-      size = { Percent = 50 },
-    },
-  },
-  {
-    key = 'E',
-    mods = 'CTRL|SHIFT',
-    action = wezterm.action.SplitPane {
-      direction = 'Right',
-      size = { Percent = 50 },
-    },
-  },
-  -- Close current pane
-  {
-    key = 'W',
-    mods = 'CTRL|SHIFT',
-    action = wezterm.action.CloseCurrentPane { confirm = true },
-  },
-  -- Paste screenshot from clipboard
-  {
-    key = 'I',
-    mods = 'CTRL|SHIFT',
-    action = wezterm.action_callback(function(window, pane)
-      local is_windows = wezterm.target_triple:find("windows") ~= nil
-      local success = false
-      local filename = ""
+    else
+      local home = os.getenv("HOME")
+      local pictures_dir = home .. "/Pictures/opencode_screenshots"
+      os.execute("mkdir -p " .. pictures_dir)
+      local timestamp = os.date("%Y%m%d_%H%M%S")
+      filename = pictures_dir .. "/screenshot_" .. timestamp .. ".png"
 
-      if is_windows then
-        local home = os.getenv("USERPROFILE")
-        local pictures_dir = home .. "\\Pictures\\opencode_screenshots"
-        os.execute('powershell -Command "New-Item -ItemType Directory -Force -Path \'' .. pictures_dir .. '\'" >nul 2>&1')
-        local timestamp = os.date("%Y%m%d_%H%M%S")
-        filename = pictures_dir .. "\\screenshot_" .. timestamp .. ".png"
-        local ps_cmd = 'powershell -Command "Add-Type -AssemblyName System.Windows.Forms; if ([System.Windows.Forms.Clipboard]::ContainsImage()) { $img = [System.Windows.Forms.Clipboard]::GetImage(); $img.Save(\'' .. filename .. '\', [System.Drawing.Imaging.ImageFormat]::Png); exit 0 } else { exit 1 }"'
-        if os.execute(ps_cmd) == 0 then
-          success = true
-          filename = filename:gsub("\\", "/")
-        end
+      -- Try Wayland (wl-paste)
+      if os.execute("wl-paste --type image/png > " .. filename .. " 2>/dev/null") == 0 then
+        success = true
+      -- Try X11 (xclip)
+      elseif os.execute("xclip -selection clipboard -target image/png -out > " .. filename .. " 2>/dev/null") == 0 then
+        success = true
+      -- Try macOS AppleScript
       else
-        local home = os.getenv("HOME")
-        local pictures_dir = home .. "/Pictures/opencode_screenshots"
-        os.execute("mkdir -p " .. pictures_dir)
-        local timestamp = os.date("%Y%m%d_%H%M%S")
-        filename = pictures_dir .. "/screenshot_" .. timestamp .. ".png"
-
-        -- Try Wayland (wl-paste)
-        if os.execute("wl-paste --type image/png > " .. filename .. " 2>/dev/null") == 0 then
+        local mac_cmd = "osascript -e 'try' -e 'write (the clipboard as «class PNGf») to (open for access POSIX file \"" .. filename .. "\" with write permission)' -e 'on error' -e 'shell exit 1' -e 'end try'"
+        if os.execute(mac_cmd) == 0 then
           success = true
-        -- Try X11 (xclip)
-        elseif os.execute("xclip -selection clipboard -target image/png -out > " .. filename .. " 2>/dev/null") == 0 then
-          success = true
-        -- Try macOS AppleScript
-        else
-          local mac_cmd = "osascript -e 'try' -e 'write (the clipboard as «class PNGf») to (open for access POSIX file \"" .. filename .. "\" with write permission)' -e 'on error' -e 'shell exit 1' -e 'end try'"
-          if os.execute(mac_cmd) == 0 then
-            success = true
-          end
         end
       end
+    end
 
-      if success then
-        pane:send_text("@" .. filename)
-        window:toast_notification("OpenCode Wizard", "Screenshot saved and attached!", 2000)
-      else
-        window:toast_notification("OpenCode Wizard", "No image found in clipboard!", 2000)
-      end
-    end),
-  },
-}
+    if success then
+      pane:send_text("@" .. filename)
+      window:toast_notification("OpenCode Wizard", "Screenshot saved and attached!", 2000)
+    else
+      window:toast_notification("OpenCode Wizard", "No image found in clipboard!", 2000)
+    end
+  end),
+})
 
 return config
 EOF
