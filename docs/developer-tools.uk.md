@@ -22,7 +22,7 @@
 
 | Плагін | Опис |
 | ------- | ----- |
-| `oh-my-openagent` | Керування сесіями та розширені CLI команди |
+| [`oh-my-openagent`](oh-my-openagent.uk.md) | Керування сесіями та розширені CLI команди |
 | `opencode-mem` | Довгострокова Rust RAG пам'ять з гібридним пошуком (BM25 + вектори) |
 | `@different-ai/opencode-browser` | Інтеграція з реальним веб-браузером |
 | `@tarquinen/opencode-smart-title` | Розумне автоматичне іменування активних сесій |

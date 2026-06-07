@@ -8,7 +8,7 @@ This guide provides details on the available OpenCode plugins, their purpose, an
 
 | Plugin Name | Description | Best For |
 | :--- | :--- | :--- |
-| **`oh-my-openagent`** | Core plugin for session management and advanced helper CLI commands. | All users (Essential) |
+| **[`oh-my-openagent`](oh-my-openagent.md)** | Core plugin for session management and advanced helper CLI commands. | All users (Essential) |
 | **`opencode-mem`** | Long-term Rust RAG memory with hybrid search (BM25 + vector). | Analysts, researchers, long-term coders |
 | **`@different-ai/opencode-browser`** | Real browser integration for web research. | Web researchers, writers |
 | **`@tarquinen/opencode-smart-title`** | Generates context-aware titles for chat sessions. | Organized users, frequent chatters |
@@ -19,7 +19,7 @@ This guide provides details on the available OpenCode plugins, their purpose, an
 
 ## Detailed Plugin Descriptions
 
-### 1. `oh-my-openagent`
+### 1. [`oh-my-openagent`](oh-my-openagent.md)
 
 * **What it does:** Provides the fundamental session orchestration, workspace utilities, and advanced helper CLI commands required for OpenCode to function effectively.
 * **Who needs it:** Everyone. This is the heart of the OpenCode experience.

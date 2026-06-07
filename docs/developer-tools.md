@@ -22,7 +22,7 @@ All 6 plugins are installed with the Developer preset. See the main [Plugins ref
 
 | Plugin | Description |
 | ------- | ----------- |
-| `oh-my-openagent` | Session management and advanced CLI commands |
+| [`oh-my-openagent`](oh-my-openagent.md) | Session management and advanced CLI commands |
 | `opencode-mem` | Long-term Rust RAG memory with hybrid search (BM25 + vectors) |
 | `@different-ai/opencode-browser` | Integration with a real web browser |
 | `@tarquinen/opencode-smart-title` | Smart auto-naming of active sessions |
