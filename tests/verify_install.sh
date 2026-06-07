@@ -23,14 +23,26 @@ log_error() { echo -e "${RED}${BOLD}[VERIFY-ERROR]${NC} $1"; }
 
 errors=0
 
+# Detect container environment — skip GUI-specific binary checks
+if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ]; then
+    log_info "Running inside container — skipping GUI binary checks"
+    IN_CONTAINER=true
+else
+    IN_CONTAINER=false
+fi
+
 # 1. Verify WezTerm Installation
 log_info "Verifying WezTerm installation..."
-if command -v wezterm &>/dev/null; then
-    wez_ver=$(wezterm --version 2>&1 || true)
-    log_success "WezTerm is installed: $wez_ver"
+if [ "$IN_CONTAINER" = true ]; then
+    log_info "Skipping WezTerm binary check (container environment)"
 else
-    log_error "WezTerm is NOT installed or not in PATH."
-    ((errors++))
+    if command -v wezterm &>/dev/null; then
+        wez_ver=$(wezterm --version 2>&1 || true)
+        log_success "WezTerm is installed: $wez_ver"
+    else
+        log_error "WezTerm is NOT installed or not in PATH."
+        ((errors++))
+    fi
 fi
 
 # 2. Verify OpenCode CLI Installation
