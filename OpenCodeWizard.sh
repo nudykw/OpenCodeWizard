@@ -979,6 +979,12 @@ install_wezterm() {
         return 0
     fi
 
+    # Detect headless/container environment — skip install gracefully
+    if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ]; then
+        log_info "Container detected — skipping WezTerm installation (headless environment)"
+        return 0
+    fi
+
     if ! ask_confirm "$(msg "ask_wezterm")"; then
         log_info "$(msg "skip_wezterm")"
         return 0
