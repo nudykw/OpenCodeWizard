@@ -2189,8 +2189,6 @@ table.insert(config.keys, {
   end),
 })
 
-end
-
 -- Standard splits
 table.insert(config.keys, {
   key = 'D',

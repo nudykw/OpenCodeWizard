@@ -35,7 +35,11 @@ Your behavior is governed by the configurations found in `.opencode/` and `~/.co
 You can execute commands in a shared terminal via `wezterm cli send-text`.
 The shared terminal only exists when opencode is running inside WezTerm.
 
-### Usage
+All output from the shared terminal is automatically captured to a log file:
+- **Linux/macOS:** `/tmp/wezterm-shared-output-${WEZTERM_PANE}.log`
+- **Windows:** `$env:TEMP\wezterm-shared-output-$env:WEZTERM_PANE.txt`
+
+### Sending Commands
 
 ```bash
 # Check if shared terminal is available (only works in WezTerm)
@@ -61,5 +65,22 @@ $SHARED = Get-Content "$env:TEMP\wezterm-shared-pane-for-$env:WEZTERM_PANE"
 "your_command" | wezterm cli send-text --no-paste --pane-id $SHARED
 ```
 
-**Note:** Output is NOT returned automatically. Ask the user to check the result
-in the shared terminal (bottom-left pane).
+### Reading Output
+
+After sending a command, read the log file to see the results.
+The log includes raw ANSI escape sequences — always strip them.
+
+```bash
+# Read output from the shared terminal log (strip ANSI escapes)
+SHARED_LOG="/tmp/wezterm-shared-output-${WEZTERM_PANE}.log"
+sed 's/\x1b\[[0-9;]*[a-zA-Z]//g; s/\x1b\][0-9;]*[^\x07]*\x07//g; s/\x1b[=_\>]//g' "$SHARED_LOG" | tail -20
+```
+
+```powershell
+# Read output from the shared terminal log (Windows)
+$SharedLog = "$env:TEMP\wezterm-shared-output-$env:WEZTERM_PANE.txt"
+Get-Content $SharedLog -Tail 20
+```
+
+**Tip:** To read only new output, save the file size before sending a command,
+then read from that offset after the command completes.

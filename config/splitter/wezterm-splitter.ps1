@@ -5,12 +5,15 @@ $ErrorActionPreference = 'Stop'
 $GitRoot = git rev-parse --show-toplevel 2>$null
 if ($LASTEXITCODE -ne 0) { $GitRoot = '' }
 
+# Shared terminal output log (AI reads this to see command results)
+$SharedLog = "$env:TEMP\wezterm-shared-output-$env:WEZTERM_PANE.txt"
+
 # 2 layout: git → left col gitui+shared, no-git → shared становится full-height left
 if ($GitRoot) {
     $LeftPane = wezterm cli split-pane --left --percent 40
-    $SharedPane = wezterm cli split-pane --pane-id $LeftPane --bottom --percent 30
+    $SharedPane = wezterm cli split-pane --pane-id $LeftPane --bottom --percent 30 -- powershell -NoExit -Command "Start-Transcript -Path '$SharedLog' -Append"
 } else {
-    $SharedPane = wezterm cli split-pane --left --percent 40
+    $SharedPane = wezterm cli split-pane --left --percent 40 -- powershell -NoExit -Command "Start-Transcript -Path '$SharedLog' -Append"
 }
 
 try {
@@ -31,4 +34,6 @@ finally {
     if ($LeftPane) {
         wezterm cli kill-pane --pane-id $LeftPane 2>$null
     }
+    # Remove shared terminal log
+    Remove-Item -Path "$env:TEMP\wezterm-shared-output-$env:WEZTERM_PANE.txt" -Force -ErrorAction SilentlyContinue
 }

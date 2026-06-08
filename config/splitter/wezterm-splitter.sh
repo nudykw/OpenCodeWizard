@@ -7,17 +7,28 @@ set -e
 cleanup() {
     wezterm cli kill-pane --pane-id "$SHARED_PANE" 2>/dev/null || true
     wezterm cli kill-pane --pane-id "$LEFT_PANE" 2>/dev/null || true
+    rm -f "/tmp/wezterm-shared-output-${WEZTERM_PANE}.log"
 }
 trap cleanup EXIT INT TERM HUP
 
 GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
 
+# Shared terminal output log (AI reads this to see command results)
+SHARED_LOG="/tmp/wezterm-shared-output-${WEZTERM_PANE}.log"
+
+# Detect script flavour for capturing shared terminal output
+if script --version 2>/dev/null | grep -q 'util-linux'; then
+  _SCRIPT_CMD="script -q -f"     # GNU/Linux: -f = flush after each write
+else
+  _SCRIPT_CMD="script -q -F"     # BSD/macOS: -F = flush after each write
+fi
+
 # 2 layout: git → left col gitui+shared, no-git → shared становится full-height left
 if [ -n "$GIT_ROOT" ]; then
   LEFT_PANE=$(wezterm cli split-pane --left --percent 40)
-  SHARED_PANE=$(wezterm cli split-pane --pane-id "$LEFT_PANE" --bottom --percent 30)
+  SHARED_PANE=$(wezterm cli split-pane --pane-id "$LEFT_PANE" --bottom --percent 30 -- $_SCRIPT_CMD "$SHARED_LOG")
 else
-  SHARED_PANE=$(wezterm cli split-pane --left --percent 40)
+  SHARED_PANE=$(wezterm cli split-pane --left --percent 40 -- $_SCRIPT_CMD "$SHARED_LOG")
 fi
 
 # Сохранить ID shared терминала (уникален для каждой панели WezTerm)
