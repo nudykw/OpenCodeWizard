@@ -141,6 +141,9 @@ $Translations = @{
         "plugin_browser_desc" = "@different-ai/opencode-browser (Інтеграція з реальним браузером)"
         "plugin_title_desc" = "@tarquinen/opencode-smart-title (Розумне авто-найменування сесій)"
         "plugin_speed_desc" = "opencode-token-speed-plugin (Відображення швидкості генерації токенів, TPS)"
+        "codebase_index_prereq_fail" = "Відсутній embedding-провайдер у auth.json"
+        "codebase_index_skip" = "Пропуск opencode-codebase-index:"
+        "codebase_index_solution" = "Щоб увімкнути: додайте openai, google або github-copilot до ~/.local/share/opencode/auth.json"
         "ask_plugin_install" = "Встановити плагін"
         "ask_mcp" = "Налаштувати MCP-сервери?"
         "skip_mcp" = "Пропуск налаштування MCP-серверів."
@@ -305,6 +308,9 @@ $Translations = @{
         "plugin_browser_desc" = "@different-ai/opencode-browser (Integration with a real web browser)"
         "plugin_title_desc" = "@tarquinen/opencode-smart-title (Smart auto-naming of active sessions)"
         "plugin_speed_desc" = "opencode-token-speed-plugin (Real-time speed indicator, Tokens Per Second)"
+        "codebase_index_prereq_fail" = "Missing embedding provider in auth.json"
+        "codebase_index_skip" = "Skipping opencode-codebase-index:"
+        "codebase_index_solution" = "To enable: add openai, google, or github-copilot to ~/.local/share/opencode/auth.json"
         "ask_plugin_install" = "Install plugin"
         "ask_mcp" = "Configure MCP servers?"
         "skip_mcp" = "Skipping MCP configuration."
@@ -1305,6 +1311,41 @@ function Install-OpenCode {
     }
 }
 
+# Check if any embedding-capable provider is available in auth.json
+# The opencode-codebase-index plugin needs one of: openai, google, github-copilot, ollama
+function Test-HasEmbeddingProvider {
+    $authFile = Join-Path $HOME ".local\share\opencode\auth.json"
+    if (-not (Test-Path $authFile)) {
+        return $false
+    }
+    try {
+        $auth = Get-Content $authFile -Raw | ConvertFrom-Json
+        # Check for openai with api key
+        if ($auth.openai -and $auth.openai.type -eq "api" -and $auth.openai.key -and $auth.openai.key -match "^sk-") {
+            return $true
+        }
+        # Check for google with api key
+        if ($auth.google -and $auth.google.type -eq "api" -and $auth.google.key) {
+            return $true
+        }
+        # Check for github-copilot with oauth token
+        if ($auth.'github-copilot' -and $auth.'github-copilot'.type -eq "oauth") {
+            return $true
+        }
+    } catch {
+        # Invalid JSON or parse error — treat as no provider
+    }
+    # Check for ollama running locally with an embedding model
+    try {
+        $response = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 2 -ErrorAction Stop
+        $hasModel = ($response.models | Where-Object { $_.name -match "nomic-embed|mxbai-embed|all-minilm" }) -ne $null
+        if ($hasModel) { return $true }
+    } catch {
+        # Ollama not reachable — not available
+    }
+    return $false
+}
+
 # 4. Plugins installation
 function Install-Plugins {
     if (-not (Get-Command opencode -ErrorAction SilentlyContinue)) {
@@ -1334,6 +1375,18 @@ function Install-Plugins {
         # Skip if not in preset
         if (-not (Is-InPreset $pluginName $presetPlugins)) {
             continue
+        }
+
+        # Prerequisite check for codebase-index: requires embedding provider in auth.json
+        if ($pluginName -eq "opencode-codebase-index") {
+            if (-not (Test-HasEmbeddingProvider)) {
+                Log-Warning "$(Get-Msg 'codebase_index_skip') $(Get-Msg 'codebase_index_prereq_fail')"
+                Log-Info "  → $(Get-Msg 'codebase_index_solution')"
+                if ($DryRun) {
+                    Log-Dry "  Would skip opencode-codebase-index (no embedding provider)"
+                }
+                continue
+            }
         }
 
         $shouldInstall = $true
@@ -1477,10 +1530,20 @@ function Configure-OpenCode {
 
     $pluginJson = ""
     $firstPlugin = $true
+    $codebaseIndexHasProvider = Test-HasEmbeddingProvider
     foreach ($entry in $OpencodePlugins) {
         $pluginName = $entry.Split('|')[0]
         # Skip if not in preset
         if (-not (Is-InPreset $pluginName $presetPlugins)) {
+            continue
+        }
+        # Skip codebase-index if no embedding provider
+        if ($pluginName -eq "opencode-codebase-index" -and -not $codebaseIndexHasProvider) {
+            Log-Info "$(Get-Msg 'codebase_index_skip') $(Get-Msg 'codebase_index_prereq_fail')"
+            Log-Info "  → $(Get-Msg 'codebase_index_solution')"
+            if ($DryRun) {
+                Log-Dry "  Would exclude opencode-codebase-index from config (no embedding provider)"
+            }
             continue
         }
         if (-not $firstPlugin) { $pluginJson += ",`n" }

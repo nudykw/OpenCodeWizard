@@ -336,6 +336,9 @@ msg() {
                 "skip_plugin_preset") echo "Пропуск (немає в пресеті):" ;;
                 "dry_install_plugin") echo "Встановить плагін:" ;;
                 "plugin_install_failed") echo "Не вдалося встановити або вже встановлено:" ;;
+                "codebase_index_prereq_fail") echo "Відсутній embedding-провайдер у auth.json" ;;
+                "codebase_index_skip") echo "Пропуск opencode-codebase-index:" ;;
+                "codebase_index_solution") echo "Щоб увімкнути: додайте openai, google або github-copilot до ~/.local/share/opencode/auth.json" ;;
                 "skip_mcp_preset") echo "Пропуск MCP (немає в пресеті):" ;;
                 "dry_write_system_info") echo "Запише system_info.md у" ;;
                 "dry_write_opencode_config") echo "Запише opencode.jsonc у" ;;
@@ -554,6 +557,9 @@ msg() {
                 "skip_plugin_preset") echo "Skipping (not in preset):" ;;
                 "dry_install_plugin") echo "Would install plugin:" ;;
                 "plugin_install_failed") echo "Failed to install or already installed:" ;;
+                "codebase_index_prereq_fail") echo "Missing embedding provider in auth.json" ;;
+                "codebase_index_skip") echo "Skipping opencode-codebase-index:" ;;
+                "codebase_index_solution") echo "To enable: add openai, google, or github-copilot to ~/.local/share/opencode/auth.json" ;;
                 "skip_mcp_preset") echo "Skipping MCP (not in preset):" ;;
                 "dry_write_system_info") echo "Would write system_info.md to" ;;
                 "dry_write_opencode_config") echo "Would write opencode.jsonc to" ;;
@@ -1656,6 +1662,48 @@ install_opencode() {
     hash -r
 }
 
+# Check if any embedding-capable provider is available in auth.json
+# The opencode-codebase-index plugin needs one of: openai, google, github-copilot, ollama
+has_embedding_provider() {
+    local auth_file="$HOME/.local/share/opencode/auth.json"
+    if [ ! -f "$auth_file" ]; then
+        return 1
+    fi
+    # Check for openai with api key
+    if grep -q '"openai"' "$auth_file" 2>/dev/null && \
+       grep -q '"type"[[:space:]]*:[[:space:]]*"api"' "$auth_file" 2>/dev/null && \
+       grep -q '"key"[[:space:]]*:[[:space:]]*"sk-' "$auth_file" 2>/dev/null; then
+        # Verify the openai entry actually has a key (not just the header)
+        if grep -A5 '"openai"' "$auth_file" | grep -q '"key"' 2>/dev/null; then
+            return 0
+        fi
+    fi
+    # Check for google with api key
+    if grep -q '"google"' "$auth_file" 2>/dev/null && \
+       grep -q '"type"[[:space:]]*:[[:space:]]*"api"' "$auth_file" 2>/dev/null; then
+        if grep -A5 '"google"' "$auth_file" | grep -q '"key"' 2>/dev/null; then
+            return 0
+        fi
+    fi
+    # Check for github-copilot with oauth token
+    if grep -q '"github-copilot"' "$auth_file" 2>/dev/null; then
+        if grep -A5 '"github-copilot"' "$auth_file" | grep -q '"type"[[:space:]]*:[[:space:]]*"oauth"' 2>/dev/null; then
+            return 0
+        fi
+    fi
+    # Check for ollama running locally with an embedding model
+    if command -v curl &>/dev/null; then
+        local ollama_tags
+        ollama_tags=$(curl -sf --connect-timeout 2 http://localhost:11434/api/tags 2>/dev/null || true)
+        if [ -n "$ollama_tags" ]; then
+            if echo "$ollama_tags" | grep -qE 'nomic-embed|mxbai-embed|all-minilm' 2>/dev/null; then
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
 # Plugins setup
 install_plugins() {
     if ! command -v opencode &>/dev/null; then
@@ -1703,6 +1751,18 @@ install_plugins() {
                 continue
             fi
             speed_plugin_installed=true
+        fi
+
+        # Prerequisite check for codebase-index: requires embedding provider in auth.json
+        if [ "$plugin_name" = "opencode-codebase-index" ]; then
+            if ! has_embedding_provider; then
+                log_warning "$(msg "codebase_index_skip") $(msg "codebase_index_prereq_fail")"
+                log_info "  → $(msg "codebase_index_solution")"
+                if is_dry_run; then
+                    log_dry "  Would skip opencode-codebase-index (no embedding provider)"
+                fi
+                continue
+            fi
         fi
 
         local should_install=true
@@ -1820,12 +1880,28 @@ configure_opencode() {
     done
 
     # Build plugin JSON array from OPENCODE_PLUGINS (filtered by preset)
+    # Skip opencode-codebase-index if no embedding provider is configured
+    local codebase_index_has_provider
+    if has_embedding_provider; then
+        codebase_index_has_provider=true
+    else
+        codebase_index_has_provider=false
+    fi
     local plugin_json=""
     local first_plugin=true
     for entry in "${OPENCODE_PLUGINS[@]}"; do
         local pname="${entry%%|*}"
         # Skip if not in preset
         if ! is_in_preset "$pname" "${preset_plugins[@]}"; then
+            continue
+        fi
+        # Skip codebase-index if no embedding provider
+        if [ "$pname" = "opencode-codebase-index" ] && [ "$codebase_index_has_provider" = false ]; then
+            log_info "$(msg "codebase_index_skip") $(msg "codebase_index_prereq_fail")"
+            log_info "  → $(msg "codebase_index_solution")"
+            if is_dry_run; then
+                log_dry "  Would exclude opencode-codebase-index from config (no embedding provider)"
+            fi
             continue
         fi
         if [ "$first_plugin" = false ]; then
