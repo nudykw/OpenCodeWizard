@@ -844,7 +844,8 @@ create_backup() {
     local dest="$BACKUP_DIR/$BACKUP_ID"
     mkdir -p "$dest"
 
-    local backed_up=()
+    local backed_up
+    backed_up=()
     local opencode_cfg="$HOME/.config/opencode/opencode.jsonc"
     local sysinfo="$HOME/.config/opencode/system_info.md"
     local wez_cfg="$HOME/.config/wezterm/wezterm.lua"
