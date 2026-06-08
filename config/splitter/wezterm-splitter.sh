@@ -30,4 +30,14 @@ fi
 
 # 5. Запустить opencode — cleanup выполнится через trap при выходе
 # "|| true" нужен, чтобы set -e не прервал скрипт при ошибке opencode
+# opencode binary may not be in PATH (SpawnCommandInNewTab uses non-login shell)
+# Try to find it via npm/nvm common locations before falling back to PATH
+if ! command -v opencode >/dev/null 2>&1; then
+  for _nvm_bin in "$HOME/.nvm/versions/node/"*/bin; do
+    if [ -f "$_nvm_bin/opencode" ]; then
+      PATH="$_nvm_bin:$PATH"
+      break
+    fi
+  done
+fi
 opencode -m opencode/deepseek-v4-flash-free || true

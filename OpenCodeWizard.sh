@@ -2147,11 +2147,18 @@ config.hide_tab_bar_if_only_one_tab = true
 config.keys = {}
 local is_win = wezterm.target_triple:find("windows")
 
+-- Disable default CTRL+g (CopyMode Close) so our CTRL+SHIFT+g bindings work without conflict
+table.insert(config.keys, {
+  key = 'g',
+  mods = 'CTRL',
+  action = wezterm.action.DisableDefaultAssignment,
+})
+
 -- Gitui + Shared terminal + OpenCode split in new tab
 if is_win then
   local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
   table.insert(config.keys, {
-    key = 'G',
+    key = 'g',
     mods = 'CTRL|SHIFT',
     action = wezterm.action.SpawnCommandInNewTab {
       args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path },
@@ -2160,7 +2167,7 @@ if is_win then
 else
   local script_path = HOME .. "/.local/bin/wezterm-splitter.sh"
   table.insert(config.keys, {
-    key = 'G',
+    key = 'g',
     mods = 'CTRL|SHIFT',
     action = wezterm.action.SpawnCommandInNewTab {
       args = { "sh", script_path },
@@ -2182,27 +2189,6 @@ table.insert(config.keys, {
   end),
 })
 
--- Gitui + Shared terminal + OpenCode split in new workspace
-if is_win then
-  local script_path = os.getenv("LOCALAPPDATA") .. "\\wezterm-splitter.ps1"
-  table.insert(config.keys, {
-    key = 'G',
-    mods = 'CTRL|SHIFT|ALT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'git',
-      spawn = { args = { "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path } },
-    },
-  })
-else
-  local script_path = HOME .. "/.local/bin/wezterm-splitter.sh"
-  table.insert(config.keys, {
-    key = 'G',
-    mods = 'CTRL|SHIFT|ALT',
-    action = wezterm.action.SwitchToWorkspace {
-      name = 'git',
-      spawn = { args = { "sh", script_path } },
-    },
-  })
 end
 
 -- Standard splits
