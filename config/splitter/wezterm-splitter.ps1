@@ -2,8 +2,11 @@
 # wezterm-splitter — creates 3-pane layout: gitui(optional) | shared terminal + opencode
 $ErrorActionPreference = 'Stop'
 
-$GitRoot = git rev-parse --show-toplevel 2>$null
-if ($LASTEXITCODE -ne 0) { $GitRoot = '' }
+# [Windows] Suppress NativeCommandError when not in a git repo
+#   $ErrorActionPreference='Stop' turns native stderr into error records;
+#   we override it locally so `fatal: not a git repository` stays silent.
+$GitRoot = &{ $ErrorActionPreference = 'Continue'; git rev-parse --show-toplevel 2>$null } 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $GitRoot) { $GitRoot = '' }
 
 # Shared terminal output log (AI reads this to see command results)
 $SharedLog = "$env:TEMP\wezterm-shared-output-$env:WEZTERM_PANE.txt"

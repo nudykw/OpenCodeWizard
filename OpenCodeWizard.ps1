@@ -141,9 +141,9 @@ $Translations = @{
         "plugin_browser_desc" = "@different-ai/opencode-browser (Інтеграція з реальним браузером)"
         "plugin_title_desc" = "@tarquinen/opencode-smart-title (Розумне авто-найменування сесій)"
         "plugin_speed_desc" = "opencode-token-speed-plugin (Відображення швидкості генерації токенів, TPS)"
-        "codebase_index_prereq_fail" = "Відсутній embedding-провайдер у auth.json"
-        "codebase_index_skip" = "Пропуск opencode-codebase-index:"
-        "codebase_index_solution" = "Щоб увімкнути: додайте openai, google або github-copilot до ~/.local/share/opencode/auth.json"
+    "codebase_index_prereq_fail" = "Відсутній embedding-провайдер у auth.json"
+    "codebase_index_skip" = "Пропуск opencode-codebase-index:"
+    "codebase_index_solution" = "Щоб увімкнути: додайте openai, google або github-copilot до"
         "ask_plugin_install" = "Встановити плагін"
         "ask_mcp" = "Налаштувати MCP-сервери?"
         "skip_mcp" = "Пропуск налаштування MCP-серверів."
@@ -308,9 +308,9 @@ $Translations = @{
         "plugin_browser_desc" = "@different-ai/opencode-browser (Integration with a real web browser)"
         "plugin_title_desc" = "@tarquinen/opencode-smart-title (Smart auto-naming of active sessions)"
         "plugin_speed_desc" = "opencode-token-speed-plugin (Real-time speed indicator, Tokens Per Second)"
-        "codebase_index_prereq_fail" = "Missing embedding provider in auth.json"
-        "codebase_index_skip" = "Skipping opencode-codebase-index:"
-        "codebase_index_solution" = "To enable: add openai, google, or github-copilot to ~/.local/share/opencode/auth.json"
+    "codebase_index_prereq_fail" = "Missing embedding provider in auth.json"
+    "codebase_index_skip" = "Skipping opencode-codebase-index:"
+    "codebase_index_solution" = "To enable: add openai, google, or github-copilot to"
         "ask_plugin_install" = "Install plugin"
         "ask_mcp" = "Configure MCP servers?"
         "skip_mcp" = "Skipping MCP configuration."
@@ -840,7 +840,9 @@ function Args-ToJsonArray {
     $first = $true
     foreach ($arg in $argsArr) {
         if (-not $first) { $json += ", " }
-        $json += "`"$arg`""
+        # [Windows] Escape backslashes and double quotes for valid JSON
+        $escapedArg = $arg -replace '\\', '\\' -replace '"', '\"'
+        $json += "`"$escapedArg`""
         $first = $false
     }
     $json += "]"
@@ -1005,8 +1007,30 @@ function Install-NerdFont {
             throw ($copyErrors -join "; ")
         }
 
+        # [Windows] Register font in Windows registry so DirectWrite (WezTerm) can find it
+        $fontRegPath = if ($usedFallback) {
+            "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+        } else {
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+        }
+        # Core variants needed by WezTerm: Regular, Bold, Italic, BoldItalic
+        $regEntries = @(
+            @{ Name = "JetBrainsMono NFM (TrueType)";         File = "JetBrainsMonoNerdFontMono-Regular.ttf" }
+            @{ Name = "JetBrainsMono NFM Bold (TrueType)";    File = "JetBrainsMonoNerdFontMono-Bold.ttf" }
+            @{ Name = "JetBrainsMono NFM Italic (TrueType)";  File = "JetBrainsMonoNerdFontMono-Italic.ttf" }
+            @{ Name = "JetBrainsMono NFM Bold Italic (TrueType)"; File = "JetBrainsMonoNerdFontMono-BoldItalic.ttf" }
+        )
+        foreach ($entry in $regEntries) {
+            $fontFile = Join-Path $fontDir $entry.File
+            if (Test-Path $fontFile) {
+                $existing = Get-ItemProperty -Path $fontRegPath -Name $entry.Name -ErrorAction SilentlyContinue
+                if (-not $existing) {
+                    Set-ItemProperty -Path $fontRegPath -Name $entry.Name -Value $entry.File -ErrorAction SilentlyContinue
+                }
+            }
+        }
         if ($usedFallback) {
-            Log-Warning "JetBrainsMono Nerd Font was installed to the per-user font directory: $userFontDir. Windows may need a sign-out/sign-in, and WezTerm may need that path added to font_dirs."
+            Log-Warning "JetBrainsMono Nerd Font was installed to the per-user font directory: $userFontDir."
         }
 
         Log-Success "$(Get-Msg 'nerdfont_success')"
@@ -1311,6 +1335,17 @@ function Install-OpenCode {
     }
 }
 
+# [Windows] Return platform-appropriate display path for auth.json
+#   Windows → full $HOME path (e.g. C:\Users\user\.local\share\opencode\auth.json)
+#   Unix    → ~/.local/share/opencode/auth.json
+function Get-AuthJsonDisplayPath {
+    $path = Join-Path $HOME ".local\share\opencode\auth.json"
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        return $path
+    }
+    return "~/.local/share/opencode/auth.json"
+}
+
 # Check if any embedding-capable provider is available in auth.json
 # The opencode-codebase-index plugin needs one of: openai, google, github-copilot, ollama
 function Test-HasEmbeddingProvider {
@@ -1381,7 +1416,7 @@ function Install-Plugins {
         if ($pluginName -eq "opencode-codebase-index") {
             if (-not (Test-HasEmbeddingProvider)) {
                 Log-Warning "$(Get-Msg 'codebase_index_skip') $(Get-Msg 'codebase_index_prereq_fail')"
-                Log-Info "  → $(Get-Msg 'codebase_index_solution')"
+                Log-Info "  → $(Get-Msg 'codebase_index_solution') $(Get-AuthJsonDisplayPath)"
                 if ($DryRun) {
                     Log-Dry "  Would skip opencode-codebase-index (no embedding provider)"
                 }
@@ -1540,7 +1575,7 @@ function Configure-OpenCode {
         # Skip codebase-index if no embedding provider
         if ($pluginName -eq "opencode-codebase-index" -and -not $codebaseIndexHasProvider) {
             Log-Info "$(Get-Msg 'codebase_index_skip') $(Get-Msg 'codebase_index_prereq_fail')"
-            Log-Info "  → $(Get-Msg 'codebase_index_solution')"
+            Log-Info "  → $(Get-Msg 'codebase_index_solution') $(Get-AuthJsonDisplayPath)"
             if ($DryRun) {
                 Log-Dry "  Would exclude opencode-codebase-index from config (no embedding provider)"
             }
@@ -2252,8 +2287,10 @@ try {
         Log-Info "Merging configs from: $MergeBackup"
         Smart-Merge -BackupPath $MergeBackup -Auto $true
     } else {
-        # Generate developer docs upfront if configs exist
-        & "$PSScriptRoot\scripts\generate-dev-docs.sh" 2>$null
+        # [Windows] Skip .sh scripts — not executable on Windows
+        if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+            & "$PSScriptRoot\scripts\generate-dev-docs.sh" 2>$null
+        }
         Select-Preset
         Set-OpenCodeExecutionPolicy
         Install-WezTerm
@@ -2264,7 +2301,8 @@ try {
         Install-NerdFont
         if ($global:Preset -eq "developer") { Install-Gitui }
         Configure-WezTerm
-        if ($global:Preset -eq "developer") {
+        # [Windows] Skip .sh scripts — not executable on Windows
+        if ($global:Preset -eq "developer" -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
             & "$PSScriptRoot\scripts\generate-dev-docs.sh"
         }
         Configure-DefaultTerminal
