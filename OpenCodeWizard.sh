@@ -386,7 +386,7 @@ msg() {
                 "merge_title") echo "--- Розумне об'єднання конфігурацій ---" ;;
                 "merge_explain") echo "Виявлено існуючі конфігураційні файли у резервній копії. Бажаєте розумно об'єднати новий конфіг зі старим?" ;;
                 "merge_confirm") echo "Об'єднати конфігурацію: $1?" ;;
-                "merge_skipped") echo "Пропущено: $1 (не виявлено у бекапі)" ;;
+                "merge_skipped") echo "Пропущено: $1" ;;
                 "merge_merged") echo "Об'єднано: $1 — старі налаштування збережено" ;;
                 "merge_none") echo "Резервних копій для об'єднання не знайдено." ;;
                 "merge_result") echo "Об'єднання завершено: старі налаштування збережено, нові опції додано" ;;
@@ -608,7 +608,7 @@ msg() {
                 "merge_title") echo "--- Smart Configuration Merge ---" ;;
                 "merge_explain") echo "Existing configuration files found in backup. Would you like to smart-merge the new config with your old one?" ;;
                 "merge_confirm") echo "Merge configuration: $1?" ;;
-                "merge_skipped") echo "Skipped: $1 (not found in backup)" ;;
+                "merge_skipped") echo "Skipped: $1" ;;
                 "merge_merged") echo "Merged: $1 — old settings preserved" ;;
                 "merge_none") echo "No backups found for merging." ;;
                 "merge_result") echo "Merge complete: old settings preserved, new options added" ;;
@@ -1227,16 +1227,67 @@ install_nerd_font() {
 # ==============================================================================
 # Go Installation (required for docs-mcp)
 # ==============================================================================
+find_go_binary() {
+    command -v go 2>/dev/null || echo ""
+}
+
+ensure_go_in_path() {
+    local go_bin="/usr/local/go/bin"
+    if [ -f "$go_bin/go" ] && ! echo "$PATH" | tr ':' '\n' | grep -qx "$go_bin"; then
+        export PATH="$go_bin:$PATH"
+        # Persist to shell RC files for future sessions
+        local rc_files=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$HOME/.bash_profile" "$HOME/.config/fish/config.fish")
+        local added=false
+        for rc in "${rc_files[@]}"; do
+            if [ -f "$rc" ]; then
+                # fish uses a different syntax
+                if [[ "$rc" == *fish* ]]; then
+                    if ! grep -q '/usr/local/go/bin' "$rc" 2>/dev/null; then
+                        echo '' >> "$rc"
+                        echo '# Added by OpenCodeWizard' >> "$rc"
+                        echo 'fish_add_path /usr/local/go/bin' >> "$rc"
+                        added=true
+                    fi
+                else
+                    if ! grep -q '/usr/local/go/bin' "$rc" 2>/dev/null; then
+                        echo '' >> "$rc"
+                        echo '# Added by OpenCodeWizard' >> "$rc"
+                        echo 'export PATH="/usr/local/go/bin:$PATH"' >> "$rc"
+                        added=true
+                    fi
+                fi
+            fi
+        done
+        if [ "$added" = true ]; then
+            log_info "Added /usr/local/go/bin to shell PATH configuration"
+        fi
+    fi
+}
+
 install_go() {
-    if command -v go &>/dev/null; then
+    local go_bin
+    go_bin=$(find_go_binary)
+
+    if [ -z "$go_bin" ]; then
+        if [ -x /usr/local/go/bin/go ]; then
+            go_bin="/usr/local/go/bin/go"
+            export PATH="/usr/local/go/bin:$PATH"
+        elif [ -x /usr/lib/go/bin/go ]; then
+            go_bin="/usr/lib/go/bin/go"
+            export PATH="/usr/lib/go/bin:$PATH"
+        fi
+    fi
+
+    if [ -n "$go_bin" ]; then
         local go_ver go_major go_minor
-        go_ver=$(go version | awk '{print $3}' | sed 's/^go//' | cut -d. -f1,2)
+        go_ver=$("$go_bin" version | awk '{print $3}' | sed 's/^go//' | cut -d. -f1,2)
         go_major="${go_ver%%.*}"
         go_minor="${go_ver#*.}"
         if [ -n "$go_major" ] && [ -n "$go_minor" ] \
            && ( [ "$go_major" -eq 1 ] && [ "$go_minor" -ge 22 ] \
                 || [ "$go_major" -gt 1 ] ) 2>/dev/null; then
             log_success "$(msg "go_already_installed") ${go_ver}"
+            ensure_go_in_path
             return 0
         fi
         log_info "$(msg "go_version_old")"
@@ -2485,6 +2536,8 @@ smart_merge() {
             log_info "$(msg "merge_result")"
         fi
         log_success "$(msg "merge_done")"
+    elif [ "$has_configs" = "true" ]; then
+        log_info "  · nothing to merge (all skipped or up-to-date)"
     else
         log_info "$(msg "merge_none")"
     fi
@@ -2814,7 +2867,6 @@ main() {
             smart_merge "$MERGE_BACKUP_PATH" "true"
             ;;
         setup)
-            bash "$(dirname "$0")/scripts/generate-dev-docs.sh" 2>/dev/null || true
             select_language
             show_onboarding
             detect_os
@@ -2831,7 +2883,7 @@ main() {
             configure_default_terminal
             create_desktop_shortcut
             verify_setup
-            smart_merge
+            smart_merge "" "true"
             ;;
     esac
 }
